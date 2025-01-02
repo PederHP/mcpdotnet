@@ -1,5 +1,4 @@
-﻿// Configuration/McpServerConfig.cs
-namespace McpDotNet.Configuration;
+﻿namespace McpDotNet.Configuration;
 
 /// <summary>
 /// Configuration for an MCP server connection.

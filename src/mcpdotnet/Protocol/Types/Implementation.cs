@@ -1,5 +1,4 @@
-﻿// Protocol/Types/Implementation.cs
-namespace McpDotNet.Protocol.Types;
+﻿namespace McpDotNet.Protocol.Types;
 
 using System.Text.Json.Serialization;
 

@@ -1,15 +1,15 @@
-﻿// Utils/Json/JsonRpcMessageConverter.cs (continued)
-namespace McpDotNet.Utils.Json;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using global::McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Messages;
+
+namespace McpDotNet.Utils.Json;
 
 /// <summary>
 /// JSON converter for IJsonRpcMessage that handles polymorphic deserialization of different message types.
 /// </summary>
 public class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
 {
+    /// </inheritdoc>
     public override IJsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -63,6 +63,7 @@ public class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
         throw new JsonException("Invalid JSON-RPC message format");
     }
 
+    /// </inheritdoc>
     public override void Write(Utf8JsonWriter writer, IJsonRpcMessage value, JsonSerializerOptions options)
     {
         switch (value)

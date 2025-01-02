@@ -1,5 +1,4 @@
-﻿// Client/McpClientOptions.cs
-namespace McpDotNet.Client;
+﻿namespace McpDotNet.Client;
 
 using McpDotNet.Protocol.Types;
 using McpDotNet.Protocol.Transport;
@@ -9,10 +8,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
 
-/// <summary>
-/// Main MCP client implementation that handles protocol lifecycle and message routing.
-/// </summary>
-public class McpClient : IMcpClient
+/// </inheritdoc>
+internal class McpClient : IMcpClient
 {
     private readonly IMcpTransport _transport;
     private readonly McpClientOptions _options;
@@ -24,21 +21,20 @@ public class McpClient : IMcpClient
     private CancellationTokenSource? _cts;
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions().ConfigureForMcp();
 
-    /// <summary>
-    /// Gets whether the client is connected and initialized.
-    /// </summary>
+    /// </inheritdoc>
     public bool IsInitialized => _isInitialized;
 
-    /// <summary>
-    /// Gets the server's capabilities after initialization.
-    /// </summary>
+    /// </inheritdoc>
     public ServerCapabilities? ServerCapabilities { get; private set; }
 
-    /// <summary>
-    /// Gets information about the server implementation after initialization.
-    /// </summary>
+    /// </inheritdoc>
     public Implementation? ServerInfo { get; private set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="McpClient"/> class.
+    /// </summary>
+    /// <param name="transport">An MCP transport implementation.</param>
+    /// <param name="options">Options for the client, defining protocol version and capabilities.</param>
     public McpClient(IMcpTransport transport, McpClientOptions options)
     {
         _transport = transport;
@@ -48,9 +44,7 @@ public class McpClient : IMcpClient
         _nextRequestId = 1;
     }
 
-    /// <summary>
-    /// Connects to the server and performs the initialization sequence.
-    /// </summary>
+    /// </inheritdoc>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (_isInitialized)
@@ -128,6 +122,7 @@ public class McpClient : IMcpClient
         }
     }
 
+    /// </inheritdoc>
     public async Task PingAsync(CancellationToken cancellationToken)
     {
         await SendRequestAsync<dynamic>(
@@ -139,6 +134,7 @@ public class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
+    /// </inheritdoc>
     public async Task<ListToolsResponse> ListToolsAsync(CancellationToken cancellationToken)
     {
         return await SendRequestAsync<ListToolsResponse>(
@@ -151,6 +147,7 @@ public class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
+    /// </inheritdoc>
     public async Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object>? arguments = null,
         CancellationToken cancellationToken = default)
     {
@@ -218,6 +215,7 @@ public class McpClient : IMcpClient
         }
     }
 
+    /// </inheritdoc>
     public async Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
     {
         if (!_transport.IsConnected)
@@ -275,9 +273,7 @@ public class McpClient : IMcpClient
         await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Registers a handler for notifications of a specific method.
-    /// </summary>
+    /// </inheritdoc>
     public void OnNotification(string method, Func<JsonRpcNotification,Task> handler)
     {
         var handlers = _notificationHandlers.GetOrAdd(method, _ => new());

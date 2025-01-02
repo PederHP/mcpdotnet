@@ -1,14 +1,15 @@
-﻿namespace McpDotNet.Utils.Json;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using global::McpDotNet.Protocol.Types;
+using McpDotNet.Protocol.Types;
+
+namespace McpDotNet.Utils.Json;
 
 /// <summary>
 /// JSON converter for IResourceContents that handles polymorphic deserialization based on content properties.
 /// </summary>
 public class ResourceContentsJsonConverter : JsonConverter<IResourceContents>
 {
+    /// </inheritdoc>
     public override IResourceContents? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -32,6 +33,7 @@ public class ResourceContentsJsonConverter : JsonConverter<IResourceContents>
         throw new JsonException("Resource contents must have either 'text' or 'blob' property");
     }
 
+    /// </inheritdoc>
     public override void Write(Utf8JsonWriter writer, IResourceContents value, JsonSerializerOptions options)
     {
         switch (value)

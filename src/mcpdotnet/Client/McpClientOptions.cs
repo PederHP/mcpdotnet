@@ -1,10 +1,11 @@
-﻿// Client/McpClientOptions.cs
+﻿using McpDotNet.Protocol.Types;
+
 namespace McpDotNet.Client;
 
-using global::McpDotNet.Protocol.Types;
-
 /// <summary>
-/// Configuration options for the MCP client.
+/// Configuration options for the MCP client. This is passed to servers during the initialization sequence, letting them know about the client's capabilities and
+/// protocol version.
+/// <see href="https://spec.modelcontextprotocol.io/specification/basic/lifecycle/">See the protocol specification for details on capability negotiation</see>
 /// </summary>
 public record McpClientOptions
 {

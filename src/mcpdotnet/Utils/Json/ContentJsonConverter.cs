@@ -1,15 +1,15 @@
-﻿// Utils/Json/ContentJsonConverter.cs
-namespace McpDotNet.Utils.Json;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using global::McpDotNet.Protocol.Types;
+using McpDotNet.Protocol.Types;
+
+namespace McpDotNet.Utils.Json;
 
 /// <summary>
 /// JSON converter for IContent that handles polymorphic deserialization based on the "type" property.
 /// </summary>
 public class ContentJsonConverter : JsonConverter<IContent>
 {
+    /// </inheritdoc>
     public override IContent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -34,6 +34,7 @@ public class ContentJsonConverter : JsonConverter<IContent>
         };
     }
 
+    /// </inheritdoc>
     public override void Write(Utf8JsonWriter writer, IContent value, JsonSerializerOptions options)
     {
         switch (value)

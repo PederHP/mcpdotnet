@@ -1,8 +1,7 @@
-﻿namespace McpDotNet.Utils.Json;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
+namespace McpDotNet.Utils.Json;
 /// <summary>
 /// Extensions for configuring System.Text.Json serialization options for MCP.
 /// </summary>
