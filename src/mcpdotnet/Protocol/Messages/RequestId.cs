@@ -17,6 +17,7 @@ public readonly struct RequestId : IEquatable<RequestId>
     }
 
     public static RequestId FromString(string value) => new(value);
+
     public static RequestId FromNumber(long value) => new(value);
 
     public bool IsString => _value is string;

@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
 
-/// </inheritdoc>
+/// <inheritdoc/>
 internal class McpClient : IMcpClient
 {
     private readonly IMcpTransport _transport;
@@ -21,13 +21,13 @@ internal class McpClient : IMcpClient
     private CancellationTokenSource? _cts;
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions().ConfigureForMcp();
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public bool IsInitialized => _isInitialized;
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public ServerCapabilities? ServerCapabilities { get; private set; }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public Implementation? ServerInfo { get; private set; }
 
     /// <summary>
@@ -44,7 +44,7 @@ internal class McpClient : IMcpClient
         _nextRequestId = 1;
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (_isInitialized)
@@ -122,7 +122,7 @@ internal class McpClient : IMcpClient
         }
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async Task PingAsync(CancellationToken cancellationToken)
     {
         await SendRequestAsync<dynamic>(
@@ -134,7 +134,7 @@ internal class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async Task<ListToolsResponse> ListToolsAsync(CancellationToken cancellationToken)
     {
         return await SendRequestAsync<ListToolsResponse>(
@@ -147,7 +147,7 @@ internal class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object>? arguments = null,
         CancellationToken cancellationToken = default)
     {
@@ -215,7 +215,7 @@ internal class McpClient : IMcpClient
         }
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
     {
         if (!_transport.IsConnected)
@@ -273,7 +273,7 @@ internal class McpClient : IMcpClient
         await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public void OnNotification(string method, Func<JsonRpcNotification,Task> handler)
     {
         var handlers = _notificationHandlers.GetOrAdd(method, _ => new());

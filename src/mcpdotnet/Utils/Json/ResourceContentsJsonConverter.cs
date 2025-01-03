@@ -9,7 +9,7 @@ namespace McpDotNet.Utils.Json;
 /// </summary>
 public class ResourceContentsJsonConverter : JsonConverter<IResourceContents>
 {
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override IResourceContents? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -33,7 +33,7 @@ public class ResourceContentsJsonConverter : JsonConverter<IResourceContents>
         throw new JsonException("Resource contents must have either 'text' or 'blob' property");
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, IResourceContents value, JsonSerializerOptions options)
     {
         switch (value)

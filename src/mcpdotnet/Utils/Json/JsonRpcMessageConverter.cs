@@ -9,7 +9,7 @@ namespace McpDotNet.Utils.Json;
 /// </summary>
 public class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
 {
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override IJsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -63,7 +63,7 @@ public class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
         throw new JsonException("Invalid JSON-RPC message format");
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, IJsonRpcMessage value, JsonSerializerOptions options)
     {
         switch (value)

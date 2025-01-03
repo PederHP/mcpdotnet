@@ -9,7 +9,7 @@ namespace McpDotNet.Utils.Json;
 /// </summary>
 public class ContentJsonConverter : JsonConverter<IContent>
 {
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override IContent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -34,7 +34,7 @@ public class ContentJsonConverter : JsonConverter<IContent>
         };
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, IContent value, JsonSerializerOptions options)
     {
         switch (value)

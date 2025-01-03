@@ -3,7 +3,31 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>enable</Nullable>    
   </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- license and package properties -->
+    <PackageId>mcpdotnet</PackageId>
+    <Version>0.1.0-alpha1</Version>
+    <Authors>PederHP</Authors>
+    <Description>.NET client library for the Model Context Protocol (MCP)</Description>
+    <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PederHP/mcpdotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mcp;ai;llm;client</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Assembly properties -->
+    <AssemblyName>mcpdotnet</AssemblyName>
+    <RootNamespace>mcpdotnet</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>
