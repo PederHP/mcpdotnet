@@ -19,3 +19,4 @@ public record BlobResourceContents : IResourceContents
     [JsonPropertyName("blob")]
     public required string Blob { get; init; }
 }
+

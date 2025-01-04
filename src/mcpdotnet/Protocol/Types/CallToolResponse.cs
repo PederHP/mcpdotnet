@@ -9,7 +9,7 @@ public class CallToolResponse
     /// <summary>
     /// The server's response to a tools/call request from the client.
     /// </summary>
-    public List<ToolContent> Content { get; set; } = new();
+    public List<Content> Content { get; set; } = new();
 
     /// <summary>
     /// Whether the tool call was unsuccessful. If true, the call was unsuccessful.

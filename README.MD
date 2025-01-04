@@ -16,7 +16,7 @@ For more information about MCP:
 This project is in early development. While functional, it may undergo significant changes as the protocol and implementation evolve.
 
 ### Current Limitations
-- Only supports the Tool capability (Resources, Prompts, Sampling, and Roots not yet implemented)
+- Only supports the Tools, Resources, and Prompts capabilities (Sampling and Roots not yet implemented)
 - Only stdio transport is currently supported (HTTP/SSE transport coming soon)
 - Client library only - server implementation support may be added in the future
 - Provider-agnostic implementation focused purely on the MCP protocol
@@ -28,13 +28,58 @@ The library's current focus is on implementing the core MCP protocol, with the m
 
 - MCP client implementation for .NET applications
 - Support for stdio transport
-- Tool discovery and execution
+- Support for Tool, Resource, and Prompt capabilities
+- Support for pagination and notifications
 - Async/await pattern throughout
 - Compatible with .NET 8.0 and later
 
 ## Getting Started
 
-Documentation and examples are coming soon. For now, please refer to the test project for usage examples.
+To create a client you need to instantiate a factory with configuration objects:
+```csharp
+var options = new McpClientOptions() 
+    { ClientInfo = new() { Name = "TestClient", Version = "1.0.0" } };
+	
+var config = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-everything",
+            }
+        };
+		
+var factory = new McpClientFactory(
+            new[] { config },
+            _defaultOptions
+        );
+```
+
+You can then retrieve an IMcpClient reference using the `id` of a server from the configuration, and use `ListToolsAsync` and `CallToolAsync` to integrate with your LLM-based code.
+
+```csharp
+var client = await factory.GetClientAsync("everything");
+// Get the list of tools, for passing to an LLM
+var tools = await client.ListToolsAsync();
+// Execute a tool, in practice this would normally be driven by LLM tool invocations
+var result = await client.CallToolAsync(
+            "echo",
+            new Dictionary<string, object>
+            {
+                ["message"] = "Hello MCP!"
+            },
+            CancellationToken.None
+        );
+// echo always returns one and only one text content object
+Console.WriteLine(result.Content.FirstOrDefault(c => c.Type == "text").Text);
+```
+
+Note that you should pass CancellationToken objects suitable for your use case, to enable proper error handling, timeouts, etc. This example also does not paginate the tools list, which may be necessary for large tool sets. See the IntegrationTests project for an example of pagination, as well as examples of how to handle Prompts and Resources.
+
+Additional examples and documentation will be added as in the near future.
 
 ## License
 

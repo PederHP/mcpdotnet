@@ -3,9 +3,9 @@
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// A request message in the JSON-RPC protocol.
+/// A notification message in the JSON-RPC protocol (a request that doesn't expect a response).
 /// </summary>
-public record JsonRpcRequest : IJsonRpcMessageWithId
+public record JsonRpcNotification : IJsonRpcMessage
 {
     /// <summary>
     /// JSON-RPC protocol version. Always "2.0".
@@ -14,19 +14,13 @@ public record JsonRpcRequest : IJsonRpcMessageWithId
     public string JsonRpc { get; init; } = "2.0";
 
     /// <summary>
-    /// Request identifier. Must be a string or number and unique within the session.
-    /// </summary>
-    [JsonPropertyName("id")]
-    public RequestId Id { get; set; }
-
-    /// <summary>
-    /// Name of the method to invoke.
+    /// Name of the notification method.
     /// </summary>
     [JsonPropertyName("method")]
     public required string Method { get; init; }
 
     /// <summary>
-    /// Optional parameters for the method.
+    /// Optional parameters for the notification.
     /// </summary>
     [JsonPropertyName("params")]
     public object? Params { get; init; }

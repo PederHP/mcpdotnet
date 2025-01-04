@@ -1,97 +1,58 @@
-﻿// Protocol/Types/Content.cs
-namespace McpDotNet.Protocol.Types;
-
-using System.Text.Json.Serialization;
+﻿namespace McpDotNet.Protocol.Types;
 
 /// <summary>
-/// Represents the type of role in the conversation.
+/// Represents the content of a tool response.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/schema.json">See the schema for details</see>
+/// There are multiple subtypes of content, depending on the "type" field, these are represented as separate classes.
 /// </summary>
-public enum Role
-{
-    [JsonPropertyName("user")]
-    User,
-
-    [JsonPropertyName("assistant")]
-    Assistant
-}
-
-/// <summary>
-/// Base interface for content types in messages.
-/// </summary>
-public interface IContent
-{
-    string Type { get; }
-    Annotations? Annotations { get; }
-}
-
-/// <summary>
-/// Represents text content in messages.
-/// </summary>
-public record TextContent : IContent
+public class Content
 {
     /// <summary>
-    /// The type of content. Always "text".
+    /// The type of content. This determines the structure of the content object. Can be "image", "text", "resource".
     /// </summary>
-    [JsonPropertyName("type")]
-    public string Type => "text";
+    public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// The text content of the message.
     /// </summary>
-    [JsonPropertyName("text")]
-    public required string Text { get; init; }
-
-    /// <summary>
-    /// Optional annotations for the content.
-    /// </summary>
-    [JsonPropertyName("annotations")]
-    public Annotations? Annotations { get; init; }
-}
-
-/// <summary>
-/// Represents image content in messages.
-/// </summary>
-public record ImageContent : IContent
-{
-    /// <summary>
-    /// The type of content. Always "image".
-    /// </summary>
-    [JsonPropertyName("type")]
-    public string Type => "image";
+    public string? Text { get; set; }
 
     /// <summary>
     /// The base64-encoded image data.
     /// </summary>
-    [JsonPropertyName("data")]
-    public required string Data { get; init; }
+    public string? Data { get; set; }
 
     /// <summary>
     /// The MIME type of the image.
     /// </summary>
-    [JsonPropertyName("mimeType")]
-    public required string MimeType { get; init; }
+    public string? MimeType { get; set; }
 
     /// <summary>
-    /// Optional annotations for the content.
+    /// One of BlobResourceContents or TextResourceContents.
     /// </summary>
-    [JsonPropertyName("annotations")]
-    public Annotations? Annotations { get; init; }
-}
-
-/// <summary>
-/// Represents annotations that can be attached to content.
-/// </summary>
-public record Annotations
-{
-    /// <summary>
-    /// Describes who the intended customer of this object or data is.
-    /// </summary>
-    [JsonPropertyName("audience")]
-    public Role[]? Audience { get; init; }
+    public object? Resource { get; set; }
 
     /// <summary>
-    /// Describes how important this data is for operating the server (0 to 1).
+    /// Validates the content object. 
     /// </summary>
-    [JsonPropertyName("priority")]
-    public float? Priority { get; init; }
+    /// <returns>Whether the type of tool content has the correct data fields provided.</returns>
+    public bool Validate()
+    {
+        if (Type == "text")
+        {
+            return !string.IsNullOrEmpty(Text);
+        }
+        else if (Type == "image")
+        {
+            return !string.IsNullOrEmpty(Data) && !string.IsNullOrEmpty(MimeType);
+        }
+        else if (Type == "resource")
+        {
+            return Resource is BlobResourceContents || Resource is TextResourceContents;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }

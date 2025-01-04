@@ -7,6 +7,7 @@ using McpDotNet.Protocol.Messages;
 using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
+using System.Xml.Linq;
 
 /// <inheritdoc/>
 internal class McpClient : IMcpClient
@@ -135,13 +136,102 @@ internal class McpClient : IMcpClient
     }
 
     /// <inheritdoc/>
-    public async Task<ListToolsResponse> ListToolsAsync(CancellationToken cancellationToken)
+    public async Task<ListToolsResult> ListToolsAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
-        return await SendRequestAsync<ListToolsResponse>(
+        return await SendRequestAsync<ListToolsResult>(
             new JsonRpcRequest
             {
                 Method = "tools/list",
-                // No parameters needed for tools/list
+                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ListPromptsResult> ListPromptsAsync(string? cursor = null, CancellationToken cancellationToken = default)
+    {
+        return await SendRequestAsync<ListPromptsResult>(
+            new JsonRpcRequest
+            {
+                Method = "prompts/list",
+                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<GetPromptResult> GetPromptAsync(string name, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default)
+    {
+        return await SendRequestAsync<GetPromptResult>(
+            new JsonRpcRequest
+            {
+                Method = "prompts/get",
+                Params = CreateParametersDictionary(name, arguments)
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ListResourcesResult> ListResourcesAsync(string? cursor = null, CancellationToken cancellationToken = default)
+    {
+        return await SendRequestAsync<ListResourcesResult>(
+            new JsonRpcRequest
+            {
+                Method = "resources/list",
+                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken = default)
+    {
+        return await SendRequestAsync<ReadResourceResult>(
+            new JsonRpcRequest
+            {
+                Method = "resources/read",
+                Params = new Dictionary<string, object?>
+                {
+                    ["uri"] = uri
+                }
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+
+    /// <inheritdoc/>
+    public async Task SubscribeToResourceAsync(string uri, CancellationToken cancellationToken = default)
+    {
+        await SendRequestAsync<dynamic>(
+            new JsonRpcRequest
+            {
+                Method = "resources/subscribe",
+                Params = new Dictionary<string, object?>
+                {
+                    ["uri"] = uri
+                }
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+
+    /// <inheritdoc/>
+    public async Task UnsubscribeFromResourceAsync(string uri, CancellationToken cancellationToken = default)
+    {
+        await SendRequestAsync<dynamic>(
+            new JsonRpcRequest
+            {
+                Method = "resources/unsubscribe",
+                Params = new Dictionary<string, object?>
+                {
+                    ["uri"] = uri
+                }
             },
             cancellationToken
         ).ConfigureAwait(false);
@@ -155,14 +245,25 @@ internal class McpClient : IMcpClient
             new JsonRpcRequest
             {
                 Method = "tools/call",
-                Params = new Dictionary<string, object?>
-                {
-                    ["name"] = toolName,
-                    ["arguments"] = arguments
-                }
+                Params = CreateParametersDictionary(toolName, arguments)
             },
             cancellationToken
         ).ConfigureAwait(false);
+    }
+
+    private static Dictionary<string, object> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? optionalArguments = null)
+    {
+        var parameters = new Dictionary<string, object?>
+        {
+            ["name"] = nameParameter
+        };
+
+        if (optionalArguments != null)
+        {
+            parameters["arguments"] = optionalArguments;
+        }
+
+        return parameters;
     }
 
     private async Task ProcessMessagesAsync(CancellationToken cancellationToken)

@@ -42,9 +42,10 @@ public interface IMcpClient : IAsyncDisposable
     /// <summary>
     /// Retrieves a list of available tools from the server.
     /// </summary>
+    /// <param name="cursor">An optional cursor to paginate the results.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task containing the server's response with tool information.</returns>
-    Task<ListToolsResponse> ListToolsAsync(CancellationToken cancellationToken = default);
+    Task<ListToolsResult> ListToolsAsync(string? cursor = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Invokes a tool on the server with optional arguments.
@@ -54,6 +55,55 @@ public interface IMcpClient : IAsyncDisposable
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task containing the tool's response.</returns>
     Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a list of available prompts from the server.
+    /// </summary>
+    /// <param name="cursor">An optional cursor to paginate the results.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task containing the server's response with prompt information.</returns>
+    Task<ListPromptsResult> ListPromptsAsync(string? cursor = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a specific prompt with optional arguments.
+    /// </summary>
+    /// <param name="name">The name of the prompt to retrieve</param>
+    /// <param name="arguments">Optional arguments for the prompt</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task containing the prompt's content and messages.</returns>
+    Task<GetPromptResult> GetPromptAsync(string name, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a list of available resources from the server.
+    /// </summary>
+    /// <param name="cursor">An optional cursor to paginate the results.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns></returns>
+    Task<ListResourcesResult> ListResourcesAsync(string? cursor = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads a resource from the server.
+    /// </summary>
+    /// <param name="uri">The uri of the resource.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns></returns>
+    Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Subscribes to a resource on the server.
+    /// </summary>
+    /// <param name="uri">The uri of the resource.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns></returns>
+    Task SubscribeToResourceAsync(string uri, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unsubscribes from a resource on the server.
+    /// </summary>
+    /// <param name="uri">The uri of the resource.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns></returns>
+    Task UnsubscribeFromResourceAsync(string uri, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a generic JSON-RPC request to the server.
@@ -66,6 +116,8 @@ public interface IMcpClient : IAsyncDisposable
 
     /// <summary>
     /// Registers a handler for server notifications of a specific method.
+    /// 
+    /// <see cref="NotificationMethods">Constants for common notification methods</see>
     /// </summary>
     /// <param name="method">The notification method to handle.</param>
     /// <param name="handler">The async handler function to process notifications.</param>

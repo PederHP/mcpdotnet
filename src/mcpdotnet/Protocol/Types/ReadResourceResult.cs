@@ -1,13 +1,13 @@
 ﻿namespace McpDotNet.Protocol.Types;
 
 /// <summary>
-/// A response to a request to list the tools available on the server.
+/// The server's response to a resources/read request from the client.
 /// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/schema.json">See the schema for details</see>
 /// </summary>
-public class ListToolsResponse
+public class ReadResourceResult
 {
     /// <summary>
-    /// The server's response to a tools/list request from the client.
+    /// A list of ResourceContents that this resource contains.
     /// </summary>
-    public List<Tool> Tools { get; set; } = new();
+    public List<ResourceContents> Contents { get; set; } = new();
 }
