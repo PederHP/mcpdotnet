@@ -15,7 +15,7 @@
     <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PederHP/mcpdotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>mcp;ai;llm;client</PackageTags>
+    <PackageTags>mcp;ai;ModelContextProtocol;llm</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!-- Assembly properties -->

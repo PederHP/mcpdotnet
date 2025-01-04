@@ -34,7 +34,49 @@ The library's current focus is on implementing the core MCP protocol, with the m
 
 ## Getting Started
 
-Documentation and examples are coming soon. For now, please refer to the test project for usage examples.
+To create a client you need to instantiate a factory with configuration objects:
+```csharp
+var options = new McpClientOptions() 
+    { ClientInfo = new() { Name = "TestClient", Version = "1.0.0" } };
+	
+var config = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-everything",
+            }
+        };
+		
+var factory = new McpClientFactory(
+            new[] { config },
+            _defaultOptions
+        );
+```
+
+You can then retrieve an IMcpClient reference using the `id` of a server from the configuration, and use `ListToolsAsync` and `CallToolAsync` to integrate with your LLM-based code.
+
+```csharp
+var client = await factory.GetClientAsync("everything");
+// Get the list of tools, for passing to an LLM
+var tools = await client.ListToolsAsync(CancellationToken.None);
+// Execute a tool, in practice this would normally be driven by LLM tool invocations
+var result = await client.CallToolAsync(
+            "echo",
+            new Dictionary<string, object>
+            {
+                ["message"] = "Hello MCP!"
+            },
+            CancellationToken.None
+        );
+// echo always returns one and only one text content object
+Console.WriteLine(result.Content.FirstOrDefault(c => c.Type == "text").Text);
+```
+
+Note that you should pass CancellationToken objects suitable for your use case, to enable proper error handling, timeouts, etc.
 
 ## License
 
