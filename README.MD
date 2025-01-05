@@ -16,7 +16,7 @@ For more information about MCP:
 This project is in early development. While functional, it may undergo significant changes as the protocol and implementation evolve.
 
 ### Current Limitations
-- Only supports the Tools, Resources, and Prompts capabilities (Sampling and Roots not yet implemented)
+- Only supports the Tools, Resources, Prompts, Sampling capabilities (Roots not yet implemented)
 - Only stdio transport is currently supported (HTTP/SSE transport coming soon)
 - Client library only - server implementation support may be added in the future
 - Provider-agnostic implementation focused purely on the MCP protocol
@@ -28,7 +28,7 @@ The library's current focus is on implementing the core MCP protocol, with the m
 
 - MCP client implementation for .NET applications
 - Support for stdio transport
-- Support for Tool, Resource, and Prompt capabilities
+- Support for Tool, Resource, Prompt, Sampling capabilities
 - Support for pagination and notifications
 - Async/await pattern throughout
 - Compatible with .NET 8.0 and later
