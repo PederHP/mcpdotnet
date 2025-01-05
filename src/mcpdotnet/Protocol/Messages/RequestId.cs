@@ -1,6 +1,5 @@
 ﻿namespace McpDotNet.Protocol.Messages;
 
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
@@ -16,49 +15,65 @@ public readonly struct RequestId : IEquatable<RequestId>
         _value = value;
     }
 
+    /// <summary>
+    /// Creates a new RequestId from a string.
+    /// </summary>
+    /// <param name="value">The Id</param>
+    /// <returns>Wrapped Id object</returns>
     public static RequestId FromString(string value) => new(value);
 
+    /// <summary>
+    /// Creates a new RequestId from a number.
+    /// </summary>
+    /// <param name="value">The Id</param>
+    /// <returns>Wrapped Id object</returns>
     public static RequestId FromNumber(long value) => new(value);
 
+    /// <summary>
+    /// Checks if the RequestId is a string.
+    /// </summary>
     public bool IsString => _value is string;
+
+    /// <summary>
+    /// Checks if the RequestId is a number.
+    /// </summary>
     public bool IsNumber => _value is long;
 
+    /// <summary>
+    /// Gets the RequestId as a string.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if the RequestId is not a string</exception>"
     public string AsString => _value as string ?? throw new InvalidOperationException("RequestId is not a string");
+
+    /// <summary>
+    /// Gets the RequestId as a number.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if the RequestId is not a number</exception>""
     public long AsNumber => _value is long number ? number : throw new InvalidOperationException("RequestId is not a number");
 
+    /// <summary>
+    /// Returns the string representation of the RequestId. Will box the value if it is a number.
+    /// </summary>
     public override string ToString() => _value.ToString() ?? "";
 
+    /// <summary>
+    /// Compares this RequestId to another RequestId.
+    /// </summary>
     public bool Equals(RequestId other) => _value.Equals(other._value);
+
+    /// <inheritdoc />
     public override bool Equals(object? obj) => obj is RequestId other && Equals(other);
+
+    /// <inheritdoc />
     public override int GetHashCode() => _value.GetHashCode();
 
+    /// <summary>
+    /// Compares two RequestIds for equality.
+    /// </summary>
     public static bool operator ==(RequestId left, RequestId right) => left.Equals(right);
+
+    /// <summary>
+    /// Compares two RequestIds for inequality.
+    /// </summary>
     public static bool operator !=(RequestId left, RequestId right) => !left.Equals(right);
-}
-
-/// <summary>
-/// JSON converter for RequestId that handles both string and number values.
-/// </summary>
-public class RequestIdConverter : JsonConverter<RequestId>
-{
-    public override RequestId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        switch (reader.TokenType)
-        {
-            case JsonTokenType.String:
-                return RequestId.FromString(reader.GetString()!);
-            case JsonTokenType.Number:
-                return RequestId.FromNumber(reader.GetInt64());
-            default:
-                throw new JsonException("RequestId must be either a string or a number");
-        }
-    }
-
-    public override void Write(Utf8JsonWriter writer, RequestId value, JsonSerializerOptions options)
-    {
-        if (value.IsString)
-            writer.WriteStringValue(value.AsString);
-        else
-            writer.WriteNumberValue(value.AsNumber);
-    }
 }

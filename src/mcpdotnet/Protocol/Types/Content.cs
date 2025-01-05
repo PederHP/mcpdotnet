@@ -28,9 +28,9 @@ public class Content
     public string? MimeType { get; set; }
 
     /// <summary>
-    /// One of BlobResourceContents or TextResourceContents.
+    /// The resource content of the message (if embedded).
     /// </summary>
-    public object? Resource { get; set; }
+    public ResourceContents? Resource { get; set; }
 
     /// <summary>
     /// Validates the content object. 
@@ -48,7 +48,7 @@ public class Content
         }
         else if (Type == "resource")
         {
-            return Resource is BlobResourceContents || Resource is TextResourceContents;
+            return Resource != null;
         }
         else
         {

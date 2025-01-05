@@ -7,7 +7,6 @@ using McpDotNet.Protocol.Messages;
 using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
-using System.Xml.Linq;
 
 /// <inheritdoc/>
 internal class McpClient : IMcpClient
@@ -251,7 +250,7 @@ internal class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
-    private static Dictionary<string, object> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? optionalArguments = null)
+    private static Dictionary<string, object?> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? optionalArguments = null)
     {
         var parameters = new Dictionary<string, object?>
         {

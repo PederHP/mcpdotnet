@@ -8,7 +8,7 @@ public class ResourceContents
     /// <summary>
     /// The URI of the resource.
     /// </summary>
-    public string Uri { get; set; }
+    public string Uri { get; set; } = string.Empty;
 
     /// <summary>
     /// The type of content.

@@ -3,7 +3,7 @@
 /// <summary>
 /// Standard JSON-RPC error codes as defined in the MCP specification.
 /// </summary>
-public static class ErrorCodes
+internal static class ErrorCodes
 {
     /// <summary>
     /// Invalid JSON was received by the server.

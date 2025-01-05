@@ -1,12 +1,7 @@
-﻿// Protocol/Transport/IMcpTransport.cs
+﻿using System.Threading.Channels;
+using McpDotNet.Protocol.Messages;
+
 namespace McpDotNet.Protocol.Transport;
-
-using System.Text.Json;
-using System.Threading.Channels;
-using global::McpDotNet.Protocol.Messages;
-using McpDotNet.Utils.Json;
-
-// Protocol/Transport/TransportBase.cs
 
 /// <summary>
 /// Base class for implementing MCP transports with common functionality.
@@ -15,8 +10,10 @@ public abstract class TransportBase : IMcpTransport
 {
     private readonly Channel<IJsonRpcMessage> _messageChannel;
     private bool _isConnected;
-    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions().ConfigureForMcp();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransportBase"/> class.
+    /// </summary>
     protected TransportBase()
     {
         // Unbounded channel to prevent blocking on writes

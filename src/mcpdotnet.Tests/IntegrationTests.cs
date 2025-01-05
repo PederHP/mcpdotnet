@@ -118,7 +118,7 @@ public class IntegrationTests
         // assert
         Assert.NotNull(result);
         Assert.False(result.IsError);
-        var textContent = Assert.Single(result.Content.Where(c => c.Type == "text"));
+        var textContent = Assert.Single(result.Content, c => c.Type == "text");
         Assert.Equal("Echo: Hello MCP!", textContent.Text);
     }
 

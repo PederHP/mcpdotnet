@@ -7,7 +7,7 @@ namespace McpDotNet.Utils.Json;
 /// <summary>
 /// JSON converter for IJsonRpcMessage that handles polymorphic deserialization of different message types.
 /// </summary>
-public class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
+internal class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
 {
     /// <inheritdoc/>
     public override IJsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
