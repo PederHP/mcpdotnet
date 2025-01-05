@@ -1,4 +1,6 @@
-﻿namespace McpDotNet.Protocol.Types;
+﻿using System.Text.Json.Serialization;
+
+namespace McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Represents the content of a tool response.
@@ -10,26 +12,32 @@ public class Content
     /// <summary>
     /// The type of content. This determines the structure of the content object. Can be "image", "text", "resource".
     /// </summary>
+
+    [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// The text content of the message.
     /// </summary>
+    [JsonPropertyName("text")]
     public string? Text { get; set; }
 
     /// <summary>
     /// The base64-encoded image data.
     /// </summary>
+    [JsonPropertyName("data")]
     public string? Data { get; set; }
 
     /// <summary>
     /// The MIME type of the image.
     /// </summary>
+    [JsonPropertyName("mime_type")]
     public string? MimeType { get; set; }
 
     /// <summary>
     /// The resource content of the message (if embedded).
     /// </summary>
+    [JsonPropertyName("resource")]
     public ResourceContents? Resource { get; set; }
 
     /// <summary>

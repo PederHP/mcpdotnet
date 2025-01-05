@@ -1,7 +1,7 @@
-﻿namespace McpDotNet.Protocol.Messages;
-
+﻿
 using System.Text.Json.Serialization;
 
+namespace McpDotNet.Protocol.Messages;
 /// <summary>
 /// A successful response message in the JSON-RPC protocol.
 /// </summary>

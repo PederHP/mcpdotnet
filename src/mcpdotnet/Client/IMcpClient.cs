@@ -26,6 +26,11 @@ public interface IMcpClient : IAsyncDisposable
     Implementation? ServerInfo { get; }
 
     /// <summary>
+    /// Gets or sets the handler for the server's sampling requests.
+    /// </summary>
+    Func<CreateMessageRequestParams, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+
+    /// <summary>
     /// Establishes a connection to the server.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

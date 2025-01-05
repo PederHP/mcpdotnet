@@ -7,6 +7,8 @@ using McpDotNet.Protocol.Messages;
 using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
+using System.Text;
+using System.Threading;
 
 /// <inheritdoc/>
 internal class McpClient : IMcpClient
@@ -15,6 +17,7 @@ internal class McpClient : IMcpClient
     private readonly McpClientOptions _options;
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
     private readonly ConcurrentDictionary<string, List<Func<JsonRpcNotification,Task>>> _notificationHandlers;
+    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object>>> _requestHandlers = new();
     private int _nextRequestId;
     private bool _isInitialized;
     private Task? _messageProcessingTask;
@@ -42,6 +45,17 @@ internal class McpClient : IMcpClient
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
+
+        if (options.Capabilities?.Sampling != null)
+        {
+            SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>("sampling/createMessage",
+                async (request) => {
+                    if (SamplingHandler == null)
+                        throw new McpClientException("Sampling handler not configured");
+
+                    return await SamplingHandler(request);
+                });
+        }
     }
 
     /// <inheritdoc/>
@@ -271,7 +285,7 @@ internal class McpClient : IMcpClient
         {
             await foreach (var message in _transport.MessageReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                await HandleMessageAsync(message).ConfigureAwait(false);
+                await HandleMessageAsync(message, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -284,10 +298,39 @@ internal class McpClient : IMcpClient
         }
     }
 
-    private async Task HandleMessageAsync(IJsonRpcMessage message)
+    private async Task HandleMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
     {
         switch (message)
         {
+            case JsonRpcRequest request:
+                if (_requestHandlers.TryGetValue(request.Method, out var handler))
+                {
+                    try
+                    {
+                        var result = await handler(request);
+                        await _transport.SendMessageAsync(new JsonRpcResponse
+                        {
+                            Id = request.Id,
+                            JsonRpc = "2.0",
+                            Result = result
+                        }, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Send error response
+                        await _transport.SendMessageAsync(new JsonRpcError
+                        {
+                            Id = request.Id,
+                            JsonRpc = "2.0",
+                            Error = new JsonRpcErrorDetail
+                            {
+                                Code = -32000,  // Implementation defined error
+                                Message = ex.Message
+                            }
+                        }, cancellationToken);
+                    }
+                }
+                break;
             case IJsonRpcMessageWithId messageWithId:
                 if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
                 {
@@ -298,11 +341,11 @@ internal class McpClient : IMcpClient
             case JsonRpcNotification notification:
                 if (_notificationHandlers.TryGetValue(notification.Method, out var handlers))
                 {
-                    foreach (var handler in handlers)
+                    foreach (var notificationHandler in handlers)
                     {
                         try
                         {
-                            await handler(notification).ConfigureAwait(false);
+                            await notificationHandler(notification).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -383,6 +426,18 @@ internal class McpClient : IMcpClient
         }
     }
 
+    public Func<CreateMessageRequestParams, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+
+    private void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest, Task<TResponse>> handler)
+    {
+        _requestHandlers[method] = async (request) => {
+            // Convert the params JsonElement to our type using the same options
+            var jsonString = JsonSerializer.Serialize(request.Params);
+            var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
+            return await handler(typedRequest);
+        };
+    }
+
     private async Task CleanupAsync()
     {
         _cts?.Cancel();
@@ -419,3 +474,4 @@ internal class McpClient : IMcpClient
         GC.SuppressFinalize(this);
     }
 }
+

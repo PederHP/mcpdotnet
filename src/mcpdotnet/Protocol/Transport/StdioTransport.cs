@@ -142,6 +142,7 @@ public sealed class StdioTransport : TransportBase
         try
         {
             var json = JsonSerializer.Serialize(message, _jsonOptions);
+            Debug.WriteLine($"Sending message: {json}");
 
             // Write the message followed by a newline
             await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken);

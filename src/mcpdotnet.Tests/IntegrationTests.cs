@@ -341,4 +341,69 @@ public class IntegrationTests
         Assert.Single(result.Contents);
         Assert.NotNull(result.Contents[0].Blob);
     }
+
+    [Fact]
+    public async Task Sampling_Stdio_EverythingServer()
+    {
+        // arrange
+        var config = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-everything"
+            }
+        };
+
+        var options = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
+            Capabilities = new ClientCapabilities
+            {
+                Sampling = new()
+            }
+        };
+
+        var factory = new McpClientFactory(
+            new[] { config },
+            options
+        );
+        var client = await factory.GetClientAsync("everything");
+
+        // Set up the sampling handler
+        int samplingHandlerCalls = 0;
+        client.SamplingHandler = async (_) =>
+        {
+            samplingHandlerCalls++;
+            return new CreateMessageResult
+            {
+                Model = "test-model",
+                Role = "assistant",
+                Content = new Content
+                {
+                    Type = "text",
+                    Text = "Test response"
+                }
+            };
+        };
+
+        // Call the server's sampleLLM tool which should trigger our sampling handler
+        var result = await client.CallToolAsync(
+            "sampleLLM",
+            new Dictionary<string, object> 
+            {
+                ["prompt"] = "Test prompt", 
+                ["maxTokens"] = 100 
+            }
+        );
+
+        // assert
+        Assert.NotNull(result);
+        var textContent = Assert.Single(result.Content);
+        Assert.Equal("text", textContent.Type);
+        Assert.Contains("Test response", textContent.Text);
+    }
 }
