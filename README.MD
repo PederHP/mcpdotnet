@@ -1,4 +1,5 @@
 # mcpdotnet
+[![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg?style=flat)](https://www.nuget.org/packages/mcpdotnet/)
 
 A .NET client implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP servers.
 
