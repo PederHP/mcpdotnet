@@ -9,6 +9,9 @@ using System.Text.Json;
 using McpDotNet.Utils.Json;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using McpDotNet.Logging;
+using McpDotNet.Configuration;
 
 /// <inheritdoc/>
 internal class McpClient : IMcpClient
@@ -19,13 +22,16 @@ internal class McpClient : IMcpClient
     private readonly ConcurrentDictionary<string, List<Func<JsonRpcNotification,Task>>> _notificationHandlers;
     private readonly Dictionary<string, Func<JsonRpcRequest, Task<object>>> _requestHandlers = new();
     private int _nextRequestId;
+    private readonly McpServerConfig _serverConfig;
     private bool _isInitialized;
     private Task? _messageProcessingTask;
     private CancellationTokenSource? _cts;
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions().ConfigureForMcp();
+    private readonly ILogger<McpClient> _logger;
+    private volatile bool _isInitializing;
 
     /// <inheritdoc/>
-    public bool IsInitialized => _isInitialized;
+    public bool IsInitialized => _isInitialized;    
 
     /// <inheritdoc/>
     public ServerCapabilities? ServerCapabilities { get; private set; }
@@ -38,20 +44,28 @@ internal class McpClient : IMcpClient
     /// </summary>
     /// <param name="transport">An MCP transport implementation.</param>
     /// <param name="options">Options for the client, defining protocol version and capabilities.</param>
-    public McpClient(IMcpTransport transport, McpClientOptions options)
+    /// <param name="serverConfig">The server configuration.</param>
+    /// <param name="logger">A logger for the client.</param>
+    public McpClient(IMcpTransport transport, McpClientOptions options, McpServerConfig serverConfig, ILogger<McpClient> logger)
     {
         _transport = transport;
         _options = options;
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
+        _serverConfig = serverConfig;
+        _logger = logger;
 
         if (options.Capabilities?.Sampling != null)
         {
             SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>("sampling/createMessage",
                 async (request) => {
                     if (SamplingHandler == null)
+                    {
+                        // Setting the capability, but not a handler means we have nothing to return to the server
+                        _logger.SamplingHandlerNotConfigured(_serverConfig.Id, _serverConfig.Name);
                         throw new McpClientException("Sampling handler not configured");
+                    }
 
                     return await SamplingHandler(request);
                 });
@@ -61,9 +75,17 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        if (_isInitializing)
+        {
+            _logger.ClientAlreadyInitializing(_serverConfig.Id, _serverConfig.Name);
+            throw new InvalidOperationException("Client is already initializing");
+        }
+        _isInitializing = true;
+
         if (_isInitialized)
         {
-            throw new InvalidOperationException("Client is already initialized");
+            _logger.ClientAlreadyInitialized(_serverConfig.Id, _serverConfig.Name);
+            return;
         }
 
         try
@@ -83,9 +105,13 @@ internal class McpClient : IMcpClient
         }
         catch (Exception e)
         {
-            Debug.WriteLine($"Client connection error: {e}");
+            _logger.ClientInitializationError(_serverConfig.Id, _serverConfig.Name, e);
             await CleanupAsync().ConfigureAwait(false);
             throw;
+        }
+        finally
+        {
+            _isInitializing = false;
         }
     }
 
@@ -112,12 +138,14 @@ internal class McpClient : IMcpClient
             ).ConfigureAwait(false);
 
             // Store server information
+            _logger.ServerCapabilitiesReceived(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(initializeResponse.Capabilities), JsonSerializer.Serialize(initializeResponse.ServerInfo));
             ServerCapabilities = initializeResponse.Capabilities;
             ServerInfo = initializeResponse.ServerInfo;
 
             // Validate protocol version
             if (initializeResponse.ProtocolVersion != _options.ProtocolVersion)
             {
+                _logger.ServerProtocolVersionMismatch(_serverConfig.Id, _serverConfig.Name, _options.ProtocolVersion, initializeResponse.ProtocolVersion);
                 throw new McpClientException($"Server protocol version mismatch. Expected {_options.ProtocolVersion}, got {initializeResponse.ProtocolVersion}");
             }
 
@@ -132,6 +160,7 @@ internal class McpClient : IMcpClient
         }
         catch (OperationCanceledException) when (initializationCts.IsCancellationRequested)
         {
+            _logger.ClientInitializationTimeout(_serverConfig.Id, _serverConfig.Name);
             throw new McpClientException("Initialization timed out");
         }
     }
@@ -139,6 +168,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task PingAsync(CancellationToken cancellationToken)
     {
+        _logger.PingingServer(_serverConfig.Id, _serverConfig.Name);
         await SendRequestAsync<dynamic>(
             new JsonRpcRequest
             {
@@ -151,6 +181,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListToolsResult> ListToolsAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        _logger.ListingTools(_serverConfig.Id, _serverConfig.Name, cursor);
         return await SendRequestAsync<ListToolsResult>(
             new JsonRpcRequest
             {
@@ -164,6 +195,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListPromptsResult> ListPromptsAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        _logger.ListingPrompts(_serverConfig.Id, _serverConfig.Name, cursor);
         return await SendRequestAsync<ListPromptsResult>(
             new JsonRpcRequest
             {
@@ -177,6 +209,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<GetPromptResult> GetPromptAsync(string name, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default)
     {
+        _logger.GettingPrompt(_serverConfig.Id, _serverConfig.Name, name, arguments == null ? "{}" : JsonSerializer.Serialize(arguments));
         return await SendRequestAsync<GetPromptResult>(
             new JsonRpcRequest
             {
@@ -190,6 +223,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListResourcesResult> ListResourcesAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        _logger.ListingResources(_serverConfig.Id, _serverConfig.Name, cursor);
         return await SendRequestAsync<ListResourcesResult>(
             new JsonRpcRequest
             {
@@ -203,6 +237,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken = default)
     {
+        _logger.ReadingResource(_serverConfig.Id, _serverConfig.Name, uri);
         return await SendRequestAsync<ReadResourceResult>(
             new JsonRpcRequest
             {
@@ -220,6 +255,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task SubscribeToResourceAsync(string uri, CancellationToken cancellationToken = default)
     {
+        _logger.SubscribingToResource(_serverConfig.Id, _serverConfig.Name, uri);
         await SendRequestAsync<dynamic>(
             new JsonRpcRequest
             {
@@ -237,6 +273,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task UnsubscribeFromResourceAsync(string uri, CancellationToken cancellationToken = default)
     {
+        _logger.UnsubscribingFromResource(_serverConfig.Id, _serverConfig.Name, uri);
         await SendRequestAsync<dynamic>(
             new JsonRpcRequest
             {
@@ -254,6 +291,7 @@ internal class McpClient : IMcpClient
     public async Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object>? arguments = null,
         CancellationToken cancellationToken = default)
     {
+        _logger.CallingTool(_serverConfig.Id, _serverConfig.Name, toolName, arguments == null ? "{}" : JsonSerializer.Serialize(arguments));
         return await SendRequestAsync<CallToolResponse>(
             new JsonRpcRequest
             {
@@ -291,6 +329,7 @@ internal class McpClient : IMcpClient
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Normal shutdown
+            _logger.ClientMessageProcessingCancelled(_serverConfig.Id, _serverConfig.Name);
         }
         catch (NullReferenceException)
         {
@@ -307,7 +346,9 @@ internal class McpClient : IMcpClient
                 {
                     try
                     {
+                        _logger.RequestHandlerCalled(_serverConfig.Id, _serverConfig.Name, request.Method);    
                         var result = await handler(request);
+                        _logger.RequestHandlerCompleted(_serverConfig.Id, _serverConfig.Name, request.Method);
                         await _transport.SendMessageAsync(new JsonRpcResponse
                         {
                             Id = request.Id,
@@ -317,6 +358,7 @@ internal class McpClient : IMcpClient
                     }
                     catch (Exception ex)
                     {
+                        _logger.RequestHandlerError(_serverConfig.Id, _serverConfig.Name, request.Method, ex);
                         // Send error response
                         await _transport.SendMessageAsync(new JsonRpcError
                         {
@@ -336,6 +378,10 @@ internal class McpClient : IMcpClient
                 {
                     tcs.TrySetResult(message);
                 }
+                else
+                {
+                    _logger.NoRequestFoundForMessageWithId(_serverConfig.Id, _serverConfig.Name, messageWithId.Id.ToString());
+                }
                 break;
 
             case JsonRpcNotification notification:
@@ -350,7 +396,7 @@ internal class McpClient : IMcpClient
                         catch (Exception ex)
                         {
                             // Log handler error but continue processing
-                            Debug.WriteLine($"Notification handler error: {ex}");
+                            _logger.NotificationHandlerError(_serverConfig.Id, _serverConfig.Name, notification.Method, ex);
                         }
                     }
                 }
@@ -363,6 +409,7 @@ internal class McpClient : IMcpClient
     {
         if (!_transport.IsConnected)
         {
+            _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
             throw new McpClientException("Transport is not connected");
         }
 
@@ -374,13 +421,21 @@ internal class McpClient : IMcpClient
 
         try
         {
-            Debug.WriteLine($"Sending initialize request: {JsonSerializer.Serialize(request)}");
+            // Expensive logging, use the logging framework to check if the logger is enabled
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.SendingRequestPayload(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(request));
+            }
+
+            // Less expensive information logging
+            _logger.SendingRequest(_serverConfig.Id, _serverConfig.Name, request.Method);
 
             await _transport.SendMessageAsync(request, cancellationToken).ConfigureAwait(false);
             var response = await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             if (response is JsonRpcError error)
             {
+                _logger.RequestFailed(_serverConfig.Id, _serverConfig.Name, request.Method, error.Error.Message, error.Error.Code);
                 throw new McpClientException($"Request failed: {error.Error.Message}", error.Error.Code);
             }
 
@@ -389,15 +444,23 @@ internal class McpClient : IMcpClient
                 // Convert the Result object to JSON and back to get our strongly-typed result
                 var resultJson = JsonSerializer.Serialize(success.Result, _jsonOptions);
                 var resultObject = JsonSerializer.Deserialize<T>(resultJson, _jsonOptions);
+
+                // Not expensive logging because we're already converting to JSON in order to get the result object
+                _logger.RequestResponseReceivedPayload(_serverConfig.Id, _serverConfig.Name, resultJson);
+                _logger.RequestResponseReceived(_serverConfig.Id, _serverConfig.Name, request.Method);
+
                 if (resultObject != null)
                 {
                     return resultObject;
                 }
-                Debug.WriteLine($"Received response: {JsonSerializer.Serialize(success.Result)}");
-                Debug.WriteLine($"Expected type: {typeof(T)}");
+
+                // Result object was null, this is unexpected
+                _logger.RequestResponseTypeConversionError(_serverConfig.Id, _serverConfig.Name, request.Method, typeof(T));
                 throw new McpClientException($"Unexpected response type {JsonSerializer.Serialize(success.Result)}, expected {typeof(T)}");
             }
 
+            // Unexpected response type
+            _logger.RequestInvalidResponseType(_serverConfig.Id, _serverConfig.Name, request.Method);
             throw new McpClientException("Invalid response type");
         }
         finally
@@ -410,6 +473,7 @@ internal class McpClient : IMcpClient
     {
         if (!_transport.IsConnected)
         {
+            _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
             throw new McpClientException("Transport is not connected");
         }
 
@@ -434,12 +498,21 @@ internal class McpClient : IMcpClient
             // Convert the params JsonElement to our type using the same options
             var jsonString = JsonSerializer.Serialize(request.Params);
             var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
+
+            if (typedRequest == null)
+            {
+                _logger.RequestParamsTypeConversionError(_serverConfig.Id, _serverConfig.Name, method, typeof(TRequest));
+                throw new McpClientException($"Invalid request parameters type {jsonString}, expected {typeof(TRequest)}");
+            }
+
             return await handler(typedRequest);
         };
     }
 
     private async Task CleanupAsync()
     {
+        _logger.CleaningUpClient(_serverConfig.Id, _serverConfig.Name);
+
         _cts?.Cancel();
 
         if (_messageProcessingTask != null)
@@ -465,6 +538,8 @@ internal class McpClient : IMcpClient
         _cts?.Dispose();
 
         _isInitialized = false;
+
+        _logger.ClientCleanedUp(_serverConfig.Id, _serverConfig.Name);
     }
 
     /// <inheritdoc/>

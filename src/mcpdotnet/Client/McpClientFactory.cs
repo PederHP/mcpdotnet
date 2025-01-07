@@ -1,7 +1,9 @@
 ﻿namespace McpDotNet.Client;
 
 using McpDotNet.Configuration;
+using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Factory for creating MCP clients based on configuration. It caches clients for reuse, so it is safe to call GetClientAsync multiple times.
@@ -15,7 +17,9 @@ public class McpClientFactory
     private readonly McpClientOptions _clientOptions;
     private readonly Dictionary<string, IMcpClient> _clients = new();
     private readonly Func<McpServerConfig, IMcpTransport> _transportFactoryMethod;
-    private readonly Func<IMcpTransport, McpClientOptions, IMcpClient> _clientFactoryMethod;
+    private readonly Func<IMcpTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<McpClientFactory> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpClientFactory"/> class.
@@ -24,18 +28,33 @@ public class McpClientFactory
     /// </summary>
     /// <param name="serverConfigs">Configuration objects for each server the factory should support.</param>
     /// <param name="clientOptions">A configuration object which specifies client capabilities and protocol version.</param>
+    /// <param name="loggerFactory">A logger factory for creating loggers for clients.</param>
     /// <param name="transportFactoryMethod">An optional factory method which returns transport implementations based on a server configuration.</param>
     /// <param name="clientFactoryMethod">An optional factory method which creates a client based on client options and transport implementation. </param>
     public McpClientFactory(
         IEnumerable<McpServerConfig> serverConfigs,
         McpClientOptions clientOptions,
+        ILoggerFactory loggerFactory,
         Func<McpServerConfig, IMcpTransport>? transportFactoryMethod = null,
-        Func<IMcpTransport, McpClientOptions, IMcpClient>? clientFactoryMethod = null)
+        Func<IMcpTransport, McpServerConfig, McpClientOptions, IMcpClient>? clientFactoryMethod = null)
     {
         _serverConfigs = serverConfigs.ToDictionary(c => c.Id);
         _clientOptions = clientOptions;
+        _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<McpClientFactory>();
         _transportFactoryMethod = transportFactoryMethod ?? CreateTransport;
-        _clientFactoryMethod = clientFactoryMethod ?? ((transport, options) => new McpClient(transport, options));
+        _clientFactoryMethod = clientFactoryMethod ?? ((transport, serverConfig, options) => new McpClient(transport, options, serverConfig, loggerFactory.CreateLogger<McpClient>()));
+
+        // Initialize commands for stdio transport, this is to run commands in a shell even if specified directly, as otherwise
+        //  the stdio protocol will not work correctly.
+        _logger.InitializingStdioCommands();
+        foreach (var config in _serverConfigs.Values)
+        {
+            if (config.TransportType.ToLowerInvariant() == "stdio")
+            {
+                InitializeCommand(config);
+            }
+        }
     }
 
     /// <summary>
@@ -49,17 +68,23 @@ public class McpClientFactory
     {
         if (!_serverConfigs.TryGetValue(serverId, out var config))
         {
+            _logger.ServerNotFound(serverId);
             throw new ArgumentException($"Server with ID '{serverId}' not found.", nameof(serverId));
         }
 
         if (_clients.TryGetValue(serverId, out var existingClient))
         {
+            _logger.ClientExists(serverId, config.Name);
             return existingClient;
         }
 
+        _logger.CreatingClient(serverId, config.Name);
+
         var transport = _transportFactoryMethod(config);
-        var client = _clientFactoryMethod(transport, _clientOptions);
+        var client = _clientFactoryMethod(transport, config, _clientOptions);
         await client.ConnectAsync(cancellationToken);
+
+        _logger.ClientCreated(serverId, config.Name);
 
         _clients[serverId] = client;
         return client;
@@ -67,6 +92,8 @@ public class McpClientFactory
 
     private IMcpTransport CreateTransport(McpServerConfig config)
     {
+        var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? Enumerable.Empty<string>());
+        _logger.CreatingTransport(config.Id, config.Name, config.TransportType, options);
         return config.TransportType.ToLowerInvariant() switch
         {
             "stdio" => new StdioTransport(new StdioTransportOptions
@@ -85,26 +112,40 @@ public class McpClientFactory
 
     private string GetCommand(McpServerConfig config)
     {
-        if (config.TransportOptions == null)
+        if (config.TransportOptions == null ||
+            string.IsNullOrEmpty(config.TransportOptions.GetValueOrDefault("command")))
         {
             return config.Location!;
         }
 
-        var command = config.TransportOptions.GetValueOrDefault("command");
+        return $"cmd.exe";
+    }
+
+    /// <summary>
+    /// Initializes a non-shell command by injecting a /c {command} argument, as the command will be run in a shell.
+    /// </summary>
+    private void InitializeCommand(McpServerConfig config)
+    {
+        // If the command is empty or already contains cmd.exe, we don't need to do anything
+        var command = config.TransportOptions?.GetValueOrDefault("command");
         if (string.IsNullOrEmpty(command))
         {
-            return config.Location!;
+            return;
         }
 
-        if (config.TransportOptions.ContainsKey("arguments"))
+        if (command.Contains("cmd.exe"))
         {
-            var arguments = config.TransportOptions.GetValueOrDefault("arguments");
-            config.TransportOptions["arguments"] = $"/c {command} {arguments}";
+            _logger.SkippingShellWrapper(config.Id, config.Name);
+            return;
         }
-        else
+
+        // If the command is not empty and does not contain cmd.exe, we need to inject /c {command}
+        if (config.TransportOptions != null && !string.IsNullOrEmpty(command))
         {
-            config.TransportOptions["arguments"] = $"/c {command}";
+            _logger.PromotingCommandToShellArgumentForStdio(config.Id, config.Name, command, config.TransportOptions.GetValueOrDefault("arguments"));
+            config.TransportOptions["arguments"] = config.TransportOptions.ContainsKey("arguments")
+                ? $"/c {command} {config.TransportOptions["arguments"]}"
+                : $"/c {command}";
         }
-        return $"cmd.exe";
     }
 }

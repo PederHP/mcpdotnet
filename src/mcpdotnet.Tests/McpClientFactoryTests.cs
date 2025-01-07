@@ -1,7 +1,9 @@
+using Castle.Core.Logging;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Threading.Channels;
 using Xunit;
@@ -47,10 +49,11 @@ public class McpClientFactoryTests
 
         // Inject the mock transport into the factory
         var factory = new McpClientFactory(
-            new[] { config },
+            [config],
             _defaultOptions,
+            NullLoggerFactory.Instance,
             transportFactoryMethod: _ => mockTransport.Object,
-            clientFactoryMethod: (_, _) => mockClient.Object
+            clientFactoryMethod: (_, _, _) => mockClient.Object
         );
 
         // Act
@@ -86,7 +89,11 @@ public class McpClientFactoryTests
             .Returns(Task.CompletedTask);
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
-        var factory = new McpClientFactory(new[] { config }, _defaultOptions, transportFactoryMethod: _ => mockTransport.Object, clientFactoryMethod: (_,_) => mockClient.Object);
+        var factory = new McpClientFactory([config], 
+            _defaultOptions,
+            NullLoggerFactory.Instance,
+            transportFactoryMethod: _ => mockTransport.Object, 
+            clientFactoryMethod: (_,_,_) => mockClient.Object);
 
         // Act
         var client1 = await factory.GetClientAsync("test-server");
@@ -100,7 +107,9 @@ public class McpClientFactoryTests
     public async Task GetClientAsync_WithInvalidServerId_ThrowsArgumentException()
     {
         // Arrange
-        var factory = new McpClientFactory(Array.Empty<McpServerConfig>(), _defaultOptions);
+        var factory = new McpClientFactory(Array.Empty<McpServerConfig>(), 
+            _defaultOptions,
+            NullLoggerFactory.Instance);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
@@ -120,7 +129,8 @@ public class McpClientFactoryTests
             Location = "/path/to/server"
         };
 
-        var factory = new McpClientFactory(new[] { config }, _defaultOptions);
+        var factory = new McpClientFactory([config], _defaultOptions,
+            NullLoggerFactory.Instance);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
@@ -153,7 +163,11 @@ public class McpClientFactoryTests
             .Returns(Task.CompletedTask);
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
-        var factory = new McpClientFactory(new[] { config }, _defaultOptions, transportFactoryMethod: _ => mockTransport.Object, clientFactoryMethod: (_, _) => mockClient.Object);
+        var factory = new McpClientFactory([config],
+            _defaultOptions,
+            NullLoggerFactory.Instance,
+            transportFactoryMethod: _ => mockTransport.Object, 
+            clientFactoryMethod: (_, _, _) => mockClient.Object);
 
         // Act
         var client = await factory.GetClientAsync("test-server");
@@ -166,14 +180,15 @@ public class McpClientFactoryTests
     public void Constructor_WithDuplicateServerIds_ThrowsArgumentException()
     {
         // Arrange
-        var configs = new[]
-        {
+        McpServerConfig[] configs =
+        [
             new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path1" },
             new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path2" }
-        };
+        ];
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => new McpClientFactory(configs, _defaultOptions));
+        Assert.Throws<ArgumentException>(() => new McpClientFactory(configs, _defaultOptions,
+            NullLoggerFactory.Instance));
     }
 
     [Fact]
@@ -188,7 +203,8 @@ public class McpClientFactoryTests
             Location = "http://localhost:8080"
         };
 
-        var factory = new McpClientFactory(new[] { config }, _defaultOptions);
+        var factory = new McpClientFactory([config], _defaultOptions,
+            NullLoggerFactory.Instance);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
