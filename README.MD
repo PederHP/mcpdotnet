@@ -54,8 +54,8 @@ var config = new McpServerConfig
         };
 		
 var factory = new McpClientFactory(
-            new[] { config },
-            _defaultOptions
+            [config],
+            options
         );
 ```
 
