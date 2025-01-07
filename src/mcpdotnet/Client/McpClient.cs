@@ -1,17 +1,15 @@
-﻿namespace McpDotNet.Client;
-
+﻿
 using McpDotNet.Protocol.Types;
 using McpDotNet.Protocol.Transport;
 using System.Collections.Concurrent;
 using McpDotNet.Protocol.Messages;
-using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Utils.Json;
-using System.Text;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
 using McpDotNet.Configuration;
+
+namespace McpDotNet.Client;
 
 /// <inheritdoc/>
 internal class McpClient : IMcpClient
@@ -26,7 +24,7 @@ internal class McpClient : IMcpClient
     private bool _isInitialized;
     private Task? _messageProcessingTask;
     private CancellationTokenSource? _cts;
-    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions().ConfigureForMcp();
+    private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<McpClient> _logger;
     private volatile bool _isInitializing;
 
@@ -45,8 +43,8 @@ internal class McpClient : IMcpClient
     /// <param name="transport">An MCP transport implementation.</param>
     /// <param name="options">Options for the client, defining protocol version and capabilities.</param>
     /// <param name="serverConfig">The server configuration.</param>
-    /// <param name="logger">A logger for the client.</param>
-    public McpClient(IMcpTransport transport, McpClientOptions options, McpServerConfig serverConfig, ILogger<McpClient> logger)
+    /// <param name="loggerFactory">The logger factory.</param>
+    public McpClient(IMcpTransport transport, McpClientOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
     {
         _transport = transport;
         _options = options;
@@ -54,7 +52,8 @@ internal class McpClient : IMcpClient
         _notificationHandlers = new();
         _nextRequestId = 1;
         _serverConfig = serverConfig;
-        _logger = logger;
+        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _logger = loggerFactory.CreateLogger<McpClient>();
 
         if (options.Capabilities?.Sampling != null)
         {
@@ -181,7 +180,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListToolsResult> ListToolsAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
-        _logger.ListingTools(_serverConfig.Id, _serverConfig.Name, cursor);
+        _logger.ListingTools(_serverConfig.Id, _serverConfig.Name, cursor ?? "(null)");
         return await SendRequestAsync<ListToolsResult>(
             new JsonRpcRequest
             {
@@ -195,7 +194,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListPromptsResult> ListPromptsAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
-        _logger.ListingPrompts(_serverConfig.Id, _serverConfig.Name, cursor);
+        _logger.ListingPrompts(_serverConfig.Id, _serverConfig.Name, cursor ?? "(null)");
         return await SendRequestAsync<ListPromptsResult>(
             new JsonRpcRequest
             {
@@ -223,7 +222,7 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public async Task<ListResourcesResult> ListResourcesAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
-        _logger.ListingResources(_serverConfig.Id, _serverConfig.Name, cursor);
+        _logger.ListingResources(_serverConfig.Id, _serverConfig.Name, cursor ?? "(null)");
         return await SendRequestAsync<ListResourcesResult>(
             new JsonRpcRequest
             {

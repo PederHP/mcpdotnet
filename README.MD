@@ -32,6 +32,7 @@ The library's current focus is on implementing the core MCP protocol, with the m
 - Support for Tool, Resource, Prompt, Sampling capabilities
 - Support for pagination and notifications
 - Async/await pattern throughout
+- Comprehensive logging support
 - Compatible with .NET 8.0 and later
 
 ## Getting Started
@@ -55,7 +56,8 @@ var config = new McpServerConfig
 		
 var factory = new McpClientFactory(
             [config],
-            options
+            options,
+            NullLoggerFactory.Instance
         );
 ```
 
@@ -79,6 +81,8 @@ Console.WriteLine(result.Content.FirstOrDefault(c => c.Type == "text").Text);
 ```
 
 Note that you should pass CancellationToken objects suitable for your use case, to enable proper error handling, timeouts, etc. This example also does not paginate the tools list, which may be necessary for large tool sets. See the IntegrationTests project for an example of pagination, as well as examples of how to handle Prompts and Resources.
+
+It is also highly recommended that you pass a proper LoggerFactory instance to the factory constructor, to enable logging of MCP client operations.
 
 Additional examples and documentation will be added as in the near future.
 

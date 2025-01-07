@@ -1,10 +1,9 @@
-﻿namespace McpDotNet.Client;
-
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
 
+namespace McpDotNet.Client;
 /// <summary>
 /// Factory for creating MCP clients based on configuration. It caches clients for reuse, so it is safe to call GetClientAsync multiple times.
 /// Call GetClientAsync to get a client for a specific server (by ID), which will create a new client and connect if it doesn't already exist.
@@ -43,7 +42,7 @@ public class McpClientFactory
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<McpClientFactory>();
         _transportFactoryMethod = transportFactoryMethod ?? CreateTransport;
-        _clientFactoryMethod = clientFactoryMethod ?? ((transport, serverConfig, options) => new McpClient(transport, options, serverConfig, loggerFactory.CreateLogger<McpClient>()));
+        _clientFactoryMethod = clientFactoryMethod ?? ((transport, serverConfig, options) => new McpClient(transport, options, serverConfig, loggerFactory));
 
         // Initialize commands for stdio transport, this is to run commands in a shell even if specified directly, as otherwise
         //  the stdio protocol will not work correctly.
@@ -104,8 +103,7 @@ public class McpClientFactory
                 EnvironmentVariables = config.TransportOptions?
                     .Where(kv => kv.Key.StartsWith("env:"))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
-            }),
-            // Add other transport types here
+            }, config, _loggerFactory),
             _ => throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config))
         };
     }
@@ -142,7 +140,7 @@ public class McpClientFactory
         // If the command is not empty and does not contain cmd.exe, we need to inject /c {command}
         if (config.TransportOptions != null && !string.IsNullOrEmpty(command))
         {
-            _logger.PromotingCommandToShellArgumentForStdio(config.Id, config.Name, command, config.TransportOptions.GetValueOrDefault("arguments"));
+            _logger.PromotingCommandToShellArgumentForStdio(config.Id, config.Name, command, config.TransportOptions.GetValueOrDefault("arguments") ?? "");
             config.TransportOptions["arguments"] = config.TransportOptions.ContainsKey("arguments")
                 ? $"/c {command} {config.TransportOptions["arguments"]}"
                 : $"/c {command}";

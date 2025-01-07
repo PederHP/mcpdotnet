@@ -5,7 +5,18 @@
 /// </summary>
 public enum ContextInclusion
 {
+    /// <summary>
+    /// No context should be included.
+    /// </summary>
     None,
+
+    /// <summary>
+    /// Include context from the server that sent the request.
+    /// </summary>
     ThisServer,
+
+    /// <summary>
+    /// Include context from all servers that the client is connected to.
+    /// </summary>
     AllServers
 }
