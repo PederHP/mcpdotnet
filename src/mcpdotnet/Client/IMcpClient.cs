@@ -26,9 +26,14 @@ public interface IMcpClient : IAsyncDisposable
     Implementation? ServerInfo { get; }
 
     /// <summary>
-    /// Gets or sets the handler for the server's sampling requests.
+    /// Gets or sets the handler for server sampling requests.
     /// </summary>
-    Func<CreateMessageRequestParams, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+    Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+
+    /// <summary>
+    /// Gets or sets the handler for providing root URIs to servers.
+    /// </summary>
+    Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
     /// <summary>
     /// Establishes a connection to the server.
@@ -129,4 +134,19 @@ public interface IMcpClient : IAsyncDisposable
     /// <param name="method">The notification method to handle.</param>
     /// <param name="handler">The async handler function to process notifications.</param>
     void OnNotification(string method, Func<JsonRpcNotification, Task> handler);
+
+    /// <summary>
+    /// Sends a notification to the server.
+    /// </summary>
+    /// <param name="method">The notification method name.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task SendNotificationAsync(string method, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the server with parameters.
+    /// </summary>
+    /// <param name="method">The notification method name.</param>
+    /// <param name="parameters">The parameters to send with the notification.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task SendNotificationAsync<T>(string method, T parameters, CancellationToken cancellationToken = default);
 }

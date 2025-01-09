@@ -1,5 +1,6 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
 using Microsoft.Extensions.Logging;
 
@@ -215,7 +216,7 @@ public class IntegrationTests : IClassFixture<IntegrationTestFixture>
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_) =>
+        client.SamplingHandler = async (_,_) =>
         {
             samplingHandlerCalls++;
             return new CreateMessageResult
@@ -246,5 +247,99 @@ public class IntegrationTests : IClassFixture<IntegrationTestFixture>
         var textContent = Assert.Single(result.Content);
         Assert.Equal("text", textContent.Type);
         Assert.False(string.IsNullOrEmpty(textContent.Text));
+    }
+
+    [Fact]
+    public async Task Roots_Stdio_EverythingServer()
+    {
+        // arrange
+        var config = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "everything",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-everything"
+            }
+        };
+
+        var options = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
+            Capabilities = new ClientCapabilities
+            {
+                Roots = new()
+            }
+        };
+
+        var rootsHandlerCalls = 0;
+        var testRoots = new List<Root>
+        {
+            new() { Uri = "file:///test/root1", Name = "Test Root 1" },
+            new() { Uri = "file:///test/root2", Name = "Test Root 2" }
+        };
+
+        var factory = new McpClientFactory(
+            [config],
+            options,
+            _fixture.LoggerFactory
+        );
+        var client = await factory.GetClientAsync("everything");
+
+        // Set up the roots handler
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        client.RootsHandler = async (request, ct) =>
+        {
+            rootsHandlerCalls++;
+            return new ListRootsResult
+            {
+                Roots = testRoots
+            };
+        };
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+
+        // Connect
+        await client.ConnectAsync(CancellationToken.None);
+
+        // assert
+        // nothing to assert, no servers implement roots, so we if no exception is thrown, it's a success
+        Assert.True(true);
+    }
+
+    [Fact]
+    public async Task Notifications_Stdio_EverythingServer()
+    {
+        // arrange
+        var config = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "everything",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-everything"
+            }
+        };
+
+        var options = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
+        };
+
+        var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
+        var client = await factory.GetClientAsync("everything");
+
+        await client.ConnectAsync();
+
+        // Verify we can send notifications without errors
+        await client.SendNotificationAsync(NotificationMethods.RootsUpdatedNotification);
+        await client.SendNotificationAsync("test/notification", new { test = true });
+
+        // assert
+        // no response to check, if no exception is thrown, it's a success
+        Assert.True(true);
     }
 }

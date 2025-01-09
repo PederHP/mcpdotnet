@@ -24,4 +24,9 @@ public static class NotificationMethods
     /// Sent by the server when a resource is updated.
     /// </summary>
     public const string ResourceUpdatedNotification = "notifications/resources/updated";
+
+    /// <summary>
+    /// Sent by the client when roots have been updated.
+    /// </summary>
+    public const string RootsUpdatedNotification = "notifications/roots/list_changed";
 }

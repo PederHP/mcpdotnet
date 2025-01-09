@@ -44,6 +44,9 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Error, Message = "Sampling handler not configured for server {serverId} ({serverName}), always set a handler when using this capability")]
     internal static partial void SamplingHandlerNotConfigured(this ILogger logger, string serverId, string serverName);
 
+    [LoggerMessage(Level = LogLevel.Error, Message = "Roots handler not configured for server {serverId} ({serverName}), always set a handler when using this capability")]
+    internal static partial void RootsHandlerNotConfigured(this ILogger logger, string serverId, string serverName);
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Client server {serverId} ({serverName}) already initializing")]
     internal static partial void ClientAlreadyInitializing(this ILogger logger, string serverId, string serverName);
 
@@ -268,4 +271,10 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message write unknown message type: {type}")]
     internal static partial void JsonRpcMessageConverterWriteUnknownMessageType(this ILogger logger, string type);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Sending notification payload for {serverId} ({serverName}): {payload}")]
+    internal static partial void SendingNotificationPayload(this ILogger logger, string serverId, string serverName, string payload);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending notification for {serverId} ({serverName}): {method}")]
+    internal static partial void SendingNotification(this ILogger logger, string serverId, string serverName, string method);
 }

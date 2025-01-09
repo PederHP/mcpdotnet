@@ -66,7 +66,21 @@ internal class McpClient : IMcpClient
                         throw new McpClientException("Sampling handler not configured");
                     }
 
-                    return await SamplingHandler(request);
+                    return await SamplingHandler(request, _cts?.Token ?? CancellationToken.None);
+                });
+        }
+        if (options.Capabilities?.Roots != null)
+        {
+            SetRequestHandler<ListRootsRequestParams, ListRootsResult>("roots/list",
+                async (request) =>
+                {
+                    if (RootsHandler == null)
+                    {
+                        // Setting the capability, but not a handler means we have nothing to return to the server
+                        _logger.RootsHandlerNotConfigured(_serverConfig.Id, _serverConfig.Name);
+                        throw new McpClientException("Roots handler not configured");
+                    }
+                    return await RootsHandler(request, _cts?.Token ?? CancellationToken.None);
                 });
         }
     }
@@ -468,6 +482,52 @@ internal class McpClient : IMcpClient
         }
     }
 
+    /// <inheritdoc/>
+    public async Task SendNotificationAsync(string method, CancellationToken cancellationToken = default)
+    {
+        if (!_transport.IsConnected)
+        {
+            _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
+            throw new McpClientException("Transport is not connected");
+        }
+
+        var notification = new JsonRpcNotification { Method = method };
+
+        // Log if enabled
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.SendingNotificationPayload(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(notification));
+        }
+
+        // Log basic info
+        _logger.SendingNotification(_serverConfig.Id, _serverConfig.Name, method);
+
+        await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task SendNotificationAsync<T>(string method, T parameters, CancellationToken cancellationToken = default)
+    {
+        if (!_transport.IsConnected)
+        {
+            _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
+            throw new McpClientException("Transport is not connected");
+        }
+        var notification = new JsonRpcNotification
+        {
+            Method = method,
+            Params = parameters
+        };
+        // Log if enabled
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.SendingNotificationPayload(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(notification));
+        }
+        // Log basic info
+        _logger.SendingNotification(_serverConfig.Id, _serverConfig.Name, method);
+        await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task SendNotificationAsync(JsonRpcNotification notification, CancellationToken cancellationToken)
     {
         if (!_transport.IsConnected)
@@ -489,7 +549,9 @@ internal class McpClient : IMcpClient
         }
     }
 
-    public Func<CreateMessageRequestParams, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+    public Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+
+    public Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
     private void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest, Task<TResponse>> handler)
     {
