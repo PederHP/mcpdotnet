@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Detailed error information for JSON-RPC error responses.
 /// </summary>
-internal record JsonRpcErrorDetail
+public record JsonRpcErrorDetail
 {
     /// <summary>
     /// Integer error code.

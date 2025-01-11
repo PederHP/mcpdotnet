@@ -27,6 +27,7 @@ public sealed class SseTransport : TransportBase
     private readonly ILogger<SseTransport> _logger;
     private readonly McpServerConfig _serverConfig;
     private readonly JsonSerializerOptions _jsonOptions;
+    private TaskCompletionSource<bool> _connectionEstablished;
 
     /// <summary>
     /// 
@@ -43,6 +44,7 @@ public sealed class SseTransport : TransportBase
         _connectionCts = new CancellationTokenSource();
         _logger = loggerFactory.CreateLogger<SseTransport>();
         _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _connectionEstablished = new TaskCompletionSource<bool>();
     }
 
     /// <inheritdoc/>
@@ -62,8 +64,8 @@ public sealed class SseTransport : TransportBase
             _logger.TransportReadingMessages(_serverConfig.Id, _serverConfig.Name);
 
             await Task.WhenAny(
-                Task.Delay(_options.ConnectionTimeout, cancellationToken),
-                Task.Run(() => IsConnected)
+                _connectionEstablished.Task,
+                Task.Delay(_options.ConnectionTimeout, cancellationToken)
             );
 
             if (!IsConnected)
@@ -85,7 +87,7 @@ public sealed class SseTransport : TransportBase
             throw new InvalidOperationException("Transport not connected");
 
         var content = new StringContent(
-            JsonSerializer.Serialize(message),
+            JsonSerializer.Serialize(message, _jsonOptions),
             Encoding.UTF8,
             "application/json"
         );
@@ -97,17 +99,68 @@ public sealed class SseTransport : TransportBase
         );
 
         response.EnsureSuccessStatusCode();
+
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        // Handle notifications, which don't have responses
+        if (message is JsonRpcNotification)
+        {
+            await HandleNotificationResponseAsync(message, responseContent, cancellationToken);
+            return;
+        }
+
+        var responseMessage = JsonSerializer.Deserialize<IJsonRpcMessage>(responseContent, _jsonOptions);
+        if (responseMessage != null)
+        {
+            string messageId = "(no id)";
+            if (responseMessage is IJsonRpcMessageWithId messageWithId)
+            {
+                messageId = messageWithId.Id.ToString();
+            }
+            _logger.TransportReceivedMessageParsed(_serverConfig.Id, _serverConfig.Name, messageId);
+            await WriteMessageAsync(responseMessage, cancellationToken);
+            _logger.TransportMessageWritten(_serverConfig.Id, _serverConfig.Name, messageId);
+        }
+        else
+        {
+            _logger.TransportMessageParseUnexpectedType(_serverConfig.Id, _serverConfig.Name, responseContent);
+        }
+    }
+
+    private async Task HandleNotificationResponseAsync(
+        IJsonRpcMessage message,
+        string responseContent,
+        CancellationToken cancellationToken)
+    {
+        // Check for error response, but don't require one
+        try
+        {
+            var errorResponse = JsonSerializer.Deserialize<JsonRpcError>(responseContent, _jsonOptions);
+            if (errorResponse is not null)
+            {
+                await WriteMessageAsync(errorResponse, cancellationToken);
+                return;
+            }
+        }
+        catch (JsonException)
+        {
+            // Ignore deserialization errors for notifications
+            // This is expected as most notifications won't have responses
+        }
     }
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, _sseEndpoint);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        int reconnectAttempts = 0;
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
+                var request = new HttpRequestMessage(HttpMethod.Get, _sseEndpoint);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+
                 using var response = await _httpClient.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
@@ -118,6 +171,9 @@ public sealed class SseTransport : TransportBase
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
+
+                // Reset reconnect attempts on successful connection
+                reconnectAttempts = 0;
 
                 string? currentEvent = null;
                 string? line;
@@ -144,6 +200,13 @@ public sealed class SseTransport : TransportBase
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger.TransportConnectionError(_serverConfig.Id, _serverConfig.Name, ex);
+
+                reconnectAttempts++;
+                if (reconnectAttempts >= _options.MaxReconnectAttempts)
+                {
+                    throw new McpTransportException("Exceeded reconnect limit", ex);
+                }
+
                 await Task.Delay(_options.ReconnectDelay, cancellationToken);
             }
         }
@@ -195,6 +258,7 @@ public sealed class SseTransport : TransportBase
 
             _messageEndpoint = new Uri(endpointData.Uri);
             SetConnected(true);
+            _connectionEstablished.TrySetResult(true);
         }
         catch (JsonException ex)
         {

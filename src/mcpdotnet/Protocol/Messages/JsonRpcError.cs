@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// An error response message in the JSON-RPC protocol.
 /// </summary>
-internal record JsonRpcError : IJsonRpcMessageWithId
+public record JsonRpcError : IJsonRpcMessageWithId
 {
     /// <summary>
     /// JSON-RPC protocol version. Always "2.0".

@@ -5,7 +5,7 @@ namespace McpDotNet.Protocol.Messages;
 /// <summary>
 /// A successful response message in the JSON-RPC protocol.
 /// </summary>
-internal record JsonRpcResponse : IJsonRpcMessageWithId
+public record JsonRpcResponse : IJsonRpcMessageWithId
 {
     /// <summary>
     /// JSON-RPC protocol version. Always "2.0".
