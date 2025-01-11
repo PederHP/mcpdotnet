@@ -277,4 +277,49 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sending notification for {serverId} ({serverName}): {method}")]
     internal static partial void SendingNotification(this ILogger logger, string serverId, string serverName, string method);
+
+    [LoggerMessage(
+    EventId = 7000,
+    Level = LogLevel.Error,
+    Message = "Transport connection error for server {serverId} ({serverName})"
+)]
+    public static partial void TransportConnectionError(
+    this ILogger logger,
+    string serverId,
+    string serverName,
+    Exception exception);
+
+    [LoggerMessage(
+        EventId = 7001,
+        Level = LogLevel.Warning,
+        Message = "Transport message received before connected for server {serverId} ({serverName}): {data}"
+    )]
+    public static partial void TransportMessageReceivedBeforeConnected(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string data);
+
+    [LoggerMessage(
+        EventId = 7002,
+        Level = LogLevel.Error,
+        Message = "Transport endpoint event received out of order for server {serverId} ({serverName}): {data}"
+    )]
+    public static partial void TransportEndpointEventInvalid(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string data);
+
+    [LoggerMessage(
+        EventId = 7003,
+        Level = LogLevel.Error,
+        Message = "Transport event parse failed for server {serverId} ({serverName}): {data}"
+    )]
+    public static partial void TransportEndpointEventParseFailed(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string data,
+        Exception exception);
 }

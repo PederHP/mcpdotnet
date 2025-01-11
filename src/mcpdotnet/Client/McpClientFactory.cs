@@ -104,8 +104,26 @@ public class McpClientFactory
                     .Where(kv => kv.Key.StartsWith("env:"))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
             }, config, _loggerFactory),
+            "sse" => new SseTransport(
+               new SseTransportOptions
+               {
+                   ConnectionTimeout = TimeSpan.FromSeconds(
+                       ParseOrDefault(config.TransportOptions?.GetValueOrDefault("connectionTimeout"), 30)),
+                   MaxReconnectAttempts = ParseOrDefault(config.TransportOptions?.GetValueOrDefault("maxReconnectAttempts"), 3),
+                   ReconnectDelay = TimeSpan.FromSeconds(
+                       ParseOrDefault(config.TransportOptions?.GetValueOrDefault("reconnectDelay"), 5)),
+                   AdditionalHeaders = config.TransportOptions?
+                       .Where(kv => kv.Key.StartsWith("header."))
+                       .ToDictionary(kv => kv.Key.Substring(7), kv => kv.Value)
+               }, config, _loggerFactory),
             _ => throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config))
         };
+    }
+
+    private static int ParseOrDefault(string? value, int defaultValue)
+    {
+        if (value == null) { return defaultValue; }
+        return int.TryParse(value, out var result) ? result : defaultValue;
     }
 
     private string GetCommand(McpServerConfig config)

@@ -1,9 +1,7 @@
-﻿// Protocol/Transport/IMcpTransport.cs
+﻿using System.Threading.Channels;
+using McpDotNet.Protocol.Messages;
+
 namespace McpDotNet.Protocol.Transport;
-
-using System.Threading.Channels;
-using global::McpDotNet.Protocol.Messages;
-
 /// <summary>
 /// Represents a transport mechanism for MCP communication.
 /// </summary>
