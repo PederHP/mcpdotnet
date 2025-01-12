@@ -71,6 +71,11 @@ public sealed class SseTransport : TransportBase
             if (!IsConnected)
                 throw new TimeoutException("Failed to receive endpoint event");
         }
+        catch (McpTransportException)
+        {
+            // Rethrow transport exceptions
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.TransportConnectFailed(_serverConfig.Id, _serverConfig.Name, ex);
@@ -128,6 +133,25 @@ public sealed class SseTransport : TransportBase
         }
     }
 
+    /// <inheritdoc/>
+    public async Task CloseAsync()
+    {
+        _connectionCts.Cancel();
+        if (_receiveTask != null)
+            await _receiveTask;
+
+        _httpClient.Dispose();
+        _connectionCts.Dispose();
+        SetConnected(false);
+    }
+
+    /// <inheritdoc/>
+    public override async ValueTask DisposeAsync()
+    {
+        await CloseAsync();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task HandleNotificationResponseAsync(
         IJsonRpcMessage message,
         string responseContent,
@@ -149,6 +173,10 @@ public sealed class SseTransport : TransportBase
             // This is expected as most notifications won't have responses
         }
     }
+
+    internal Uri? MessageEndpoint => _messageEndpoint;
+
+    internal SseTransportOptions Options => _options;
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
@@ -271,24 +299,5 @@ public sealed class SseTransport : TransportBase
     {
         [JsonPropertyName("uri")]
         public string? Uri { get; init; }
-    }
-
-    /// <inheritdoc/>
-    public async Task CloseAsync()
-    {
-        _connectionCts.Cancel();
-        if (_receiveTask != null)
-            await _receiveTask;
-
-        _httpClient.Dispose();
-        _connectionCts.Dispose();
-        SetConnected(false);
-    }
-
-    /// <inheritdoc/>
-    public override async ValueTask DisposeAsync()
-    {
-        await CloseAsync();
-        GC.SuppressFinalize(this);
     }
 }

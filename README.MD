@@ -1,5 +1,5 @@
 # mcpdotnet
-[![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg?style=flat)](https://www.nuget.org/packages/mcpdotnet/)
+[![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg)](https://www.nuget.org/packages/mcpdotnet/)
 
 A .NET client implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP servers.
 
@@ -12,23 +12,15 @@ For more information about MCP:
 - [Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [GitHub Organization](https://github.com/modelcontextprotocol)
 
-## Status
+## Design Goals
 
-This project is in early development. While functional, it may undergo significant changes as the protocol and implementation evolve.
-
-### Current Limitations
-- Only stdio transport is currently supported (HTTP/SSE transport coming soon)
-- Client library only - server implementation support may be added in the future
-- Provider-agnostic implementation focused purely on the MCP protocol
-- Applications using this library need to implement their own integration with LLM APIs/clients
-
-The library's current focus is on implementing the core MCP protocol, with the main utility being the ability to launch and connect to MCP servers based on configuration objects.
+This library aims to provide a clean, specification-compliant implementation of the MCP protocol, with minimal additional abstraction. While transport implementations necessarily include additional code, they follow patterns established by the official SDKs where possible.
 
 ## Features
 
 - MCP client implementation for .NET applications
-- Support for stdio transport
-- Support for all capabilities: Tool, Resource, Prompt, Sampling, Roots
+- Support for stdio and SSE transports
+- Support for all MCP capabilities: Tool, Resource, Prompt, Sampling, Roots
 - Support for pagination and notifications
 - Async/await pattern throughout
 - Comprehensive logging support
@@ -36,7 +28,13 @@ The library's current focus is on implementing the core MCP protocol, with the m
 
 ## Getting Started
 
-To create a client you need to instantiate a factory with configuration objects:
+To use mcpdotnet, first install it via NuGet:
+
+```powershell
+dotnet add package mcpdotnet
+```
+
+Then create a client and start using tools, or other capabilities, from the servers you configure:
 ```csharp
 var options = new McpClientOptions() 
     { ClientInfo = new() { Name = "TestClient", Version = "1.0.0" } };
@@ -58,14 +56,12 @@ var factory = new McpClientFactory(
             options,
             NullLoggerFactory.Instance
         );
-```
 
-You can then retrieve an IMcpClient reference using the `id` of a server from the configuration, and use `ListToolsAsync` and `CallToolAsync` to integrate with your LLM-based code.
-
-```csharp
 var client = await factory.GetClientAsync("everything");
+
 // Get the list of tools, for passing to an LLM
 var tools = await client.ListToolsAsync();
+
 // Execute a tool, in practice this would normally be driven by LLM tool invocations
 var result = await client.CallToolAsync(
             "echo",
@@ -75,6 +71,7 @@ var result = await client.CallToolAsync(
             },
             CancellationToken.None
         );
+
 // echo always returns one and only one text content object
 Console.WriteLine(result.Content.FirstOrDefault(c => c.Type == "text").Text);
 ```
@@ -84,6 +81,16 @@ Note that you should pass CancellationToken objects suitable for your use case, 
 It is also highly recommended that you pass a proper LoggerFactory instance to the factory constructor, to enable logging of MCP client operations.
 
 Additional examples and documentation will be added as in the near future.
+
+## Roadmap
+
+- Expand documentation with detailed guides for:
+  - Advanced scenarios (Sampling, Resources, Prompts)
+  - Transport configuration
+  - Error handling and recovery
+- Increase test coverage
+- Add example applications
+- Performance optimization and profiling
 
 ## License
 

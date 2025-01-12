@@ -315,6 +315,8 @@ internal class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
+    internal IMcpTransport Transport => _transport;
+
     private static Dictionary<string, object?> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? optionalArguments = null)
     {
         var parameters = new Dictionary<string, object?>

@@ -2,7 +2,6 @@
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
-using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Tests;
 
