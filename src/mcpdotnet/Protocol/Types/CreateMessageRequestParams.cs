@@ -13,13 +13,13 @@ public class CreateMessageRequestParams
     /// <summary>
     /// A request to include context from one or more MCP servers (including the caller), to be attached to the prompt. The client MAY ignore this request.
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("include_context")]
+    [System.Text.Json.Serialization.JsonPropertyName("includeContext")]
     public ContextInclusion? IncludeContext { get; init; }
 
     /// <summary>
     /// The maximum number of tokens to sample, as requested by the server. The client MAY choose to sample fewer tokens than requested.
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("max_tokens")]
+    [System.Text.Json.Serialization.JsonPropertyName("maxTokens")]
     public int MaxTokens { get; init; }
 
     /// <summary>

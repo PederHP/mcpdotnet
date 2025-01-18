@@ -31,7 +31,7 @@ public class Content
     /// <summary>
     /// The MIME type of the image.
     /// </summary>
-    [JsonPropertyName("mime_type")]
+    [JsonPropertyName("mimeType")]
     public string? MimeType { get; set; }
 
     /// <summary>
