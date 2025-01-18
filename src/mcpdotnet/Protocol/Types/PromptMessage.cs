@@ -12,10 +12,12 @@ public class PromptMessage
     /// <summary>
     /// The content of the message. Any of TextContent, ImageContent, EmbeddedResource.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("content")]
     public Content Content { get; set; } = new();
 
     /// <summary>
     /// The role of the message ("user" or "assistant").
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("role")]
     public Role Role { get; set; } = new();
 }

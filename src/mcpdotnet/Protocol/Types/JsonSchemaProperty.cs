@@ -9,10 +9,12 @@ public class JsonSchemaProperty
     /// <summary>
     /// The type of the property. Should be a JSON Schema type and is required.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// A human-readable description of the property.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("description")]
     public string? Description { get; set; }
 }

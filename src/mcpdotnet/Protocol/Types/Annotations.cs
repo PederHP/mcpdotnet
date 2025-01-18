@@ -1,7 +1,7 @@
-﻿namespace McpDotNet.Protocol.Types;
-
+﻿
 using System.Text.Json.Serialization;
 
+namespace McpDotNet.Protocol.Types;
 /// <summary>
 /// Represents annotations that can be attached to content.
 /// </summary>

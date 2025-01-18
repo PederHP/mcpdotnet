@@ -9,10 +9,12 @@ public class GetPromptResult
     /// <summary>
     /// An optional description for the prompt.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("description")]
     public string? Description { get; set; }
 
     /// <summary>
     /// The prompt or prompt template that the server offers.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("messages")]
     public List<PromptMessage> Messages { get; set; } = new();
 }

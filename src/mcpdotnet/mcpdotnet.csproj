@@ -9,7 +9,7 @@
   <PropertyGroup>
     <!-- license and package properties -->
     <PackageId>mcpdotnet</PackageId>
-    <Version>0.6.0.1</Version>
+    <Version>0.7.0.1</Version>
     <Authors>PederHP</Authors>
     <Description>.NET client library for the Model Context Protocol (MCP)</Description>
     <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>

@@ -9,10 +9,12 @@ public class CallToolResponse
     /// <summary>
     /// The server's response to a tools/call request from the client.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("content")]
     public List<Content> Content { get; set; } = new();
 
     /// <summary>
     /// Whether the tool call was unsuccessful. If true, the call was unsuccessful.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("isError")]
     public bool IsError { get; set; }
 }

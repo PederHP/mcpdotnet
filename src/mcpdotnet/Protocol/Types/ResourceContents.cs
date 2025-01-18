@@ -16,7 +16,7 @@ public class ResourceContents
     /// <summary>
     /// The type of content.
     /// </summary>
-    [JsonPropertyName("mime_type")]
+    [JsonPropertyName("mimeType")]
     public string? MimeType { get; set; }
 
     /// <summary>

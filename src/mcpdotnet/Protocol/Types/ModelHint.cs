@@ -18,5 +18,6 @@ public class ModelHint
     /// The client MAY also map the string to a different provider's model name or a different model family, as long as it fills a similar niche; for example:
     /// - `gemini-1.5-flash` could match `claude-3-haiku-20240307`
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
     public string? Name { get; init; }
 }

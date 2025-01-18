@@ -9,15 +9,18 @@ public class PromptArgument
     /// <summary>
     /// The name of the argument.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// A human-readable description of the argument.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("description")]
     public string? Description { get; set; } = string.Empty;
 
     /// <summary>
     /// Whether this argument must be provided.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("required")]
     public bool? Required { get; set; }
 }

@@ -84,6 +84,7 @@ public sealed class SseTransport : TransportBase
         }
     }
 
+    /// <inheritdoc/>
     public override async Task SendMessageAsync(
         IJsonRpcMessage message,
         CancellationToken cancellationToken = default)

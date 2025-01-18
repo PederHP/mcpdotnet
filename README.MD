@@ -80,6 +80,8 @@ Note that you should pass CancellationToken objects suitable for your use case, 
 
 It is also highly recommended that you pass a proper LoggerFactory instance to the factory constructor, to enable logging of MCP client operations.
 
+You can find samples demonstrating how to use mcpdotnet with an LLM SDK in the [samples](samples) directory, and also refer to the [IntegrationTests](test/McpDotNet.IntegrationTests) project for more examples.
+
 Additional examples and documentation will be added as in the near future.
 
 ## Roadmap
@@ -89,7 +91,7 @@ Additional examples and documentation will be added as in the near future.
   - Transport configuration
   - Error handling and recovery
 - Increase test coverage
-- Add example applications
+- Add additional samples and examples
 - Performance optimization and profiling
 
 ## License

@@ -24,7 +24,7 @@ public class CreateMessageResult
     /// <summary>
     /// The reason why sampling stopped, if known.
     /// </summary>
-    [JsonPropertyName("stop_reason")]
+    [JsonPropertyName("stopReason")]
     public string? StopReason { get; init; }
 
     /// <summary>

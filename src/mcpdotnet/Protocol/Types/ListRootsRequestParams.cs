@@ -8,5 +8,6 @@ public class ListRootsRequestParams
     /// <summary>
     /// Optional progress token for out-of-band progress notifications.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("progressToken")]
     public string? ProgressToken { get; init; }
 }

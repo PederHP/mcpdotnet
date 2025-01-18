@@ -18,6 +18,7 @@ public class ModelPreferences
     /// How much to prioritize cost when selecting a model. A value of 0 means cost\nis not important, while a value of 1 means cost is the most important
     /// factor.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("costPriority")]
     public float? CostPriority { get; init; }
 
     /// <summary>
@@ -29,20 +30,23 @@ public class ModelPreferences
     /// The client SHOULD prioritize these hints over the numeric priorities, but
     /// MAY still use the priorities to select from ambiguous matches.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("hints")]
     public IReadOnlyList<ModelHint>? Hints { get; init; }
-
-    /// <summary>
-    /// How much to prioritize intelligence and capabilities when selecting a
-    /// model. A value of 0 means intelligence is not important, while a value of 1
-    /// means intelligence is the most important factor.
-    /// </summary>
-    public float? SpeedPriority { get; init; }
 
     /// <summary>
     /// How much to prioritize sampling speed (latency) when selecting a model. A
     /// value of 0 means speed is not important, while a value of 1 means speed is
     /// the most important factor.
     /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("speedPriority")]
+    public float? SpeedPriority { get; init; }
+
+    /// <summary>
+    /// How much to prioritize intelligence and capabilities when selecting a
+    /// model. A value of 0 means intelligence is not important, while a value of 1
+    /// means intelligence is the most important factor.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("intelligencePriority")]
     public float? IntelligencePriority { get; init; }
 
     /// <summary>

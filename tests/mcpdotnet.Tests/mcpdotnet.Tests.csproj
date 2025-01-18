@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\mcpdotnet\mcpdotnet.csproj" />
+    <ProjectReference Include="..\..\src\mcpdotnet\mcpdotnet.csproj" />
   </ItemGroup>
 
 </Project>
