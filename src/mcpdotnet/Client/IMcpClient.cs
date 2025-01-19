@@ -100,6 +100,16 @@ public interface IMcpClient : IAsyncDisposable
     Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the completion options for a resource or prompt reference and (named) argument.
+    /// </summary>
+    /// <param name="reference">A resource (uri) or prompt (name) reference</param>
+    /// <param name="argumentName">Name of argument. Must be non-null and non-empty.</param>
+    /// <param name="argumentValue">Value of argument. Must be non-null.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns></returns>
+    Task<CompleteResult> GetCompletionAsync(Reference reference, string argumentName, string argumentValue, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Subscribes to a resource on the server.
     /// </summary>
     /// <param name="uri">The uri of the resource.</param>

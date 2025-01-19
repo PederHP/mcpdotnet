@@ -21,6 +21,7 @@ This library aims to provide a clean, specification-compliant implementation of 
 - MCP client implementation for .NET applications
 - Support for stdio and SSE transports
 - Support for all MCP capabilities: Tool, Resource, Prompt, Sampling, Roots
+- Support for the Completion utility capability
 - Support for pagination and notifications
 - Async/await pattern throughout
 - Comprehensive logging support

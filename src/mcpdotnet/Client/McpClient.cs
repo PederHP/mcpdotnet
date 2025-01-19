@@ -264,6 +264,39 @@ internal class McpClient : IMcpClient
         ).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
+    public async Task<CompleteResult> GetCompletionAsync(Reference reference, string argumentName, string argumentValue, CancellationToken cancellationToken = default)
+    {
+        if (!reference.Validate(out string validationMessage))
+        {
+            _logger.InvalidCompletionReference(_serverConfig.Id, _serverConfig.Name, reference.ToString(), validationMessage);
+            throw new McpClientException($"Invalid reference: {validationMessage}");
+        }
+        if (string.IsNullOrWhiteSpace(argumentName))
+        {
+            _logger.InvalidCompletionArgumentName(_serverConfig.Id, _serverConfig.Name, argumentName);
+            throw new McpClientException("Argument name cannot be null or empty");
+        }
+        if (argumentValue is null)
+        {
+            _logger.InvalidCompletionArgumentValue(_serverConfig.Id, _serverConfig.Name, argumentValue);
+            throw new McpClientException("Argument value cannot be null");
+        }
+
+        _logger.GettingCompletion(_serverConfig.Id, _serverConfig.Name, reference.ToString(), argumentName, argumentValue);
+        return await SendRequestAsync<CompleteResult>(
+            new JsonRpcRequest
+            {
+                Method = "completion/complete",
+                Params = new Dictionary<string, object?>
+                {
+                    ["ref"] = reference,
+                    ["argument"] = new Argument { Name = argumentName, Value = argumentValue }
+                }
+            },
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
     public async Task SubscribeToResourceAsync(string uri, CancellationToken cancellationToken = default)

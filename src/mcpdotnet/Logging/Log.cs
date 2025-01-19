@@ -322,4 +322,55 @@ internal static partial class Log
         string serverName,
         string data,
         Exception exception);
+
+    // trace _logger.InvalidCompletionReference(_serverConfig.Id, _serverConfig.Name, reference, validationMessage);
+    [LoggerMessage(
+        EventId = 7004,
+        Level = LogLevel.Trace,
+        Message = "Invalid completion reference {reference} for server {serverId} ({serverName}): {validationMessage}"
+    )]
+    public static partial void InvalidCompletionReference(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string reference,
+        string validationMessage);
+
+    // trace _logger.InvalidACompletionArgumentName(_serverConfig.Id, _serverConfig.Name, argumentName);
+    [LoggerMessage(
+        EventId = 7005,
+        Level = LogLevel.Trace,
+        Message = "Invalid completion argument name {argumentName} for server {serverId} ({serverName})"
+    )]
+    public static partial void InvalidCompletionArgumentName(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string argumentName);
+
+    // trace _logger.InvalidCompletionArgumentValue(_serverConfig.Id, _serverConfig.Name, argumentValue);
+    [LoggerMessage(
+        EventId = 7006,
+        Level = LogLevel.Trace,
+        Message = "Invalid completion argument value {argumentValue} for server {serverId} ({serverName})"
+    )]
+    public static partial void InvalidCompletionArgumentValue(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string argumentValue);
+
+    // debug _logger.GettingCompletion(_serverConfig.Id, _serverConfig.Name, reference, argumentName, argumentValue);
+    [LoggerMessage(
+        EventId = 7007,
+        Level = LogLevel.Debug,
+        Message = "Getting completion for server {serverId} ({serverName}) with reference {reference}, argument name {argumentName}, argument value {argumentValue}"
+    )]
+    public static partial void GettingCompletion(
+        this ILogger logger,
+        string serverId,
+        string serverName,
+        string reference,
+        string argumentName,
+        string argumentValue);
 }

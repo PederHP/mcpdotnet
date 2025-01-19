@@ -30,6 +30,7 @@ public class IntegrationTestFixture : IDisposable
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
+                // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
                 ["arguments"] = "-y @modelcontextprotocol/server-everything",
             }
         };

@@ -180,6 +180,68 @@ public class IntegrationTests : IClassFixture<IntegrationTestFixture>
         Assert.NotNull(result.Contents[0].Blob);
     }
 
+    /// <summary>
+    /// Note that as of 19th January 2025, the everything server published to npx does not support prompt completion.
+    /// However, the prompt completion is implemented in the github.com/modelcontextprotocol/servers repository.
+    /// You can clone this repo, and build locally then change the config to use a local symlink instead of npx until this is fixed, if you wish to run this test.
+    /// TransportOptions = new Dictionary<string, string>
+    /// {
+    ///    ["command"] = "npx",
+    ///    ["arguments"] = "mcp-server-everything" // changed from "-y @modelcontextprotocol/server-everything"
+    /// }
+    /// </summary>
+    [Fact]
+    public async Task GetCompletion_Stdio_ResourceReference()
+    {
+        // arrange
+
+        // act
+        var client = await _fixture.Factory.GetClientAsync("everything");
+        var result = await client.GetCompletionAsync(new Reference
+            {
+                Type = "ref/resource",
+                Uri = "test://static/resource/1"
+            },
+            "argument_name", "1", 
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Single(result.Completion.Values);
+        Assert.True(result.Completion.Values[0] == "1");
+    }
+
+    /// <summary>
+    /// Note that as of 19th January 2025, the everything server published to npx does not support prompt completion.
+    /// However, the prompt completion is implemented in the github.com/modelcontextprotocol/servers repository.
+    /// You can clone this repo, and build locally then change the config to use a local symlink instead of npx until this is fixed, if you wish to run this test.
+    /// TransportOptions = new Dictionary<string, string>
+    /// {
+    ///    ["command"] = "npx",
+    ///    ["arguments"] = "mcp-server-everything" // changed from "-y @modelcontextprotocol/server-everything"
+    /// }
+    /// </summary>
+    [Fact]
+    public async Task GetCompletion_Stdio_PromptReference()
+    {
+        // arrange
+
+        // act
+        var client = await _fixture.Factory.GetClientAsync("everything");
+        var result = await client.GetCompletionAsync(new Reference
+        {
+            Type = "ref/prompt",
+            Name = "irrelevant"
+        },
+            argumentName:"style", argumentValue:"fo",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Single(result.Completion.Values);
+        Assert.True(result.Completion.Values[0] == "formal");
+    }
+
     [Fact]
     public async Task Sampling_Stdio_EverythingServer()
     {
