@@ -37,6 +37,9 @@ internal class McpClient : IMcpClient
     /// <inheritdoc/>
     public Implementation? ServerInfo { get; private set; }
 
+    /// <inheritdoc/>
+    public string? ServerInstructions { get; private set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="McpClient"/> class.
     /// </summary>
@@ -154,6 +157,7 @@ internal class McpClient : IMcpClient
             _logger.ServerCapabilitiesReceived(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(initializeResponse.Capabilities), JsonSerializer.Serialize(initializeResponse.ServerInfo));
             ServerCapabilities = initializeResponse.Capabilities;
             ServerInfo = initializeResponse.ServerInfo;
+            ServerInstructions = initializeResponse.Instructions;
 
             // Validate protocol version
             if (initializeResponse.ProtocolVersion != _options.ProtocolVersion)

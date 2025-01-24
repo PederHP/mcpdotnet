@@ -3,6 +3,7 @@ using McpDotNet.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
+using OpenAI.Chat;
 using SimpleToolsConsole;
 
 internal class Program
@@ -63,10 +64,23 @@ internal class Program
             IChatClient chatClient = new ChatClientBuilder(openaiClient)
                 .UseFunctionInvocation()
                 .Build();
-                        
+
+            // Create message list
+            IList<Microsoft.Extensions.AI.ChatMessage> messages = new List<Microsoft.Extensions.AI.ChatMessage>();
+            // Add a system message
+            messages.Add(new(ChatRole.System, "You are a helpful assistant, helping us test MCP server functionality."));
+            // If MCP server provides instructions, add them as an additional system message (you could also add it as a content part)
+            if (!string.IsNullOrEmpty(client.ServerInstructions))
+            {
+                messages.Add(new(ChatRole.System, client.ServerInstructions));
+            }
+            // Add a user message
+            messages.Add(new(ChatRole.User, "Please call the echo tool with the string 'Hello MCP!' and give me the response as-is."));
+
+            // Call the chat client
             Console.WriteLine("Asking GPT-4o-mini to call the Echo Tool...");
             var response = chatClient.CompleteStreamingAsync(
-                    "Please call the echo tool with the string 'Hello MCP!' and give me the response as-is.",
+                    messages,
                     new() { Tools = mappedTools });
 
             await foreach (var update in response)

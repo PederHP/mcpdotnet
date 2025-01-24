@@ -69,8 +69,16 @@ internal class Program
                 Model = AnthropicModels.Claude35Haiku,
                 Stream = false,
                 Temperature = 1.0m,
-                Tools = anthropicTools
+                Tools = anthropicTools,
+                System = [new SystemMessage("You will be helping the user test MCP server tool call functionality.")]
             };
+
+            // If the server provides instructions, add them as the system prompt
+            if (!string.IsNullOrEmpty(client.ServerInstructions))
+            {
+                parameters.System.Add(new SystemMessage(client.ServerInstructions));
+            }
+
             var res = await antClient.Messages.GetClaudeMessageAsync(parameters);
 
             messages.Add(res.Message);

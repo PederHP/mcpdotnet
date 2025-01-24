@@ -22,7 +22,7 @@ This library aims to provide a clean, specification-compliant implementation of 
 - Support for stdio and SSE transports
 - Support for all MCP capabilities: Tool, Resource, Prompt, Sampling, Roots
 - Support for the Completion utility capability
-- Support for pagination and notifications
+- Support for server instructions, pagination and notifications
 - Async/await pattern throughout
 - Comprehensive logging support
 - Compatible with .NET 8.0 and later

@@ -28,6 +28,22 @@ public class IntegrationTests : IClassFixture<IntegrationTestFixture>
     }
 
     [Fact]
+    public async Task Connect_EverythingServer_ShouldProvideServerFields()
+    {
+        // Arrange
+
+        // Act
+        var client = await _fixture.Factory.GetClientAsync("everything");
+
+        // Assert
+        Assert.NotNull(client.ServerCapabilities);
+        Assert.NotNull(client.ServerInfo);
+
+        // Note: Comment the below assertion back when the everything server is updated to provide instructions
+        // Assert.NotNull(client.ServerInstructions);
+    }
+
+    [Fact]
     public async Task ListTools_Stdio_EverythingServer()
     {
         // arrange
