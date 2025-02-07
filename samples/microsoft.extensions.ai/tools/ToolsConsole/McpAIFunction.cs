@@ -43,7 +43,7 @@ public class McpAIFunction : AIFunction
         // Call the tool through mcpdotnet
         var result = await _client.CallToolAsync(
             _tool.Name,
-            argDict.Count == 0 ? null: argDict,
+            argDict.Count == 0 ? new(): argDict,
             cancellationToken: cancellationToken
         );
 
