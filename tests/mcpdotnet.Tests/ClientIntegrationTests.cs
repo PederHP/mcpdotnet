@@ -5,11 +5,11 @@ using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests;
 
-public class IntegrationTests : IClassFixture<IntegrationTestFixture>
+public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture>
 {
-    private readonly IntegrationTestFixture _fixture;
+    private readonly ClientIntegrationTestFixture _fixture;
 
-    public IntegrationTests(IntegrationTestFixture fixture)
+    public ClientIntegrationTests(ClientIntegrationTestFixture fixture)
     {
         _fixture = fixture;
     }
@@ -418,5 +418,44 @@ public class IntegrationTests : IClassFixture<IntegrationTestFixture>
         // assert
         // no response to check, if no exception is thrown, it's a success
         Assert.True(true);
+    }
+
+    [Fact]
+    public async Task CallTool_Stdio_MemoryServer()
+    {
+        // arrange
+        var config = new McpServerConfig
+        {
+            Id = "memory",
+            Name = "memory",
+            TransportType = "stdio",
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = "npx",
+                ["arguments"] = "-y @modelcontextprotocol/server-memory"
+            }
+        };
+
+        var options = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
+        };
+
+        var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
+        var client = await factory.GetClientAsync("memory");
+
+        await client.ConnectAsync();
+
+        // act
+        var result = await client.CallToolAsync(
+            "read_graph",
+            new Dictionary<string, object>(),
+            CancellationToken.None
+        );
+
+        // assert
+        Assert.NotNull(result);
+        Assert.False(result.IsError);
+        var textContent = Assert.Single(result.Content, c => c.Type == "text");
     }
 }

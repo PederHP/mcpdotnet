@@ -6,7 +6,7 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// Base class for implementing MCP transports with common functionality.
 /// </summary>
-public abstract class TransportBase : IMcpTransport
+public abstract class TransportBase : ITransport
 {
     private readonly Channel<IJsonRpcMessage> _messageChannel;
     private bool _isConnected;
@@ -29,9 +29,6 @@ public abstract class TransportBase : IMcpTransport
 
     /// <inheritdoc/>
     public ChannelReader<IJsonRpcMessage> MessageReader => _messageChannel.Reader;
-
-    /// <inheritdoc/>
-    public abstract Task ConnectAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
     public abstract Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default);

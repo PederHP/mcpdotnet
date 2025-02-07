@@ -11,16 +11,24 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// Implements the MCP transport protocol over standard input/output streams.
 /// </summary>
-public sealed class StdioTransport : TransportBase
+public sealed class StdioClientTransport : TransportBase, IClientTransport
 {
-    private readonly StdioTransportOptions _options;
+    private readonly StdioClientTransportOptions _options;
     private readonly McpServerConfig _serverConfig;
-    private readonly ILogger<StdioTransport> _logger;
+    private readonly ILogger<StdioClientTransport> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private Process? _process;
     private Task? _readTask;
     private CancellationTokenSource? _shutdownCts;
     private bool _processStarted;
+
+    private string EndpointName
+    {
+        get
+        {
+            return $"Client ({_serverConfig.Id}: {_serverConfig.Name})";
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the StdioTransport class.
@@ -28,26 +36,26 @@ public sealed class StdioTransport : TransportBase
     /// <param name="options">Configuration options for the transport.</param>
     /// <param name="serverConfig">The server configuration for the transport.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public StdioTransport(StdioTransportOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+    public StdioClientTransport(StdioClientTransportOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
     {
         _options = options;
         _serverConfig = serverConfig;
-        _logger = loggerFactory.CreateLogger<StdioTransport>();
+        _logger = loggerFactory.CreateLogger<StdioClientTransport>();
         _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
     }
 
     /// <inheritdoc/>
-    public override async Task ConnectAsync(CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (IsConnected)
         {
-            _logger.TransportAlreadyConnected(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportAlreadyConnected(EndpointName);
             throw new McpTransportException("Transport is already connected");
         }
 
         try
         {
-            _logger.TransportConnecting(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportConnecting(EndpointName);
 
             _shutdownCts = new CancellationTokenSource();
 
@@ -78,7 +86,7 @@ public sealed class StdioTransport : TransportBase
                 }
             }
 
-            _logger.CreateProcessForTransport(_serverConfig.Id, _serverConfig.Name, _options.Command,
+            _logger.CreateProcessForTransport(EndpointName, _options.Command,
                 string.Join(", ", startInfo.ArgumentList), string.Join(", ", startInfo.Environment.Select(kvp => kvp.Key + "=" + kvp.Value)),
                 startInfo.WorkingDirectory, _options.ShutdownTimeout.ToString());
 
@@ -87,28 +95,28 @@ public sealed class StdioTransport : TransportBase
             // Set up error logging
             _process.ErrorDataReceived += (sender, args) =>
             {
-                _logger.TransportError(_serverConfig.Id, _serverConfig.Name, args.Data ?? "(no data)");
+                _logger.TransportError(EndpointName, args.Data ?? "(no data)");
             };
 
             if (!_process.Start())
             {
-                _logger.TransportProcessStartFailed(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportProcessStartFailed(EndpointName);
                 throw new McpTransportException("Failed to start MCP server process");
             }
-            _logger.TransportProcessStarted(_serverConfig.Id, _serverConfig.Name, _process.Id);
+            _logger.TransportProcessStarted(EndpointName, _process.Id);
             _processStarted = true;
             _process.BeginErrorReadLine();
 
 
             // Start reading messages in the background
             _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token));
-            _logger.TransportReadingMessages(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportReadingMessages(EndpointName);
 
             SetConnected(true);
         }
         catch (Exception ex)
         {
-            _logger.TransportConnectFailed(_serverConfig.Id, _serverConfig.Name, ex);
+            _logger.TransportConnectFailed(EndpointName, ex);
             await CleanupAsync(cancellationToken);
             throw new McpTransportException("Failed to connect transport", ex);
         }
@@ -119,7 +127,7 @@ public sealed class StdioTransport : TransportBase
     {
         if (!IsConnected || _process?.HasExited == true)
         {
-            _logger.TransportNotConnected(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportNotConnected(EndpointName);
             throw new McpTransportException("Transport is not connected");
         }
 
@@ -132,17 +140,17 @@ public sealed class StdioTransport : TransportBase
         try
         {
             var json = JsonSerializer.Serialize(message, _jsonOptions);
-            _logger.TransportSendingMessage(_serverConfig.Id, _serverConfig.Name, id, json);
+            _logger.TransportSendingMessage(EndpointName, id, json);
 
             // Write the message followed by a newline
             await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken);
             await _process.StandardInput.FlushAsync();
 
-            _logger.TransportSentMessage(_serverConfig.Id, _serverConfig.Name, id);
+            _logger.TransportSentMessage(EndpointName, id);
         }
         catch (Exception ex)
         {
-            _logger.TransportSendFailed(_serverConfig.Id, _serverConfig.Name, id, ex);
+            _logger.TransportSendFailed(EndpointName, id, ex);
             throw new McpTransportException("Failed to send message", ex);
         }
     }
@@ -158,17 +166,17 @@ public sealed class StdioTransport : TransportBase
     {
         try
         {
-            _logger.TransportEnteringReadMessagesLoop(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportEnteringReadMessagesLoop(EndpointName);
 
             using var reader = _process!.StandardOutput;
 
             while (!cancellationToken.IsCancellationRequested && !_process.HasExited)
             {
-                _logger.TransportWaitingForMessage(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportWaitingForMessage(EndpointName);
                 var line = await reader.ReadLineAsync(cancellationToken);
                 if (line == null)
                 {
-                    _logger.TransportEndOfStream(_serverConfig.Id, _serverConfig.Name);
+                    _logger.TransportEndOfStream(EndpointName);
                     break;
                 }
 
@@ -177,7 +185,7 @@ public sealed class StdioTransport : TransportBase
                     continue;
                 }
 
-                _logger.TransportReceivedMessage(_serverConfig.Id, _serverConfig.Name, line);
+                _logger.TransportReceivedMessage(EndpointName, line);
 
                 try
                 {
@@ -189,31 +197,31 @@ public sealed class StdioTransport : TransportBase
                         {
                             messageId = messageWithId.Id.ToString();
                         }
-                        _logger.TransportReceivedMessageParsed(_serverConfig.Id, _serverConfig.Name, messageId);
+                        _logger.TransportReceivedMessageParsed(EndpointName, messageId);
                         await WriteMessageAsync(message, cancellationToken);
-                        _logger.TransportMessageWritten(_serverConfig.Id, _serverConfig.Name, messageId);
+                        _logger.TransportMessageWritten(EndpointName, messageId);
                     }
                     else
                     {
-                        _logger.TransportMessageParseUnexpectedType(_serverConfig.Id, _serverConfig.Name, line);
+                        _logger.TransportMessageParseUnexpectedType(EndpointName, line);
                     }
                 }
                 catch (JsonException ex)
                 {
-                    _logger.TransportMessageParseFailed(_serverConfig.Id, _serverConfig.Name, line, ex);
+                    _logger.TransportMessageParseFailed(EndpointName, line, ex);
                     // Continue reading even if we fail to parse a message
                 }
             }
-            _logger.TransportExitingReadMessagesLoop(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportExitingReadMessagesLoop(EndpointName);
         }
         catch (OperationCanceledException)
         {
-            _logger.TransportReadMessagesCancelled(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportReadMessagesCancelled(EndpointName);
             // Normal shutdown
         }
         catch (Exception ex)
         {
-            _logger.TransportReadMessagesFailed(_serverConfig.Id, _serverConfig.Name, ex);
+            _logger.TransportReadMessagesFailed(EndpointName, ex);
         }
         finally
         {
@@ -223,27 +231,27 @@ public sealed class StdioTransport : TransportBase
 
     private async Task CleanupAsync(CancellationToken cancellationToken)
     {
-        _logger.TransportCleaningUp(_serverConfig.Id, _serverConfig.Name);
+        _logger.TransportCleaningUp(EndpointName);
         if (_process != null && _processStarted && !_process.HasExited)
         {            
             try
             {
                 // Try to close stdin to signal the process to exit
-                _logger.TransportClosingStdin(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportClosingStdin(EndpointName);
                 _process.StandardInput.Close();
 
                 // Wait for the process to exit
-                _logger.TransportWaitingForShutdown(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportWaitingForShutdown(EndpointName);
                 if (!_process.WaitForExit((int)_options.ShutdownTimeout.TotalMilliseconds))
                 {
                     // If it doesn't exit gracefully, terminate it
-                    _logger.TransportKillingProcess(_serverConfig.Id, _serverConfig.Name);
+                    _logger.TransportKillingProcess(EndpointName);
                     _process.Kill(true);
                 }
             }
             catch (Exception ex)
             {
-                _logger.TransportShutdownFailed(_serverConfig.Id, _serverConfig.Name, ex);
+                _logger.TransportShutdownFailed(EndpointName, ex);
             }
 
             _process.Dispose();
@@ -258,29 +266,29 @@ public sealed class StdioTransport : TransportBase
         {
             try
             {
-                _logger.TransportWaitingForReadTask(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportWaitingForReadTask(EndpointName);
                 await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
             }
             catch (TimeoutException)
             {
-                _logger.TransportCleanupReadTaskTimeout(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportCleanupReadTaskTimeout(EndpointName);
                 // Continue with cleanup
             }
             catch (OperationCanceledException)
             {
-                _logger.TransportCleanupReadTaskCancelled(_serverConfig.Id, _serverConfig.Name);
+                _logger.TransportCleanupReadTaskCancelled(EndpointName);
                 // Ignore cancellation
             }
             catch (Exception ex)
             {
-                _logger.TransportCleanupReadTaskFailed(_serverConfig.Id, _serverConfig.Name, ex);
+                _logger.TransportCleanupReadTaskFailed(EndpointName, ex);
             }
             _readTask = null;
-            _logger.TransportReadTaskCleanedUp(_serverConfig.Id, _serverConfig.Name);
+            _logger.TransportReadTaskCleanedUp(EndpointName);
         }
 
         SetConnected(false);
-        _logger.TransportCleanedUp(_serverConfig.Id, _serverConfig.Name);
+        _logger.TransportCleanedUp(EndpointName);
     }
 
 }

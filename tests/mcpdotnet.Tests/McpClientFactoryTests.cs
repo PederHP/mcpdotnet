@@ -33,7 +33,7 @@ public class McpClientFactoryTests
         };
 
         // Create a mock transport
-        var mockTransport = new Mock<IMcpTransport>();
+        var mockTransport = new Mock<IClientTransport>();
         mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockTransport.Setup(t => t.IsConnected).Returns(true);
@@ -75,7 +75,7 @@ public class McpClientFactoryTests
         };
 
         // Create a mock transport
-        var mockTransport = new Mock<IMcpTransport>();
+        var mockTransport = new Mock<IClientTransport>();
         mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockTransport.Setup(t => t.IsConnected).Returns(true);
@@ -149,7 +149,7 @@ public class McpClientFactoryTests
         };
 
         // Create a mock transport
-        var mockTransport = new Mock<IMcpTransport>();
+        var mockTransport = new Mock<IClientTransport>();
         mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockTransport.Setup(t => t.IsConnected).Returns(true);
@@ -202,7 +202,7 @@ public class McpClientFactoryTests
         };
                 
         // Create a mock transport
-        var mockTransport = new Mock<IMcpTransport>();
+        var mockTransport = new Mock<IClientTransport>();
         mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockTransport.Setup(t => t.IsConnected).Returns(true);
@@ -256,7 +256,7 @@ public class McpClientFactoryTests
             NullLoggerFactory.Instance
         );
 
-        var transport = factory.TransportFactoryMethod(config) as SseTransport;
+        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
 
         // Assert
         Assert.NotNull(transport);
@@ -278,7 +278,7 @@ public class McpClientFactoryTests
             Location = "http://localhost:8080"
         };
 
-        var defaultOptions = new SseTransportOptions();
+        var defaultOptions = new SseClientTransportOptions();
 
         // Act
         var factory = new McpClientFactory(
@@ -287,7 +287,7 @@ public class McpClientFactoryTests
             NullLoggerFactory.Instance
         );
 
-        var transport = factory.TransportFactoryMethod(config) as SseTransport;
+        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
 
         // Assert
         Assert.NotNull(transport);
@@ -314,7 +314,7 @@ public class McpClientFactoryTests
             }
         };
 
-        var defaultOptions = new SseTransportOptions();
+        var defaultOptions = new SseClientTransportOptions();
 
         // Act
         var factory = new McpClientFactory(
@@ -323,7 +323,7 @@ public class McpClientFactoryTests
             NullLoggerFactory.Instance
         );
 
-        var transport = factory.TransportFactoryMethod(config) as SseTransport;
+        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
 
         // Assert
         Assert.NotNull(transport);

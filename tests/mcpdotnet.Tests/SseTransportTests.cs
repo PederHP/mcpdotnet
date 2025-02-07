@@ -19,7 +19,7 @@ public class SseTransportTests
             Location = "http://localhost:8080"
         };
 
-        var transportOptions = new SseTransportOptions
+        var transportOptions = new SseClientTransportOptions
         {
             ConnectionTimeout = TimeSpan.FromSeconds(10),
             MaxReconnectAttempts = 2,
@@ -31,7 +31,7 @@ public class SseTransportTests
         };
 
         // Act
-        var transport = new SseTransport(transportOptions, config, NullLoggerFactory.Instance);
+        var transport = new SseClientTransport(transportOptions, config, NullLoggerFactory.Instance);
 
         // Assert
         Assert.NotNull(transport);
@@ -53,7 +53,7 @@ public class SseTransportTests
             Location = "http://localhost:8080"
         };
 
-        var transportOptions = new SseTransportOptions
+        var transportOptions = new SseClientTransportOptions
         {
             ConnectionTimeout = TimeSpan.FromSeconds(10),
             MaxReconnectAttempts = 2,
@@ -65,7 +65,7 @@ public class SseTransportTests
         };
 
         // Act
-        var transport = new SseTransport(transportOptions, config, NullLoggerFactory.Instance);
+        var transport = new SseClientTransport(transportOptions, config, NullLoggerFactory.Instance);
 
         // Assert
         Assert.True(string.IsNullOrEmpty(transport.MessageEndpoint?.ToString()));

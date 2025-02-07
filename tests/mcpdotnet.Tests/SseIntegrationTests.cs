@@ -153,7 +153,7 @@ public class SseIntegrationTests
         // Act
         var client = await factory.GetClientAsync("test_server");
         var mcpClient = (McpClient)client;
-        var transport = (SseTransport)mcpClient.Transport;
+        var transport = (SseClientTransport)mcpClient.Transport;
 
         // Wait for SSE connection to be established
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));

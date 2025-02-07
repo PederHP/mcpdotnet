@@ -1,17 +1,18 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace McpDotNet.Tests;
 
-public class IntegrationTestFixture : IDisposable
+public class ServerIntegrationTestFixture : IDisposable
 {
     public ILoggerFactory LoggerFactory { get; }
     public McpClientFactory Factory { get; }
     public McpClientOptions DefaultOptions { get; }
     public McpServerConfig DefaultConfig { get; }
 
-    public IntegrationTestFixture()
+    public ServerIntegrationTestFixture()
     {
         LoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
             builder.AddConsole()
@@ -19,19 +20,19 @@ public class IntegrationTestFixture : IDisposable
 
         DefaultOptions = new()
         {
-            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
+            Capabilities = new() { Sampling = new(), Roots = new() }
         };
 
         DefaultConfig = new McpServerConfig
         {
-            Id = "everything",
-            Name = "Everything",
+            Id = "test_server",
+            Name = "TestServer",
             TransportType = "stdio",
             TransportOptions = new Dictionary<string, string>
             {
-                ["command"] = "npx",
+                ["command"] = "TestServer.exe",
                 // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
-                ["arguments"] = "-y @modelcontextprotocol/server-everything",
             }
         };
 
@@ -45,6 +46,8 @@ public class IntegrationTestFixture : IDisposable
 
     public void Dispose()
     {
+        var client = Factory.GetClientAsync("test_server").Result;
+        client.DisposeAsync().AsTask().Wait();
         LoggerFactory?.Dispose();
     }
 }

@@ -4,7 +4,7 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// Represents configuration options for the stdio transport.
 /// </summary>
-public record StdioTransportOptions
+public record StdioClientTransportOptions
 {
     /// <summary>
     /// The command to execute to start the server process.

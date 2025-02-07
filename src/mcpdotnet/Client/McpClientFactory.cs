@@ -15,8 +15,8 @@ public class McpClientFactory
     private readonly Dictionary<string, McpServerConfig> _serverConfigs;
     private readonly McpClientOptions _clientOptions;
     private readonly Dictionary<string, IMcpClient> _clients = new();
-    private readonly Func<McpServerConfig, IMcpTransport> _transportFactoryMethod;
-    private readonly Func<IMcpTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
+    private readonly Func<McpServerConfig, IClientTransport> _transportFactoryMethod;
+    private readonly Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpClientFactory> _logger;
 
@@ -34,8 +34,8 @@ public class McpClientFactory
         IEnumerable<McpServerConfig> serverConfigs,
         McpClientOptions clientOptions,
         ILoggerFactory loggerFactory,
-        Func<McpServerConfig, IMcpTransport>? transportFactoryMethod = null,
-        Func<IMcpTransport, McpServerConfig, McpClientOptions, IMcpClient>? clientFactoryMethod = null)
+        Func<McpServerConfig, IClientTransport>? transportFactoryMethod = null,
+        Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient>? clientFactoryMethod = null)
     {
         _serverConfigs = serverConfigs.ToDictionary(c => c.Id);
         _clientOptions = clientOptions;
@@ -71,33 +71,37 @@ public class McpClientFactory
             throw new ArgumentException($"Server with ID '{serverId}' not found.", nameof(serverId));
         }
 
+        string endpointName = $"Client ({serverId}: {config.Name})";
+
         if (_clients.TryGetValue(serverId, out var existingClient))
         {
-            _logger.ClientExists(serverId, config.Name);
+            _logger.ClientExists(endpointName);
             return existingClient;
         }
 
-        _logger.CreatingClient(serverId, config.Name);
+        _logger.CreatingClient(endpointName);
 
         var transport = _transportFactoryMethod(config);
         var client = _clientFactoryMethod(transport, config, _clientOptions);
         await client.ConnectAsync(cancellationToken);
 
-        _logger.ClientCreated(serverId, config.Name);
+        _logger.ClientCreated(endpointName);
 
         _clients[serverId] = client;
         return client;
     }
 
-    internal Func<McpServerConfig, IMcpTransport> TransportFactoryMethod => _transportFactoryMethod;
+    internal Func<McpServerConfig, IClientTransport> TransportFactoryMethod => _transportFactoryMethod;
 
-    private IMcpTransport CreateTransport(McpServerConfig config)
+    private IClientTransport CreateTransport(McpServerConfig config)
     {
+        string endpointName = $"Client ({config.Id}: {config.Name})";
+
         var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? Enumerable.Empty<string>());
-        _logger.CreatingTransport(config.Id, config.Name, config.TransportType, options);
+        _logger.CreatingTransport(endpointName, config.TransportType, options);
         return config.TransportType.ToLowerInvariant() switch
         {
-            "stdio" => new StdioTransport(new StdioTransportOptions
+            "stdio" => new StdioClientTransport(new StdioClientTransportOptions
             {
                 Command = GetCommand(config),
                 Arguments = config.TransportOptions?.GetValueOrDefault("arguments")?.Split(' '),
@@ -106,8 +110,8 @@ public class McpClientFactory
                     .Where(kv => kv.Key.StartsWith("env:"))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
             }, config, _loggerFactory),
-            "sse" or "http" => new SseTransport(
-               new SseTransportOptions
+            "sse" or "http" => new SseClientTransport(
+               new SseClientTransportOptions
                {
                    ConnectionTimeout = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "connectionTimeout", 30)),
                    MaxReconnectAttempts = ParseOrDefault(config.TransportOptions, "maxReconnectAttempts", 3),
@@ -147,6 +151,9 @@ public class McpClientFactory
     /// </summary>
     private void InitializeCommand(McpServerConfig config)
     {
+
+        string endpointName = $"Client ({config.Id}: {config.Name})";
+
         // If the command is empty or already contains cmd.exe, we don't need to do anything
         var command = config.TransportOptions?.GetValueOrDefault("command");
         if (string.IsNullOrEmpty(command))
@@ -156,14 +163,14 @@ public class McpClientFactory
 
         if (command.Contains("cmd.exe"))
         {
-            _logger.SkippingShellWrapper(config.Id, config.Name);
+            _logger.SkippingShellWrapper(endpointName);
             return;
         }
 
         // If the command is not empty and does not contain cmd.exe, we need to inject /c {command}
         if (config.TransportOptions != null && !string.IsNullOrEmpty(command))
         {
-            _logger.PromotingCommandToShellArgumentForStdio(config.Id, config.Name, command, config.TransportOptions.GetValueOrDefault("arguments") ?? "");
+            _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions.GetValueOrDefault("arguments") ?? "");
             config.TransportOptions["arguments"] = config.TransportOptions.ContainsKey("arguments")
                 ? $"/c {command} {config.TransportOptions["arguments"]}"
                 : $"/c {command}";

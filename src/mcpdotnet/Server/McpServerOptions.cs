@@ -1,23 +1,24 @@
-﻿using McpDotNet.Protocol.Types;
+﻿
+using McpDotNet.Protocol.Types;
 
-namespace McpDotNet.Client;
+namespace McpDotNet.Server;
 
 /// <summary>
-/// Configuration options for the MCP client. This is passed to servers during the initialization sequence, letting them know about the client's capabilities and
+/// Configuration options for the MCP server. This is passed to the client during the initialization sequence, letting it know about the server's capabilities and
 /// protocol version.
 /// <see href="https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle/">See the protocol specification for details on capability negotiation</see>
 /// </summary>
-public record McpClientOptions
+public record McpServerOptions
 {
     /// <summary>
-    /// Information about this client implementation.
+    /// Information about this server implementation.
     /// </summary>
-    public required Implementation ClientInfo { get; init; }
+    public required Implementation ServerInfo { get; init; }
 
     /// <summary>
-    /// Client capabilities to advertise to the server.
+    /// Server capabilities to advertise to the server.
     /// </summary>
-    public ClientCapabilities? Capabilities { get; init; }
+    public ServerCapabilities? Capabilities { get; init; }
 
     /// <summary>
     /// Protocol version to request from the server.

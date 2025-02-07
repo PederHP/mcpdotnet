@@ -71,7 +71,7 @@ public interface IMcpClient : IAsyncDisposable
     /// <param name="arguments">Optional arguments for the tool.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task containing the tool's response.</returns>
-    Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default);
+    Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object> arguments, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a list of available prompts from the server.

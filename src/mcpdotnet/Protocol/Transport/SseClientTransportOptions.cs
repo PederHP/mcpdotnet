@@ -3,7 +3,7 @@
 /// <summary>
 /// Options for configuring the SSE transport.
 /// </summary>
-public record SseTransportOptions
+public record SseClientTransportOptions
 {
     /// <summary>
     /// Timeout for initial connection and endpoint event.
