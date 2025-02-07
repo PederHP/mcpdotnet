@@ -48,18 +48,34 @@ internal abstract class McpJsonRpcEndpoint
         {
             await foreach (var message in _transport.MessageReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                await HandleMessageAsync(message, cancellationToken).ConfigureAwait(false);
+                _logger.TransportMessageRead(EndpointName, message.GetType().Name);
+                // Fire and forget the message handling task to avoid blocking the transport
+                // If awaiting the task, the transport will not be able to read more messages,
+                // which could lead to a deadlock if the handler sends a message back
+                FireAndForget(Task.Run(() => HandleMessageAsync(message, cancellationToken)), message);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Normal shutdown
-            // TODO: _logger.ClientMessageProcessingCancelled(_serverConfig.Id, _serverConfig.Name);
+            _logger.EndpointMessageProcessingCancelled(EndpointName);
         }
         catch (NullReferenceException)
         {
             // Ignore reader disposal and mocked transport
         }
+    }
+
+    private void FireAndForget(Task task, IJsonRpcMessage message)
+    {
+        task.ContinueWith(t =>
+        {
+            if (t.IsFaulted)
+            {
+                var payload = JsonSerializer.Serialize(message);
+                _logger.MessageHandlerError(EndpointName, message.GetType().Name, payload, t.Exception);
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task HandleMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
@@ -71,9 +87,9 @@ internal abstract class McpJsonRpcEndpoint
                 {
                     try
                     {
-                        // TODO: _logger.RequestHandlerCalled(_serverConfig.Id, _serverConfig.Name, request.Method);
+                        _logger.RequestHandlerCalled(EndpointName, request.Method);
                         var result = await handler(request);
-                        // TODO: _logger.RequestHandlerCompleted(_serverConfig.Id, _serverConfig.Name, request.Method);
+                        _logger.RequestHandlerCompleted(EndpointName, request.Method);
                         await _transport.SendMessageAsync(new JsonRpcResponse
                         {
                             Id = request.Id,
@@ -83,7 +99,7 @@ internal abstract class McpJsonRpcEndpoint
                     }
                     catch (Exception ex)
                     {
-                        // TODO: _logger.RequestHandlerError(_serverConfig.Id, _serverConfig.Name, request.Method, ex);
+                        _logger.RequestHandlerError(EndpointName, request.Method, ex);
                         // Send error response
                         await _transport.SendMessageAsync(new JsonRpcError
                         {
@@ -97,15 +113,20 @@ internal abstract class McpJsonRpcEndpoint
                         }, cancellationToken);
                     }
                 }
+                else
+                {
+                    _logger.NoHandlerFoundForRequest(EndpointName, request.Method);
+                }
                 break;
             case IJsonRpcMessageWithId messageWithId:
                 if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
                 {
+                    _logger.ResponseMatchedPendingRequest(EndpointName, messageWithId.Id.ToString());
                     tcs.TrySetResult(message);
                 }
                 else
                 {
-                    // TODO: _logger.NoRequestFoundForMessageWithId(_serverConfig.Id, _serverConfig.Name, messageWithId.Id.ToString());
+                    _logger.NoRequestFoundForMessageWithId(EndpointName, messageWithId.Id.ToString());
                 }
                 break;
 
@@ -121,10 +142,14 @@ internal abstract class McpJsonRpcEndpoint
                         catch (Exception ex)
                         {
                             // Log handler error but continue processing
-                            // TODO: _logger.NotificationHandlerError(_serverConfig.Id, _serverConfig.Name, notification.Method, ex);
+                            _logger.NotificationHandlerError(EndpointName, notification.Method, ex);
                         }
                     }
                 }
+                break;
+
+            default:
+                _logger.EndpointHandlerUnexpectedMessageType(EndpointName, message.GetType().Name);
                 break;
         }
     }
@@ -155,6 +180,8 @@ internal abstract class McpJsonRpcEndpoint
             _logger.SendingRequest(EndpointName, request.Method);
 
             await _transport.SendMessageAsync(request, cancellationToken).ConfigureAwait(false);
+
+            _logger.RequestSentAwaitingResponse(EndpointName, request.Method, request.Id.ToString());
             var response = await tcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             if (response is JsonRpcError error)

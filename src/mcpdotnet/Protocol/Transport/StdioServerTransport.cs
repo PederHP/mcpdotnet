@@ -33,6 +33,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// <param name="serverName">The name of the server.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
     public StdioServerTransport(string serverName, ILoggerFactory loggerFactory)
+        : base(loggerFactory)
     {
         _serverName = serverName;
         _logger = loggerFactory.CreateLogger<StdioClientTransport>();

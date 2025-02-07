@@ -226,7 +226,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         }
         catch (Exception e)
         {
-            // TODO: _logger.SeverInitializationError(EndpointName, e);
+            // TODO: _logger.ServerInitializationError(EndpointName, e);
             await CleanupAsync().ConfigureAwait(false);
             throw;
         }

@@ -1,4 +1,5 @@
 ﻿using McpDotNet.Configuration;
+using McpDotNet.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Logging;
@@ -111,7 +112,7 @@ internal static partial class Log
     internal static partial void CallingTool(this ILogger logger, string endpointName, string toolName, string arguments);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Client message processing cancelled for server {endpointName}")]
-    internal static partial void ClientMessageProcessingCancelled(this ILogger logger, string endpointName);
+    internal static partial void EndpointMessageProcessingCancelled(this ILogger logger, string endpointName);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Request handler called for server {endpointName} with method {method}")]
     internal static partial void RequestHandlerCalled(this ILogger logger, string endpointName, string method);
@@ -340,7 +341,6 @@ internal static partial class Log
         string data,
         Exception exception);
 
-    // trace _logger.InvalidCompletionReference(_serverConfig.Id, _serverConfig.Name, reference, validationMessage);
     [LoggerMessage(
         EventId = 7004,
         Level = LogLevel.Trace,
@@ -352,7 +352,6 @@ internal static partial class Log
         string reference,
         string validationMessage);
 
-    // trace _logger.InvalidACompletionArgumentName(_serverConfig.Id, _serverConfig.Name, argumentName);
     [LoggerMessage(
         EventId = 7005,
         Level = LogLevel.Trace,
@@ -363,7 +362,6 @@ internal static partial class Log
         string endpointName,
         string argumentName);
 
-    // trace _logger.InvalidCompletionArgumentValue(_serverConfig.Id, _serverConfig.Name, argumentValue);
     [LoggerMessage(
         EventId = 7006,
         Level = LogLevel.Trace,
@@ -374,11 +372,10 @@ internal static partial class Log
         string endpointName,
         string argumentValue);
 
-    // debug _logger.GettingCompletion(_serverConfig.Id, _serverConfig.Name, reference, argumentName, argumentValue);
     [LoggerMessage(
         EventId = 7007,
         Level = LogLevel.Debug,
-        Message = "Getting completion for server {endpointName} with reference {reference}, argument name {argumentName}, argument value {argumentValue}"
+        Message = "Getting completion for {endpointName} with reference {reference}, argument name {argumentName}, argument value {argumentValue}"
     )]
     public static partial void GettingCompletion(
         this ILogger logger,
@@ -386,4 +383,83 @@ internal static partial class Log
         string reference,
         string argumentName,
         string argumentValue);
+
+    [LoggerMessage(
+        EventId = 7008,
+        Level = LogLevel.Error,
+        Message = "Message handler error for {endpointName} with message type {messageType}, payload {payload}"
+    )]
+    public static partial void MessageHandlerError(
+        this ILogger logger,
+        string endpointName,
+        string messageType,
+        string payload,
+        Exception exception);
+
+    [LoggerMessage(
+        EventId = 7009,
+        Level = LogLevel.Trace,
+        Message = "Writing message to channel: {message}"
+    )]
+    public static partial void TransportWritingMessageToChannel(
+        this ILogger logger,
+        IJsonRpcMessage message);
+
+    [LoggerMessage(
+        EventId = 7010,
+        Level = LogLevel.Trace,
+        Message = "Message written to channel"
+    )]
+    public static partial void TransportMessageWrittenToChannel(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 7011,
+        Level = LogLevel.Trace,
+        Message = "Message read from channel for {endpointName} with type {messageType}"
+    )]
+    public static partial void TransportMessageRead(
+        this ILogger logger,
+        string endpointName,
+        string messageType);
+
+    [LoggerMessage(
+        EventId = 7012,
+        Level = LogLevel.Warning,
+        Message = "No handler found for request {method} for server {endpointName}"
+    )]
+    public static partial void NoHandlerFoundForRequest(
+        this ILogger logger,
+        string endpointName,
+        string method);
+
+    [LoggerMessage(
+        EventId = 7013,
+        Level = LogLevel.Trace,
+        Message = "Response matched pending request for {endpointName} with ID {messageId}"
+    )]
+    public static partial void ResponseMatchedPendingRequest(
+        this ILogger logger,
+        string endpointName,
+        string messageId);
+
+    [LoggerMessage(
+        EventId = 7014,
+        Level = LogLevel.Warning,
+        Message = "Endpoint handler received unexpected message type for {endpointName}: {messageType}"
+    )]
+    public static partial void EndpointHandlerUnexpectedMessageType(
+        this ILogger logger,
+        string endpointName,
+        string messageType);
+
+    [LoggerMessage(
+        EventId = 7015,
+        Level = LogLevel.Debug,
+        Message = "Request sent for {endpointName} with method {method}, ID {id}. Waiting for response."
+    )]
+    public static partial void RequestSentAwaitingResponse(
+        this ILogger logger,
+        string endpointName,
+        string method,
+        string id);
 }

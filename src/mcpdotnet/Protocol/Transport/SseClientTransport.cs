@@ -44,6 +44,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <param name="serverConfig"></param>
     /// <param name="loggerFactory"></param>
     public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+        : base(loggerFactory)
     {
         _options = transportOptions;
         _serverConfig = serverConfig;

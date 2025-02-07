@@ -37,6 +37,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     /// <param name="serverConfig">The server configuration for the transport.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
     public StdioClientTransport(StdioClientTransportOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+        : base(loggerFactory)
     {
         _options = options;
         _serverConfig = serverConfig;
