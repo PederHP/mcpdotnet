@@ -331,7 +331,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
             new JsonRpcRequest
             {
                 Method = "tools/call",
-                Params = CreateParametersDictionary(toolName, arguments)
+                Params = CreateParametersDictionary(toolName, arguments ?? new())
             },
             cancellationToken
         ).ConfigureAwait(false);
