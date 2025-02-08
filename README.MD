@@ -27,7 +27,7 @@ This library aims to provide a clean, specification-compliant implementation of 
 - Comprehensive logging support
 - Compatible with .NET 8.0 and later
 
-## Getting Started
+## Getting Started (Client)
 
 To use mcpdotnet, first install it via NuGet:
 
@@ -85,6 +85,75 @@ You can find samples demonstrating how to use mcpdotnet with an LLM SDK in the [
 
 Additional examples and documentation will be added as in the near future.
 
+Remember you can connect to any MCP server, not just ones created using mcpdotnet. The protocol is designed to be server-agnostic, so you can use this library to connect to any compliant server.
+
+## Getting Started (Server)
+
+Here is an example of how to create an MCP server with a single tool. Refer to the TestServer in the tests folder.
+
+```csharp
+McpServerOptions options = new McpServerOptions()
+{
+    ServerInfo = new Implementation() { Name = "MyServer", Version = "1.0.0" },
+    Capabilities = new ServerCapabilities()
+    {
+        Tools = new()
+    }
+};
+McpServerFactory factory = new McpServerFactory(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
+IMcpServer server = factory.CreateServer();
+
+server.ListToolsHandler = (request, cancellationToken) =>
+{
+    return Task.FromResult(new ListToolsResult()
+    {
+        Tools = 
+        [
+            new Tool()                
+            {
+                Name = "echo",
+                Description = "Echoes the input back to the client.",
+                InputSchema = new JsonSchema()
+                {
+                    Type = "object",
+                    Properties = new Dictionary<string, JsonSchemaProperty>()
+                    {
+                        ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
+                    }
+                },
+            }
+        ]
+    });
+};
+
+server.CallToolHandler = async (request, cancellationToken) =>
+{
+    if (request.Name == "echo")
+    {
+        if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
+        {
+            throw new McpServerException("Missing required argument 'message'");
+        }
+        return new CallToolResponse()
+        {
+            Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
+        };
+    }
+    else
+    {
+        throw new McpServerException($"Unknown tool: {request.Name}");
+    }
+};
+
+await server.StartAsync();
+
+// Run until process is stopped by the client (parent process)
+while (true)
+{
+    await Task.Delay(1000);
+}
+```
+
 ## Roadmap
 
 - Expand documentation with detailed guides for:
@@ -93,7 +162,10 @@ Additional examples and documentation will be added as in the near future.
   - Error handling and recovery
 - Increase test coverage
 - Add additional samples and examples
-- Performance optimization and profiling
+- Performance optimization
+- SSE server support
+- Authentication
+- Linux/Mac support for stdio transport
 
 ## License
 

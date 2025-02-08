@@ -1,9 +1,9 @@
-﻿
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace McpDotNet.Protocol.Types;
 /// <summary>
 /// Represents the capabilities that a client may support.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record ClientCapabilities
 {
@@ -28,6 +28,7 @@ public record ClientCapabilities
 
 /// <summary>
 /// Represents the roots capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record RootsCapability
 {
@@ -40,6 +41,7 @@ public record RootsCapability
 
 /// <summary>
 /// Represents the sampling capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record SamplingCapability
 {
@@ -48,6 +50,7 @@ public record SamplingCapability
 
 /// <summary>
 /// Represents the logging capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record LoggingCapability
 {
@@ -56,6 +59,7 @@ public record LoggingCapability
 
 /// <summary>
 /// Represents the prompts capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record PromptsCapability
 {
@@ -68,6 +72,7 @@ public record PromptsCapability
 
 /// <summary>
 /// Represents the resources capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record ResourcesCapability
 {
@@ -86,6 +91,7 @@ public record ResourcesCapability
 
 /// <summary>
 /// Represents the tools capability configuration.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record ToolsCapability
 {

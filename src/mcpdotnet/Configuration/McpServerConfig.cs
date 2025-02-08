@@ -2,6 +2,7 @@
 
 /// <summary>
 /// Configuration for an MCP server connection.
+/// This is passed to the client factory to create a client for a specific server.
 /// </summary>
 public record McpServerConfig
 {

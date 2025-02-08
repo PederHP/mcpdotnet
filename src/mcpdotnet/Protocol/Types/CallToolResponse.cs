@@ -1,8 +1,17 @@
 ﻿namespace McpDotNet.Protocol.Types;
 
 /// <summary>
-/// A response to a request to call a tool on the server.
-/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/schema.json">See the schema for details</see>
+/// The server's response to a tool call.
+/// 
+/// Any errors that originate from the tool SHOULD be reported inside the result
+/// object, with `isError` set to true, _not_ as an MCP protocol-level error
+/// response. Otherwise, the LLM would not be able to see that an error occurred
+/// and self-correct.
+/// 
+/// However, any errors in _finding_ the tool, an error indicating that the
+/// server does not support tool calls, or any other exceptional conditions,
+/// should be reported as an MCP error response.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public class CallToolResponse
 {

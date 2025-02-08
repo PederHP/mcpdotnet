@@ -1,9 +1,7 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using McpDotNet.Configuration;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
-using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
 
 namespace McpDotNet.Protocol.Transport;
@@ -19,13 +17,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     private Task? _readTask;
     private CancellationTokenSource? _shutdownCts;
 
-    private string EndpointName
-    {
-        get
-        {
-            return $"Server ({_serverName})";
-        }
-    }
+    private string EndpointName => $"Server (stdio) ({_serverName})";
 
     /// <summary>
     /// Initializes a new instance of the StdioServerTransport class.

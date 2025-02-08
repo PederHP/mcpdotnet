@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents the capabilities that a server may support.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public record ServerCapabilities
 {

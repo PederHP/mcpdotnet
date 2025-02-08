@@ -1,5 +1,4 @@
-﻿
-using McpDotNet.Protocol.Types;
+﻿using McpDotNet.Protocol.Types;
 using McpDotNet.Protocol.Messages;
 
 namespace McpDotNet.Server;
@@ -97,7 +96,7 @@ public interface IMcpServer : IAsyncDisposable
     Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class;
 
     /// <summary>
-    /// Registers a handler for server notifications of a specific method.
+    /// Registers a handler for notifications of a specific method.
     /// 
     /// <see cref="NotificationMethods">Constants for common notification methods</see>
     /// </summary>
@@ -106,14 +105,14 @@ public interface IMcpServer : IAsyncDisposable
     void OnNotification(string method, Func<JsonRpcNotification, Task> handler);
 
     /// <summary>
-    /// Sends a notification to the server.
+    /// Sends a notification to the client.
     /// </summary>
     /// <param name="method">The notification method name.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task SendNotificationAsync(string method, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sends a notification to the server with parameters.
+    /// Sends a notification to the client with parameters.
     /// </summary>
     /// <param name="method">The notification method name.</param>
     /// <param name="parameters">The parameters to send with the notification.</param>

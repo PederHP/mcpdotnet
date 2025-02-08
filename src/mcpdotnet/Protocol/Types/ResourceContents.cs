@@ -4,6 +4,7 @@ namespace McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Represents the content of a resource.
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public class ResourceContents
 {

@@ -1,7 +1,7 @@
 ﻿using System.Threading.Channels;
-using McpDotNet.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
+using McpDotNet.Protocol.Messages;
 
 namespace McpDotNet.Protocol.Transport;
 

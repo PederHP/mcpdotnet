@@ -22,13 +22,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     private CancellationTokenSource? _shutdownCts;
     private bool _processStarted;
 
-    private string EndpointName
-    {
-        get
-        {
-            return $"Client ({_serverConfig.Id}: {_serverConfig.Name})";
-        }
-    }
+    private string EndpointName => $"Client (stdio) for ({_serverConfig.Id}: {_serverConfig.Name})";
 
     /// <summary>
     /// Initializes a new instance of the StdioTransport class.

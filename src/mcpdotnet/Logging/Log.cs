@@ -21,7 +21,7 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Debug, Message = "Command for {endpointName} already contains shell wrapper, skipping argument injection")]
     internal static partial void SkippingShellWrapper(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Server config for Id={serverId} not found")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Server connection config for Id={serverId} not found")]
     internal static partial void ServerNotFound(this ILogger logger, string serverId);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Client for {endpointName} already created, returning cached client")]
@@ -81,190 +81,190 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Error, Message = "Server {endpointName} protocol version mismatch, expected {expected}, received {received}")]
     internal static partial void ServerProtocolVersionMismatch(this ILogger logger, string endpointName, string expected, string received);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Client server {endpointName} initialization timeout")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Client {endpointName} initialization timeout")]
     internal static partial void ClientInitializationTimeout(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Pinging server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pinging sent ({endpointName})")]
     internal static partial void PingingServer(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Listing tools for server {endpointName} with cursor {cursor}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Listing tools for {endpointName} with cursor {cursor}")]
     internal static partial void ListingTools(this ILogger logger, string endpointName, string cursor);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Listing prompts for server {endpointName} with cursor {cursor}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Listing prompts for {endpointName} with cursor {cursor}")]
     internal static partial void ListingPrompts(this ILogger logger, string endpointName, string cursor);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Getting prompt {name} for server {endpointName} with arguments {arguments}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Getting prompt {name} for {endpointName} with arguments {arguments}")]
     internal static partial void GettingPrompt(this ILogger logger, string endpointName, string name, string arguments);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Listing resources for server {endpointName} with cursor {cursor}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Listing resources for {endpointName} with cursor {cursor}")]
     internal static partial void ListingResources(this ILogger logger, string endpointName, string cursor);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Reading resource {uri} for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Reading resource {uri} for  {endpointName}")]
     internal static partial void ReadingResource(this ILogger logger, string endpointName, string uri);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Subscribing to resource {uri} for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Subscribing to resource {uri} for {endpointName}")]
     internal static partial void SubscribingToResource(this ILogger logger, string endpointName, string uri);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Unsubscribing from resource {uri} for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Unsubscribing from resource {uri} for {endpointName}")]
     internal static partial void UnsubscribingFromResource(this ILogger logger, string endpointName, string uri);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Calling tool {toolName} for server {endpointName} with arguments {arguments}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Calling tool {toolName} for {endpointName} with arguments {arguments}")]
     internal static partial void CallingTool(this ILogger logger, string endpointName, string toolName, string arguments);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Client message processing cancelled for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Endpoint message processing cancelled for {endpointName}")]
     internal static partial void EndpointMessageProcessingCancelled(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request handler called for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request handler called for {endpointName} with method {method}")]
     internal static partial void RequestHandlerCalled(this ILogger logger, string endpointName, string method);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request handler completed for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request handler completed for {endpointName} with method {method}")]
     internal static partial void RequestHandlerCompleted(this ILogger logger, string endpointName, string method);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request handler error for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Request handler error for {endpointName} with method {method}")]
     internal static partial void RequestHandlerError(this ILogger logger, string endpointName, string method, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No request found for message with ID {messageWithId} for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No request found for message with ID {messageWithId} for {endpointName}")]
     internal static partial void NoRequestFoundForMessageWithId(this ILogger logger, string endpointName, string messageWithId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Notification handler error for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Notification handler error for {endpointName} with method {method}")]
     internal static partial void NotificationHandlerError(this ILogger logger, string endpointName, string method, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Client not connected for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Client not connected for {endpointName}")]
     internal static partial void ClientNotConnected(this ILogger logger, string endpointName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Endpoint not connected for {endpointName}")]
     internal static partial void EndpointNotConnected(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Sending request payload for server {endpointName}: {payload}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending request payload for {endpointName}: {payload}")]
     internal static partial void SendingRequestPayload(this ILogger logger, string endpointName, string payload);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Sending request for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending request for {endpointName} with method {method}")]
     internal static partial void SendingRequest(this ILogger logger, string endpointName, string method);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request failed for server {endpointName} with method {method}: {message} ({code})")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Request failed for {endpointName} with method {method}: {message} ({code})")]
     internal static partial void RequestFailed(this ILogger logger, string endpointName, string method, string message, int code);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request response received payload for server {endpointName}: {payload}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request response received payload for {endpointName}: {payload}")]
     internal static partial void RequestResponseReceivedPayload(this ILogger logger, string endpointName, string payload);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request response received for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request response received for {endpointName} with method {method}")]
     internal static partial void RequestResponseReceived(this ILogger logger, string endpointName, string method);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request response type conversion error for server {endpointName} with method {method}: expected {expectedType}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Request response type conversion error for {endpointName} with method {method}: expected {expectedType}")]
     internal static partial void RequestResponseTypeConversionError(this ILogger logger, string endpointName, string method, Type expectedType);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request invalid response type for server {endpointName} with method {method}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Request invalid response type for {endpointName} with method {method}")]
     internal static partial void RequestInvalidResponseType(this ILogger logger, string endpointName, string method);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request params type conversion error for server {endpointName} with method {method}: expected {expectedType}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Request params type conversion error for {endpointName} with method {method}: expected {expectedType}")]
     internal static partial void RequestParamsTypeConversionError(this ILogger logger, string endpointName, string method, Type expectedType);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Cleaning up client for server {endpointName}")]
-    internal static partial void CleaningUpClient(this ILogger logger, string endpointName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cleaning up endpoint {endpointName}")]
+    internal static partial void CleaningUpEndpoint(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Client cleaned up for server {endpointName}")]
-    internal static partial void ClientCleanedUp(this ILogger logger, string endpointName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Endpoint cleaned up for {endpointName}")]
+    internal static partial void EndpointCleanedUp(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport for server {endpointName} already connected")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport for {endpointName} already connected")]
     internal static partial void TransportAlreadyConnected(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport for server {endpointName} connecting")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport for {endpointName} connecting")]
     internal static partial void TransportConnecting(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Creating process for transport for server {endpointName} with command {command}, arguments {arguments}, environment {environment}, working directory {workingDirectory}, shutdown timeout {shutdownTimeout}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Creating process for transport for {endpointName} with command {command}, arguments {arguments}, environment {environment}, working directory {workingDirectory}, shutdown timeout {shutdownTimeout}")]
     internal static partial void CreateProcessForTransport(this ILogger logger, string endpointName, string command, string arguments, string environment, string workingDirectory, string shutdownTimeout);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport for server {endpointName} error: {data}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport for {endpointName} error: {data}")]
     internal static partial void TransportError(this ILogger logger, string endpointName, string data);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport process start failed for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport process start failed for {endpointName}")]
     internal static partial void TransportProcessStartFailed(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport process started for server {endpointName} with PID {processId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport process started for {endpointName} with PID {processId}")]
     internal static partial void TransportProcessStarted(this ILogger logger, string endpointName, int processId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport reading messages for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport reading messages for {endpointName}")]
     internal static partial void TransportReadingMessages(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport connect failed for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport connect failed for {endpointName}")]
     internal static partial void TransportConnectFailed(this ILogger logger, string endpointName, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport not connected for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport not connected for {endpointName}")]
     internal static partial void TransportNotConnected(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport sending message for server {endpointName} with ID {messageId}, JSON {json}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport sending message for {endpointName} with ID {messageId}, JSON {json}")]
     internal static partial void TransportSendingMessage(this ILogger logger, string endpointName, string messageId, string json);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport message sent for server {endpointName} with ID {messageId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport message sent for {endpointName} with ID {messageId}")]
     internal static partial void TransportSentMessage(this ILogger logger, string endpointName, string messageId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport send failed for server {endpointName} with ID {messageId}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport send failed for {endpointName} with ID {messageId}")]
     internal static partial void TransportSendFailed(this ILogger logger, string endpointName, string messageId, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport entering read messages loop for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport entering read messages loop for {endpointName}")]
     internal static partial void TransportEnteringReadMessagesLoop(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport waiting for message for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport waiting for message for {endpointName}")]
     internal static partial void TransportWaitingForMessage(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport end of stream for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport end of stream for {endpointName}")]
     internal static partial void TransportEndOfStream(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport received message for server {endpointName}: {line}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport received message for {endpointName}: {line}")]
     internal static partial void TransportReceivedMessage(this ILogger logger, string endpointName, string line);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport received message parsed for server {endpointName}: {messageId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport received message parsed for {endpointName}: {messageId}")]
     internal static partial void TransportReceivedMessageParsed(this ILogger logger, string endpointName, string messageId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport message written for server {endpointName} with ID {messageId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport message written for {endpointName} with ID {messageId}")]
     internal static partial void TransportMessageWritten(this ILogger logger, string endpointName, string messageId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport message parse failed due to unexpected message schema for server {endpointName}: {line}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport message parse failed due to unexpected message schema for {endpointName}: {line}")]
     internal static partial void TransportMessageParseUnexpectedType(this ILogger logger, string endpointName, string line);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport message parse failed for server {endpointName}: {line}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport message parse failed for {endpointName}: {line}")]
     internal static partial void TransportMessageParseFailed(this ILogger logger, string endpointName, string line, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport exiting read messages loop for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport exiting read messages loop for {endpointName}")]
     internal static partial void TransportExitingReadMessagesLoop(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport read messages cancelled for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport read messages cancelled for {endpointName}")]
     internal static partial void TransportReadMessagesCancelled(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport read messages failed for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport read messages failed for {endpointName}")]
     internal static partial void TransportReadMessagesFailed(this ILogger logger, string endpointName, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaning up for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaning up for {endpointName}")]
     internal static partial void TransportCleaningUp(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport closing stdin for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport closing stdin for {endpointName}")]
     internal static partial void TransportClosingStdin(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport waiting for shutdown for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport waiting for shutdown for {endpointName}")]
     internal static partial void TransportWaitingForShutdown(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Transport killing process for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Transport killing process for {endpointName}")]
     internal static partial void TransportKillingProcess(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport shutdown failed for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport shutdown failed for {endpointName}")]
     internal static partial void TransportShutdownFailed(this ILogger logger, string endpointName, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport waiting for read task for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Transport waiting for read task for {endpointName}")]
     internal static partial void TransportWaitingForReadTask(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Transport cleanup read task timeout for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Transport cleanup read task timeout for {endpointName}")]
     internal static partial void TransportCleanupReadTaskTimeout(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleanup read task cancelled for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleanup read task cancelled for {endpointName}")]
     internal static partial void TransportCleanupReadTaskCancelled(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Transport cleanup read task failed for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Transport cleanup read task failed for {endpointName}")]
     internal static partial void TransportCleanupReadTaskFailed(this ILogger logger, string endpointName, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport read task cleaned up for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport read task cleaned up for {endpointName}")]
     internal static partial void TransportReadTaskCleanedUp(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaned up for server {endpointName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaned up for {endpointName}")]
     internal static partial void TransportCleanedUp(this ILogger logger, string endpointName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message start object token expected")]
@@ -303,7 +303,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7000,
         Level = LogLevel.Error,
-        Message = "Transport connection error for server {endpointName}"
+        Message = "Transport connection error for {endpointName}"
     )]
     public static partial void TransportConnectionError(
         this ILogger logger,
@@ -313,7 +313,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7001,
         Level = LogLevel.Warning,
-        Message = "Transport message received before connected for server {endpointName}: {data}"
+        Message = "Transport message received before connected for {endpointName}: {data}"
     )]
     public static partial void TransportMessageReceivedBeforeConnected(
         this ILogger logger,
@@ -323,7 +323,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7002,
         Level = LogLevel.Error,
-        Message = "Transport endpoint event received out of order for server {endpointName}: {data}"
+        Message = "Transport endpoint event received out of order for {endpointName}: {data}"
     )]
     public static partial void TransportEndpointEventInvalid(
         this ILogger logger,
@@ -333,7 +333,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7003,
         Level = LogLevel.Error,
-        Message = "Transport event parse failed for server {endpointName}: {data}"
+        Message = "Transport event parse failed for {endpointName}: {data}"
     )]
     public static partial void TransportEndpointEventParseFailed(
         this ILogger logger,
@@ -344,7 +344,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7004,
         Level = LogLevel.Trace,
-        Message = "Invalid completion reference {reference} for server {endpointName}: {validationMessage}"
+        Message = "Invalid completion reference {reference} for {endpointName}: {validationMessage}"
     )]
     public static partial void InvalidCompletionReference(
         this ILogger logger,
@@ -355,7 +355,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7005,
         Level = LogLevel.Trace,
-        Message = "Invalid completion argument name {argumentName} for server {endpointName}"
+        Message = "Invalid completion argument name {argumentName} for {endpointName}"
     )]
     public static partial void InvalidCompletionArgumentName(
         this ILogger logger,
@@ -365,7 +365,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7006,
         Level = LogLevel.Trace,
-        Message = "Invalid completion argument value {argumentValue} for server {endpointName}"
+        Message = "Invalid completion argument value {argumentValue} for {endpointName}"
     )]
     public static partial void InvalidCompletionArgumentValue(
         this ILogger logger,
@@ -462,4 +462,23 @@ internal static partial class Log
         string endpointName,
         string method,
         string id);
+
+    [LoggerMessage(
+        EventId = 7016,
+        Level = LogLevel.Error,
+        Message = "{endpointName} already initializing"
+    )]
+    public static partial void ServerAlreadyInitializing(
+        this ILogger logger,
+        string endpointName);
+
+    [LoggerMessage(
+        EventId = 7017,
+        Level = LogLevel.Error,
+        Message = "{endpointName} initialization error"
+    )]
+    public static partial void ServerInitializationError(
+        this ILogger logger,
+        string endpointName,
+        Exception e);
 }

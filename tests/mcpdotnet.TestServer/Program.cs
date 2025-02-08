@@ -38,12 +38,12 @@ internal class Program
                 Resources = new(),
                 Prompts = new(),
             },
-            ProtocolVersion = "2024-11-05",
-            InitializationTimeout = TimeSpan.FromSeconds(60)
+            ProtocolVersion = "2024-11-05"
         };
         var loggerFactory = CreateLoggerFactory();
-        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
-        IMcpServer server = factory.CreateServer("This is a test server with only stub functionality");
+        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory,
+            "This is a test server with only stub functionality");
+        IMcpServer server = factory.CreateServer();
 
         Console.WriteLine("Server object created, registering handlers.");
 

@@ -304,7 +304,6 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         ).ConfigureAwait(false);
     }
 
-
     /// <inheritdoc/>
     public async Task UnsubscribeFromResourceAsync(string uri, CancellationToken cancellationToken = default)
     {
@@ -352,10 +351,13 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         return parameters;
     }
 
+    /// <inheritdoc/>
     public Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
 
+    /// <inheritdoc/>
     public Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
+    /// <inheritdoc/>
     public override string EndpointName
     {
         get

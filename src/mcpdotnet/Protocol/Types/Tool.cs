@@ -2,12 +2,12 @@
 
 /// <summary>
 /// Represents a tool that the server is capable of calling. Part of the ListToolsResponse.
-/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/schema.json">See the schema for details</see>
+/// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
 public class Tool
 {
     /// <summary>
-    /// he name of the tool.
+    /// The name of the tool.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;

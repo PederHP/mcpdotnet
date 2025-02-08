@@ -28,21 +28,16 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     private readonly McpServerConfig _serverConfig;
     private readonly JsonSerializerOptions _jsonOptions;
     private TaskCompletionSource<bool> _connectionEstablished;
-    
-    private string EndpointName
-    {
-        get
-        {
-            return $"Client ({_serverConfig.Id}: {_serverConfig.Name})";
-        }
-    }
+
+    private string EndpointName => $"Client (SSE) for ({_serverConfig.Id}: {_serverConfig.Name})";
 
     /// <summary>
-    /// 
+    /// SSE transport for client endpoints. Unlike stdio it does not launch a process, but connects to an existing server.
+    /// The HTTP server can be local or remote, and must support the SSE protocol.
     /// </summary>
-    /// <param name="transportOptions"></param>
-    /// <param name="serverConfig"></param>
-    /// <param name="loggerFactory"></param>
+    /// <param name="transportOptions">Configuration options for the transport.</param>
+    /// <param name="serverConfig">The configuration object indicating which server to connect to.</param>
+    /// <param name="loggerFactory">Logger factory for creating loggers.</param>
     public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
         : base(loggerFactory)
     {

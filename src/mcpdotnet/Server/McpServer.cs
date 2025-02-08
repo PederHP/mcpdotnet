@@ -1,10 +1,10 @@
 ﻿
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
 using McpDotNet.Protocol.Transport;
-using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
-using System.Text.Json.Nodes;
 using McpDotNet.Protocol.Messages;
 
 namespace McpDotNet.Server;
@@ -17,6 +17,15 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     private volatile bool _isInitializing;
     private readonly ILogger<McpServer> _logger;
 
+    /// <summary>
+    /// Creates a new instance of <see cref="McpServer"/>.
+    /// </summary>
+    /// <param name="transport">Transport to use for the server</param>
+    /// <param name="options">Configuration options for this server, including capabilities. 
+    /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>
+    /// <param name="serverInstructions">Optional server instructions to send to clients</param>
+    /// <param name="loggerFactory">Logger factory to use for logging</param>
+    /// <exception cref="McpServerException"></exception>
     public McpServer(IServerTransport transport, McpServerOptions options, string? serverInstructions, ILoggerFactory loggerFactory)
         : base(transport, loggerFactory)
     {
@@ -201,14 +210,14 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     {
         if (_isInitializing)
         {
-            // TODO: _logger.ServerAlreadyInitializing(EndpointName);
+            _logger.ServerAlreadyInitializing(EndpointName);
             throw new InvalidOperationException("Server is already initializing");
         }
         _isInitializing = true;
 
         if (IsInitialized)
         {
-            // TODO: _logger.ServerAlreadyInitializing(EndpointName);
+            _logger.ServerAlreadyInitializing(EndpointName);
             return;
         }
 
@@ -226,12 +235,13 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         }
         catch (Exception e)
         {
-            // TODO: _logger.ServerInitializationError(EndpointName, e);
+            _logger.ServerInitializationError(EndpointName, e);
             await CleanupAsync().ConfigureAwait(false);
             throw;
         }
     }
 
+    /// <inheritdoc />
     public async Task<CreateMessageResult> RequestSamplingAsync(CreateMessageRequestParams request, CancellationToken cancellationToken)
     {
         if (ClientCapabilities?.Sampling == null)
@@ -239,7 +249,6 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Client does not support sampling");
         }
 
-        // TODO: log
         return await SendRequestAsync<CreateMessageResult>(
             new JsonRpcRequest
             {
@@ -250,6 +259,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         ).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task<ListRootsResult> RequestRootsAsync(ListRootsRequestParams request, CancellationToken cancellationToken)
     {
         if (ClientCapabilities?.Roots == null)
@@ -257,7 +267,6 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Client does not support roots");
         }   
 
-        // TODO: log
         return await SendRequestAsync<ListRootsResult>(
             new JsonRpcRequest
             {
