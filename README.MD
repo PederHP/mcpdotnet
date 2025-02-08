@@ -89,7 +89,7 @@ Remember you can connect to any MCP server, not just ones created using mcpdotne
 
 ## Getting Started (Server)
 
-Here is an example of how to create an MCP server with a single tool. Refer to the TestServer in the tests folder.
+Here is an example of how to create an MCP server with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
 
 ```csharp
 McpServerOptions options = new McpServerOptions()
