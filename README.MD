@@ -1,7 +1,7 @@
 # mcpdotnet
 [![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg)](https://www.nuget.org/packages/mcpdotnet/)
 
-A .NET client implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP servers.
+A .NET client implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP clients and servers.
 
 ## About MCP
 
@@ -18,8 +18,9 @@ This library aims to provide a clean, specification-compliant implementation of 
 
 ## Features
 
-- MCP client implementation for .NET applications
-- Support for stdio and SSE transports
+- MCP implementation for .NET applications
+- Support for stdio and SSE transports (Clients)
+- Support for stdio transport (Servers)
 - Support for all MCP capabilities: Tool, Resource, Prompt, Sampling, Roots
 - Support for the Completion utility capability
 - Support for server instructions, pagination and notifications
