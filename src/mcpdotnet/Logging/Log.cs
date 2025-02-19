@@ -1,5 +1,4 @@
-﻿using McpDotNet.Configuration;
-using McpDotNet.Protocol.Messages;
+﻿using McpDotNet.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Logging;

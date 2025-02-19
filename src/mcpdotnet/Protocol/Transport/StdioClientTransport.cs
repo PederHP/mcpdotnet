@@ -61,7 +61,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = true,
+                CreateNoWindow = OperatingSystem.IsWindows(),
                 WorkingDirectory = _options.WorkingDirectory ?? Environment.CurrentDirectory,
             };
 

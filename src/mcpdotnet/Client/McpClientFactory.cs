@@ -135,7 +135,7 @@ public class McpClientFactory
         return defaultValue;
     }
 
-    private string GetCommand(McpServerConfig config)
+    private string? GetCommand(McpServerConfig config)
     {
         if (config.TransportOptions == null ||
             string.IsNullOrEmpty(config.TransportOptions.GetValueOrDefault("command")))
@@ -143,7 +143,7 @@ public class McpClientFactory
             return config.Location!;
         }
 
-        return $"cmd.exe";
+        return OperatingSystem.IsWindows() ? "cmd.exe" : config.TransportOptions?.GetValueOrDefault("command");
     }
 
     /// <summary>
@@ -151,29 +151,28 @@ public class McpClientFactory
     /// </summary>
     private void InitializeCommand(McpServerConfig config)
     {
-
         string endpointName = $"Client ({config.Id}: {config.Name})";
 
         // If the command is empty or already contains cmd.exe, we don't need to do anything
         var command = config.TransportOptions?.GetValueOrDefault("command");
-        if (string.IsNullOrEmpty(command))
+
+        if (string.IsNullOrEmpty(command) || !OperatingSystem.IsWindows())
         {
             return;
         }
 
-        if (command.Contains("cmd.exe"))
+        // On Windows, we need to wrap non-shell commands with cmd.exe /c
+        if (command.ToLowerInvariant().Contains("cmd.exe"))
         {
             _logger.SkippingShellWrapper(endpointName);
             return;
         }
 
-        // If the command is not empty and does not contain cmd.exe, we need to inject /c {command}
-        if (config.TransportOptions != null && !string.IsNullOrEmpty(command))
-        {
-            _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions.GetValueOrDefault("arguments") ?? "");
-            config.TransportOptions["arguments"] = config.TransportOptions.ContainsKey("arguments")
-                ? $"/c {command} {config.TransportOptions["arguments"]}"
-                : $"/c {command}";
-        }
+        // If the command is not empty and does not contain cmd.exe, we need to inject /c {command} (usually npx or uvicorn)
+        // This is because the stdio transport will not work correctly if the command is not run in a shell
+        _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions!.GetValueOrDefault("arguments") ?? "");
+        config.TransportOptions!["arguments"] = config.TransportOptions.ContainsKey("arguments")
+            ? $"/c {command} {config.TransportOptions["arguments"]}"
+            : $"/c {command}";
     }
 }

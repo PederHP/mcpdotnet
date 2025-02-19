@@ -166,7 +166,6 @@ while (true)
 - Performance optimization
 - SSE server support
 - Authentication
-- Linux/Mac support for stdio transport
 
 ## License
 

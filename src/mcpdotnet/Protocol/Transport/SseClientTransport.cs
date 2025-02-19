@@ -1,6 +1,4 @@
-﻿
-using System.Diagnostics.Tracing;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Configuration;
@@ -9,7 +7,6 @@ using McpDotNet.Logging;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using McpDotNet.Utils.Json;
-using System.Threading;
 
 namespace McpDotNet.Protocol.Transport;
 
