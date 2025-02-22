@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- license and package properties -->
+    <PackageId>McpDotNet.Extensions.AI</PackageId>
+    <Version>1.0.1.1</Version>
+    <Authors>PederHP</Authors>
+    <Description>Microsoft.Extensions.AI integration for the Model Context Protocol (MCP). Enables seamless use of MCP tools as AI functions in any IChatClient implementation.</Description>
+    <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PederHP/mcpdotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mcp;ai;microsoft-extensions-ai;chatclient;llm</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- Assembly properties -->
+    <AssemblyName>McpDotNet.Extensions.AI</AssemblyName>
+    <RootNamespace>McpDotNet.Extensions.AI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="McpDotNet.Extensions.AI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.3.0-preview.1.25114.11" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.3.0-preview.1.25114.11" />
+    <PackageReference Include="mcpdotnet" Version="1.0.1.1" />
+  </ItemGroup>
+
+</Project>
