@@ -12,7 +12,7 @@
     <Version>1.0.1.1</Version>
     <Authors>PederHP</Authors>
     <Description>Microsoft.Extensions.AI integration for the Model Context Protocol (MCP). Enables seamless use of MCP tools as AI functions in any IChatClient implementation.</Description>
-    <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/PederHP/mcpdotnet/src/McpDotNet.Extensions.AI</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PederHP/mcpdotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>mcp;ai;microsoft-extensions-ai;chatclient;llm</PackageTags>

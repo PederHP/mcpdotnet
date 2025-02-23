@@ -5,6 +5,9 @@ namespace McpDotNet.Extensions.AI;
 
 internal static class AIFunctionUtilities
 {
+    /// <summary>
+    /// Maps a Tool to a JsonElement that represents the tool's schema (top-level and input schema/parameters).
+    /// </summary>
     public static JsonElement MapToJsonElement(Tool tool)
     {
         // Create a JsonObject that matches the MEAI schema format

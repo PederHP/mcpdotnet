@@ -5,11 +5,17 @@ using System.Text.Json;
 
 namespace McpDotNet.Extensions.AI;
 
+/// <summary>
+/// Represents an AI function that calls a tool through mcpdotnet.
+/// </summary>
 public class McpAIFunction : AIFunction
 {
     private readonly Tool _tool;
     private readonly IMcpClient _client;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="McpAIFunction"/> class.
+    /// </summary>
     public McpAIFunction(Tool tool, IMcpClient client)
     {
         _tool = tool ?? throw new ArgumentNullException(nameof(tool));

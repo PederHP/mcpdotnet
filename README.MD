@@ -12,6 +12,13 @@ For more information about MCP:
 - [Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [GitHub Organization](https://github.com/modelcontextprotocol)
 
+## Available Packages
+
+| Package | Description | Documentation |
+|---------|-------------|---------------|
+| [mcpdotnet](src/mcpdotnet) | Core MCP implementation for .NET | [README](README.md) |
+| [McpDotNet.Extensions.AI](src/McpDotNet.Extensions.AI) | Integration with Microsoft.Extensions.AI | [README](src/McpDotNet.Extensions.AI/README.md) |
+
 ## Design Goals
 
 This library aims to provide a clean, specification-compliant implementation of the MCP protocol, with minimal additional abstraction. While transport implementations necessarily include additional code, they follow patterns established by the official SDKs where possible.

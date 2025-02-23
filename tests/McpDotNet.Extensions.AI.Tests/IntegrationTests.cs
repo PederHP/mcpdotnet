@@ -93,9 +93,11 @@ public class IntegrationTests
             .Build();
 
         // Create message list
-        IList<ChatMessage> messages = new List<ChatMessage>();
-        // Add a system message
-        messages.Add(new(ChatRole.System, "You are a helpful assistant, helping us test MCP server functionality."));
+        IList<ChatMessage> messages =
+        [
+            // Add a system message
+            new(ChatRole.System, "You are a helpful assistant, helping us test MCP server functionality."),
+        ];
         // If MCP server provides instructions, add them as an additional system message (you could also add it as a content part)
         foreach (var serverInstruction in sessionScope.ServerInstructions)
         {
