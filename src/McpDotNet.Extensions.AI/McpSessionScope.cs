@@ -20,7 +20,7 @@ public class McpSessionScope : IAsyncDisposable
     /// <summary>
     /// The list of tools exposed by the servers in this scope.
     /// </summary>
-    public IList<AITool> Tools { get; private set; }
+    public IList<AITool> Tools { get; private set; } = [];
 
     /// <summary>
     /// The server instructions provided by the servers in this scope. 
@@ -84,7 +84,7 @@ public class McpSessionScope : IAsyncDisposable
         return client;
     }
 
-    /// </inheritdoc>
+    /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
