@@ -2,6 +2,7 @@
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
+using McpDotNet.Protocol.Types;
 using McpDotNet.Tests.Utils;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -49,17 +50,168 @@ public class SseIntegrationTests
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
 
         // Send a test message through POST endpoint
-        var testMessage = new JsonRpcRequest()
+        await client.SendNotificationAsync("test/message", new { message = "Hello, SSE!" });
+
+        // Assert
+        Assert.True(true);
+    }
+
+    [Fact]
+    public async Task ConnectAndReceiveMessage_EverythingServerWithSse()
+    {
+        using var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            builder.AddConsole()
+            .SetMinimumLevel(LogLevel.Debug));
+
+        await using var fixture = new EverythingSseServerFixture();
+        await fixture.StartAsync();
+
+        var defaultOptions = new McpClientOptions
         {
-            Id = RequestId.FromNumber(1),
-            Method = "test/message",
-            Params = new { message = "Hello, SSE!" }
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
         };
-        using var httpClient = new HttpClient();
-        await httpClient.PostAsync(
-            "http://localhost:5000/message",
-            new StringContent(JsonSerializer.Serialize(testMessage))
+
+        var defaultConfig = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = "sse",
+            TransportOptions = new Dictionary<string, string>(),
+            Location = "http://localhost:3001/sse"
+        };
+
+        var factory = new McpClientFactory(
+            [defaultConfig],
+            defaultOptions,
+            loggerFactory
         );
+
+        // Create client and run tests
+        var client = await factory.GetClientAsync("everything");
+        var tools = await client.ListToolsAsync();
+
+        // assert
+        Assert.NotNull(tools);
+        Assert.NotEmpty(tools.Tools);
+    }
+
+    [Fact]
+    public async Task Sampling_Sse_EverythingServer()
+    {
+        // arrange
+        using var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            builder.AddConsole()
+            .SetMinimumLevel(LogLevel.Debug));
+
+        await using var fixture = new EverythingSseServerFixture();
+        await fixture.StartAsync();
+
+        var defaultOptions = new McpClientOptions
+        {
+            ClientInfo = new()
+            {
+                Name = "IntegrationTestClient",
+                Version = "1.0.0"                
+            },
+            Capabilities = new()
+            {
+                Sampling = new()
+            }
+        };
+
+        var defaultConfig = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = "sse",
+            TransportOptions = new Dictionary<string, string>(),
+            Location = "http://localhost:3001/sse"
+        };
+
+        var factory = new McpClientFactory(
+            [defaultConfig],
+            defaultOptions,
+            loggerFactory
+        );
+        var client = await factory.GetClientAsync("everything");
+
+        // Set up the sampling handler
+        int samplingHandlerCalls = 0;
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        client.SamplingHandler = async (_, _) =>
+        {
+            samplingHandlerCalls++;
+            return new CreateMessageResult
+            {
+                Model = "test-model",
+                Role = "assistant",
+                Content = new Content
+                {
+                    Type = "text",
+                    Text = "Test response"
+                }
+            };
+        };
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+
+        // Call the server's sampleLLM tool which should trigger our sampling handler
+        var result = await client.CallToolAsync(
+            "sampleLLM",
+            new Dictionary<string, object>
+            {
+                ["prompt"] = "Test prompt",
+                ["maxTokens"] = 100
+            }
+        );
+
+        // assert
+        Assert.NotNull(result);
+        var textContent = Assert.Single(result.Content);
+        Assert.Equal("text", textContent.Type);
+        Assert.False(string.IsNullOrEmpty(textContent.Text));
+    }
+
+    [Fact]
+    public async Task ConnectAndReceiveMessage_InMemoryServer_WithFullEndpointEventUri()
+    {
+        // Arrange
+        using var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            builder.AddConsole()
+            .SetMinimumLevel(LogLevel.Debug));
+
+        await using TestSseServer server = new(logger: loggerFactory.CreateLogger<TestSseServer>());
+        server.UseFullUrlForEndpointEvent = true;
+        await server.StartAsync();
+
+
+        var defaultOptions = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
+        };
+
+        var defaultConfig = new McpServerConfig
+        {
+            Id = "test_server",
+            Name = "In-memory Test Server",
+            TransportType = "sse",
+            TransportOptions = new Dictionary<string, string>(),
+            Location = "http://localhost:5000/sse"
+        };
+
+        var factory = new McpClientFactory(
+            [defaultConfig],
+            defaultOptions,
+            loggerFactory
+        );
+
+        // Act
+        var client = await factory.GetClientAsync("test_server");
+
+        // Wait for SSE connection to be established
+        await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
+
+        // Send a test message through POST endpoint
+        await client.SendNotificationAsync("test/message", new { message = "Hello, SSE!" });
 
         // Assert
         Assert.True(true);
