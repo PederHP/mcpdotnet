@@ -1,19 +1,19 @@
 ﻿
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Logging;
-using McpDotNet.Protocol.Types;
-using McpDotNet.Shared;
-using McpDotNet.Protocol.Transport;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Transport;
+using McpDotNet.Protocol.Types;
+using McpDotNet.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Server;
 
 /// <inheritdoc />
 internal class McpServer : McpJsonRpcEndpoint, IMcpServer
 {
-    private IServerTransport _serverTransport;
-    private McpServerOptions _options;
+    private readonly IServerTransport _serverTransport;
+    private readonly McpServerOptions _options;
     private volatile bool _isInitializing;
     private readonly ILogger<McpServer> _logger;
 
@@ -25,19 +25,22 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>
     /// <param name="serverInstructions">Optional server instructions to send to clients</param>
     /// <param name="loggerFactory">Logger factory to use for logging</param>
+    /// <param name="serviceProvider">Optional service provider to use for dependency injection</param>
     /// <exception cref="McpServerException"></exception>
-    public McpServer(IServerTransport transport, McpServerOptions options, string? serverInstructions, ILoggerFactory loggerFactory)
+    public McpServer(IServerTransport transport, McpServerOptions options, string? serverInstructions, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider)
         : base(transport, loggerFactory)
     {
         _serverTransport = transport;
         _options = options;
         _logger = loggerFactory.CreateLogger<McpServer>();
         ServerInstructions = serverInstructions;
+        ServiceProvider = serviceProvider;
 
         if (options.Capabilities?.Tools != null)
         {
             SetRequestHandler<ListToolsRequestParams, ListToolsResult>("tools/list",
-                async (request) => {
+                async (request) =>
+                {
                     if (ListToolsHandler == null)
                     {
                         // Setting the capability, but not a handler means we have nothing to return to the server
@@ -49,7 +52,8 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                 });
 
             SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call",
-                async (request) => {
+                async (request) =>
+                {
                     if (CallToolHandler == null)
                     {
                         // Setting the capability, but not a handler means we have nothing to return to the server
@@ -170,6 +174,9 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     public string? ServerInstructions { get; set; }
 
     /// <inheritdoc />
+    public IServiceProvider? ServiceProvider { get; }
+
+    /// <inheritdoc />
     public Func<ListToolsRequestParams, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <inheritdoc />
@@ -265,7 +272,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         if (ClientCapabilities?.Roots == null)
         {
             throw new McpServerException("Client does not support roots");
-        }   
+        }
 
         return await SendRequestAsync<ListRootsResult>(
             new JsonRpcRequest
