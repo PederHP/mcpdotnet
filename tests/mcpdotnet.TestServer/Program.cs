@@ -143,8 +143,8 @@ internal class Program
         #endregion
 
         #region Resources
-        List<Resource> resources = new();
-        List<ResourceContents> resourceContents = new();
+        List<Resource> resources = [];
+        List<ResourceContents> resourceContents = [];
         for (int i = 0; i < 100; ++i)
         {
             string uri = $"test://static/resource/{i + 1}";
@@ -247,8 +247,8 @@ internal class Program
                     {
                         Name = "complex_prompt",
                         Description = "A prompt with arguments",
-                        Arguments = new()
-                        {
+                        Arguments =
+                        [
                             new PromptArgument()
                             {
                                 Name = "temperature",
@@ -261,7 +261,7 @@ internal class Program
                                 Description = "Output style",
                                 Required = false
                             }
-                        }
+                        ]
                     }
                 ]
             });
@@ -269,7 +269,7 @@ internal class Program
 
         server.GetPromptHandler = (request, cancellationToken) =>
         {
-            List<PromptMessage> messages = new();
+            List<PromptMessage> messages = [];
             if (request.Name == "simple_prompt")
             {
                 messages.Add(new PromptMessage()

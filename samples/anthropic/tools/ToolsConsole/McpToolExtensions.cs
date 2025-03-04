@@ -6,7 +6,7 @@ public static class McpToolExtensions
 {
     public static IList<Anthropic.SDK.Common.Tool> ToAnthropicTools(this IEnumerable<McpDotNet.Protocol.Types.Tool> tools)
     {
-        List<Anthropic.SDK.Common.Tool> result = new();
+        List<Anthropic.SDK.Common.Tool> result = [];
         foreach (var tool in tools)
         {
             var function = tool.InputSchema == null

@@ -14,9 +14,15 @@ public class Reference
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The URI or URI template of the resource.
+    /// </summary>
     [JsonPropertyName("uri")]
     public string? Uri { get; set; }
 
+    /// <summary>
+    /// The name of the prompt or prompt template.
+    /// </summary>
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
@@ -65,6 +71,9 @@ public class Reference
 /// </summary>
 public class CompleteResult
 {
+    /// <summary>
+    /// The completion object containing the completion values.
+    /// </summary>
     [JsonPropertyName("completion")]
     public Completion Completion { get; set; } = new Completion();
 }

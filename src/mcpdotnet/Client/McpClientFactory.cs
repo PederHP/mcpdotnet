@@ -14,7 +14,7 @@ public class McpClientFactory
 {
     private readonly Dictionary<string, McpServerConfig> _serverConfigs;
     private readonly McpClientOptions _clientOptions;
-    private readonly Dictionary<string, IMcpClient> _clients = new();
+    private readonly Dictionary<string, IMcpClient> _clients = [];
     private readonly Func<McpServerConfig, IClientTransport> _transportFactoryMethod;
     private readonly Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
     private readonly ILoggerFactory _loggerFactory;
@@ -49,7 +49,7 @@ public class McpClientFactory
         _logger.InitializingStdioCommands();
         foreach (var config in _serverConfigs.Values)
         {
-            if (config.TransportType.ToLowerInvariant() == "stdio")
+            if (config.TransportType.Equals("stdio", StringComparison.OrdinalIgnoreCase))
             {
                 InitializeCommand(config);
             }
@@ -97,7 +97,7 @@ public class McpClientFactory
     {
         string endpointName = $"Client ({config.Id}: {config.Name})";
 
-        var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? Enumerable.Empty<string>());
+        var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? []);
         _logger.CreatingTransport(endpointName, config.TransportType, options);
         return config.TransportType.ToLowerInvariant() switch
         {
@@ -124,7 +124,7 @@ public class McpClientFactory
         };
     }
 
-    private static int ParseOrDefault(IDictionary<string, string>? options, string key, int defaultValue)
+    private static int ParseOrDefault(Dictionary<string, string>? options, string key, int defaultValue)
     {
         if (options?.TryGetValue(key, out var value) ?? false)
         {
@@ -135,15 +135,14 @@ public class McpClientFactory
         return defaultValue;
     }
 
-    private string? GetCommand(McpServerConfig config)
+    private static string GetCommand(McpServerConfig config)
     {
-        if (config.TransportOptions == null ||
-            string.IsNullOrEmpty(config.TransportOptions.GetValueOrDefault("command")))
-        {
-            return config.Location!;
-        }
+        var command = config.TransportOptions?.GetValueOrDefault("command");
 
-        return OperatingSystem.IsWindows() ? "cmd.exe" : config.TransportOptions?.GetValueOrDefault("command");
+        if (string.IsNullOrEmpty(command))
+            return config.Location!;
+
+        return OperatingSystem.IsWindows() ? "cmd.exe" : command;
     }
 
     /// <summary>
@@ -162,7 +161,7 @@ public class McpClientFactory
         }
 
         // On Windows, we need to wrap non-shell commands with cmd.exe /c
-        if (command.ToLowerInvariant().Contains("cmd.exe"))
+        if (command.Contains("cmd.exe", StringComparison.OrdinalIgnoreCase))
         {
             _logger.SkippingShellWrapper(endpointName);
             return;
@@ -171,8 +170,8 @@ public class McpClientFactory
         // If the command is not empty and does not contain cmd.exe, we need to inject /c {command} (usually npx or uvicorn)
         // This is because the stdio transport will not work correctly if the command is not run in a shell
         _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions!.GetValueOrDefault("arguments") ?? "");
-        config.TransportOptions!["arguments"] = config.TransportOptions.ContainsKey("arguments")
-            ? $"/c {command} {config.TransportOptions["arguments"]}"
+        config.TransportOptions!["arguments"] = config.TransportOptions.TryGetValue("arguments", out var args)
+            ? $"/c {command} {args}"
             : $"/c {command}";
     }
 }

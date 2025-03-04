@@ -12,5 +12,5 @@ public class ListResourcesResult : PaginatedResult
     /// A list of resources that the server offers.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("resources")]
-    public List<Resource> Resources { get; set; } = new();
+    public List<Resource> Resources { get; set; } = [];
 }

@@ -1,12 +1,11 @@
-﻿using System.Text.Json;
+﻿using System.Net.Http.Headers;
 using System.Text;
-using McpDotNet.Protocol.Messages;
+using System.Text.Json;
 using McpDotNet.Configuration;
-using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
-using System.Net.Http.Headers;
-using System.Text.Json.Serialization;
+using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -24,7 +23,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     private readonly ILogger<SseClientTransport> _logger;
     private readonly McpServerConfig _serverConfig;
     private readonly JsonSerializerOptions _jsonOptions;
-    private TaskCompletionSource<bool> _connectionEstablished;
+    private readonly TaskCompletionSource<bool> _connectionEstablished;
 
     private string EndpointName => $"Client (SSE) for ({_serverConfig.Id}: {_serverConfig.Name})";
 
@@ -100,7 +99,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         );
 
         string messageId = "(no id)";
-        RequestId? requestId = null;
+
         if (message is IJsonRpcMessageWithId messageWithId)
         {
             messageId = messageWithId.Id.ToString();
@@ -114,24 +113,22 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
 
         response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync();
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
         // Check if the message was an initialize request
         if (message is JsonRpcRequest request && request.Method == "initialize")
         {
             // If the response is not a JSON-RPC response, it is an SSE message
-            if (responseContent.ToLowerInvariant() == "accepted")
+            if (responseContent.Equals("accepted", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.SSETransportPostAccepted(EndpointName, messageId);
                 // The response will arrive as an SSE message
             }
             else
             {
-                JsonRpcResponse initializeResponse = JsonSerializer.Deserialize<JsonRpcResponse>(responseContent, _jsonOptions);
-                if (initializeResponse == null)
-                {
+                JsonRpcResponse initializeResponse = JsonSerializer.Deserialize<JsonRpcResponse>(responseContent, _jsonOptions) ??
                     throw new McpTransportException("Failed to initialize client");
-                }
+
                 _logger.TransportReceivedMessageParsed(EndpointName, messageId);
                 await WriteMessageAsync(initializeResponse, cancellationToken);
                 _logger.TransportMessageWritten(EndpointName, messageId);
@@ -140,7 +137,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         }
 
         // Otherwise, check if the response was accepted (the response will come as an SSE message)
-        if (responseContent.ToLowerInvariant() == "accepted")
+        if (responseContent.Equals("accepted", StringComparison.OrdinalIgnoreCase))
         {
             _logger.SSETransportPostAccepted(EndpointName, messageId);
         }
@@ -154,7 +151,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public async Task CloseAsync()
     {
-        _connectionCts.Cancel();
+        await _connectionCts.CancelAsync();
         if (_receiveTask != null)
             await _receiveTask;
 
@@ -290,7 +287,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             }
 
             // Check if data is absolute URI
-            if (data.ToLowerInvariant().StartsWith("http://") || data.ToLowerInvariant().StartsWith("https://"))
+            if (data.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || data.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 // Since the endpoint is an absolute URI, we can use it directly
                 _messageEndpoint = new Uri(data);
@@ -316,11 +313,5 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             _logger.TransportEndpointEventParseFailed(EndpointName, data, ex);
             throw new McpTransportException("Failed to parse endpoint event", ex);
         }
-    }
-
-    private record EndpointEventData
-    {
-        [JsonPropertyName("uri")]
-        public string? Uri { get; init; }
     }
 }

@@ -30,7 +30,7 @@ public class McpAIFunction : AIFunction
     protected async override Task<object?> InvokeCoreAsync(IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
     {
         // Convert arguments to dictionary format expected by mcpdotnet
-        Dictionary<string, object> argDict = new();
+        Dictionary<string, object> argDict = [];
         foreach (var arg in arguments)
         {
             if (arg.Value is not null)
@@ -42,7 +42,7 @@ public class McpAIFunction : AIFunction
         // Call the tool through mcpdotnet
         var result = await _client.CallToolAsync(
             _tool.Name,
-            argDict.Count == 0 ? new() : argDict,
+            argDict.Count == 0 ? [] : argDict,
             cancellationToken: cancellationToken
         );
 
@@ -60,9 +60,9 @@ public class McpAIFunction : AIFunction
         var properties = jsonSchema?.Properties;
         if (properties == null)
         {
-            return new();
+            return [];
         }
-        HashSet<string> requiredProperties = new(jsonSchema!.Required ?? []);
+        HashSet<string> requiredProperties = [.. jsonSchema!.Required ?? []];
         return properties.Select(kvp =>
             new AIFunctionParameterMetadata(kvp.Key)
             {

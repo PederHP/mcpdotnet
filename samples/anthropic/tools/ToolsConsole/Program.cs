@@ -1,9 +1,9 @@
-﻿using McpDotNet.Client;
+﻿using Anthropic.SDK;
+using Anthropic.SDK.Constants;
+using Anthropic.SDK.Messaging;
+using McpDotNet.Client;
 using McpDotNet.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
-using Anthropic.SDK.Constants;
 
 internal class Program
 {
@@ -85,7 +85,7 @@ internal class Program
 
             foreach (var toolCall in res.ToolCalls)
             {
-                var response = await client.CallToolAsync(toolCall.Name, toolCall.Arguments?.ToMCPArguments());
+                var response = await client.CallToolAsync(toolCall.Name, toolCall.Arguments?.ToMCPArguments() ?? []);
 
                 messages.Add(new Message(toolCall, response.Content[0].Text));
             }

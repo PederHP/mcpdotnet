@@ -12,5 +12,5 @@ public class ListToolsResult : PaginatedResult
     /// The server's response to a tools/list request from the client.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("tools")]
-    public List<Tool> Tools { get; set; } = new();
+    public List<Tool> Tools { get; set; } = [];
 }

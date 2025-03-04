@@ -19,7 +19,7 @@ public class CallToolResponse
     /// The server's response to a tools/call request from the client.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("content")]
-    public List<Content> Content { get; set; } = new();
+    public List<Content> Content { get; set; } = [];
 
     /// <summary>
     /// Whether the tool call was unsuccessful. If true, the call was unsuccessful.

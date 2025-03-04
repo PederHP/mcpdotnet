@@ -58,7 +58,7 @@ public class ModelPreferences
     public bool Validate(out string errorMessage)
     {
         bool valid = true;
-        List<string> errors = new();
+        List<string> errors = [];
         if (CostPriority < 0 || CostPriority > 1)
         {
             errors.Add("CostPriority must be between 0 and 1");

@@ -1,11 +1,10 @@
-﻿using McpDotNet.Client;
+﻿using System.Text.Json;
+using McpDotNet.Client;
 using McpDotNet.Configuration;
-using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Tests.Utils;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace McpDotNet.Tests;
 
@@ -19,7 +18,7 @@ public class SseIntegrationTests
             builder.AddConsole()
             .SetMinimumLevel(LogLevel.Debug));
 
-        await using TestSseServer server = new(logger:loggerFactory.CreateLogger<TestSseServer>());
+        await using TestSseServer server = new(logger: loggerFactory.CreateLogger<TestSseServer>());
         await server.StartAsync();
 
 
@@ -33,7 +32,7 @@ public class SseIntegrationTests
             Id = "test_server",
             Name = "In-memory Test Server",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
 
@@ -76,7 +75,7 @@ public class SseIntegrationTests
             Id = "everything",
             Name = "Everything",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:3001/sse"
         };
 
@@ -111,7 +110,7 @@ public class SseIntegrationTests
             ClientInfo = new()
             {
                 Name = "IntegrationTestClient",
-                Version = "1.0.0"                
+                Version = "1.0.0"
             },
             Capabilities = new()
             {
@@ -124,7 +123,7 @@ public class SseIntegrationTests
             Id = "everything",
             Name = "Everything",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:3001/sse"
         };
 
@@ -194,7 +193,7 @@ public class SseIntegrationTests
             Id = "test_server",
             Name = "In-memory Test Server",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
 
@@ -228,7 +227,7 @@ public class SseIntegrationTests
         await using TestSseServer server = new(logger: loggerFactory.CreateLogger<TestSseServer>());
         await server.StartAsync();
 
-        
+
         var defaultOptions = new McpClientOptions
         {
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
@@ -239,7 +238,7 @@ public class SseIntegrationTests
             Id = "test_server",
             Name = "In-memory Test Server",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
 
@@ -256,10 +255,12 @@ public class SseIntegrationTests
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
 
         var receivedNotification = new TaskCompletionSource<string>();
-        client.OnNotification("test/notification", async (args) =>
+        client.OnNotification("test/notification", (args) =>
             {
                 var msg = ((JsonElement)args.Params).GetProperty("message").GetString();
                 receivedNotification.SetResult(msg);
+
+                return Task.CompletedTask;
             });
 
         // Act
@@ -292,7 +293,7 @@ public class SseIntegrationTests
             Id = "test_server",
             Name = "In-memory Test Server",
             TransportType = "sse",
-            TransportOptions = new Dictionary<string, string>(),
+            TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
 

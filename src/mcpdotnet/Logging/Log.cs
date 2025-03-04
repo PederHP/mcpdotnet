@@ -364,12 +364,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = 7006,
         Level = LogLevel.Trace,
-        Message = "Invalid completion argument value {argumentValue} for {endpointName}"
+        Message = "Invalid completion argument value {argumentValue} for {argumentName} for {endpointName}"
     )]
     public static partial void InvalidCompletionArgumentValue(
         this ILogger logger,
         string endpointName,
-        string argumentValue);
+        string argumentValue,
+        string argumentName);
 
     [LoggerMessage(
         EventId = 7007,

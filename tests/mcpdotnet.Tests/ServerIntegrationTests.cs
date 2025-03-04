@@ -86,7 +86,7 @@ public class ServerIntegrationTests : IClassFixture<ServerIntegrationTestFixture
         // act
         var client = await _fixture.Factory.GetClientAsync("test_server");
 
-        List<Resource> allResources = new();
+        List<Resource> allResources = [];
         string? cursor = null;
         do
         {

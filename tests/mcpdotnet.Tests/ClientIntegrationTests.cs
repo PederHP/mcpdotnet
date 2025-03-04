@@ -150,7 +150,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
 
-        List<Resource> allResources = new();
+        List<Resource> allResources = [];
         string? cursor = null;
         do
         {
@@ -449,7 +449,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var result = await client.CallToolAsync(
             "read_graph",
-            new Dictionary<string, object>(),
+            [],
             CancellationToken.None
         );
 

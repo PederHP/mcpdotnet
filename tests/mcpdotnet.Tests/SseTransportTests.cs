@@ -42,7 +42,7 @@ public class SseTransportTests
     }
 
     [Fact]
-    public async void SseTransportSendMessageAsync_WithMessageEndpointNotSet_ThrowsException()
+    public async Task SseTransportSendMessageAsync_WithMessageEndpointNotSet_ThrowsException()
     {
         // Arrange
         var config = new McpServerConfig
@@ -69,6 +69,6 @@ public class SseTransportTests
 
         // Assert
         Assert.True(string.IsNullOrEmpty(transport.MessageEndpoint?.ToString()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendMessageAsync(new JsonRpcRequest() { Method = "test"}, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendMessageAsync(new JsonRpcRequest() { Method = "test" }, CancellationToken.None));
     }
 }

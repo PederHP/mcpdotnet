@@ -16,7 +16,7 @@ internal static class AIFunctionUtilities
             ["type"] = "object",
             ["title"] = tool.Name,
             ["description"] = tool.Description ?? string.Empty,
-            ["properties"] = tool.InputSchema?.Properties ?? new(),
+            ["properties"] = tool.InputSchema?.Properties ?? [],
             ["required"] = tool.InputSchema?.Required ?? []
         };
 

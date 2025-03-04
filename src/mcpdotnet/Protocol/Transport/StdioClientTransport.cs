@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using McpDotNet.Configuration;
+using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
-using McpDotNet.Logging;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -139,7 +139,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
 
             // Write the message followed by a newline
             await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken);
-            await _process.StandardInput.FlushAsync();
+            await _process.StandardInput.FlushAsync(cancellationToken);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -228,7 +228,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     {
         _logger.TransportCleaningUp(EndpointName);
         if (_process != null && _processStarted && !_process.HasExited)
-        {            
+        {
             try
             {
                 // Try to close stdin to signal the process to exit
@@ -253,7 +253,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process = null;
         }
 
-        _shutdownCts?.Cancel();
+        if (_shutdownCts != null)
+            await _shutdownCts.CancelAsync();
         _shutdownCts?.Dispose();
         _shutdownCts = null;
 

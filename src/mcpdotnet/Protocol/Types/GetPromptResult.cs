@@ -16,5 +16,5 @@ public class GetPromptResult
     /// The prompt or prompt template that the server offers.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("messages")]
-    public List<PromptMessage> Messages { get; set; } = new();
+    public List<PromptMessage> Messages { get; set; } = [];
 }

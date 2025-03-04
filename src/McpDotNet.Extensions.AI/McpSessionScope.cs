@@ -14,7 +14,7 @@ namespace McpDotNet.Extensions.AI;
 /// </summary>
 public class McpSessionScope : IAsyncDisposable
 {
-    private readonly List<IMcpClient> _clients = new();
+    private readonly List<IMcpClient> _clients = [];
     private bool _disposed;
 
     /// <summary>
