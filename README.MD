@@ -120,47 +120,7 @@ McpServerOptions options = new McpServerOptions()
 McpServerFactory factory = new McpServerFactory(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
 IMcpServer server = factory.CreateServer();
 
-server.ListToolsHandler = (request, cancellationToken) =>
-{
-    return Task.FromResult(new ListToolsResult()
-    {
-        Tools = 
-        [
-            new Tool()                
-            {
-                Name = "echo",
-                Description = "Echoes the input back to the client.",
-                InputSchema = new JsonSchema()
-                {
-                    Type = "object",
-                    Properties = new Dictionary<string, JsonSchemaProperty>()
-                    {
-                        ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
-                    }
-                },
-            }
-        ]
-    });
-};
-
-server.CallToolHandler = async (request, cancellationToken) =>
-{
-    if (request.Name == "echo")
-    {
-        if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
-        {
-            throw new McpServerException("Missing required argument 'message'");
-        }
-        return new CallToolResponse()
-        {
-            Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
-        };
-    }
-    else
-    {
-        throw new McpServerException($"Unknown tool: {request.Name}");
-    }
-};
+server.AddTools(typeof(EchoTool));
 
 await server.StartAsync();
 
@@ -168,6 +128,18 @@ await server.StartAsync();
 while (true)
 {
     await Task.Delay(1000);
+}
+```
+
+The `EchoTool` class is a simple example of a tool implementation:
+```csharp
+public static class EchoTool
+{
+    [McpTool(Description = "Echoes the input back to the client.")]
+    public static string Echo([McpParameter(true)] string message)
+    {
+        return "hello " + message;
+    }
 }
 ```
 

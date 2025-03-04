@@ -1,7 +1,9 @@
 ﻿using System.Text;
+using mcpdotnet.TestServer;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
@@ -41,8 +43,16 @@ internal class Program
             ServerInstructions = "This is a test server with only stub functionality",
         };
         var loggerFactory = CreateLoggerFactory();
-        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
-        IMcpServer server = factory.CreateServer();
+
+        IMcpServer? server = null;
+
+        var serviceProvider = new ServiceCollection()
+            .AddScoped<SampleLlmTool>()
+            .AddSingleton(sp => server!)
+            .BuildServiceProvider();
+
+        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory, serviceProvider);
+        server = factory.CreateServer();
 
         Console.WriteLine("Server object created, registering handlers.");
 
@@ -69,6 +79,9 @@ internal class Program
         #endregion
 
         #region Tools
+        server.AddTools(typeof(EchoTool), typeof(SampleLlmTool));
+
+        #region Register tool handlers manually
         server.ListToolsHandler = (request, cancellationToken) =>
         {
             return Task.FromResult(new ListToolsResult()
@@ -140,6 +153,7 @@ internal class Program
                 throw new McpServerException($"Unknown tool: {request?.Name}");
             }
         };
+        #endregion
         #endregion
 
         #region Resources

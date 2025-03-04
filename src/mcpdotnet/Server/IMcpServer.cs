@@ -24,6 +24,11 @@ public interface IMcpServer : IAsyncDisposable
     Implementation? ClientInfo { get; }
 
     /// <summary>
+    /// Gets the service provider for the server.
+    /// </summary>
+    IServiceProvider? ServiceProvider { get; }
+
+    /// <summary>
     /// Starts the server and begins listening for client requests.
     /// </summary>
     Task StartAsync(CancellationToken cancellationToken = default);

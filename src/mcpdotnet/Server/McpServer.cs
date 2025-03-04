@@ -12,8 +12,8 @@ namespace McpDotNet.Server;
 /// <inheritdoc />
 internal class McpServer : McpJsonRpcEndpoint, IMcpServer
 {
-    private IServerTransport _serverTransport;
-    private McpServerOptions _options;
+    private readonly IServerTransport _serverTransport;
+    private readonly McpServerOptions _options;
     private volatile bool _isInitializing;
     private readonly ILogger<McpServer> _logger;
 
@@ -24,14 +24,16 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// <param name="options">Configuration options for this server, including capabilities. 
     /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>    
     /// <param name="loggerFactory">Logger factory to use for logging</param>
+    /// <param name="serviceProvider">Optional service provider to use for dependency injection</param>
     /// <exception cref="McpServerException"></exception>
-    public McpServer(IServerTransport transport, McpServerOptions options, ILoggerFactory loggerFactory)
+    public McpServer(IServerTransport transport, McpServerOptions options, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider)
         : base(transport, loggerFactory)
     {
         _serverTransport = transport;
         _options = options;
         _logger = loggerFactory.CreateLogger<McpServer>();
         ServerInstructions = options.ServerInstructions;
+        ServiceProvider = serviceProvider;
 
         if (options.Capabilities?.Tools != null)
         {
@@ -171,7 +173,10 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     public string? ServerInstructions { get; set; }
 
     /// <inheritdoc />
-    public Func<ListToolsRequestParams?, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
+    public IServiceProvider? ServiceProvider { get; }
+
+    /// <inheritdoc />
+    public Func<ListToolsRequestParams, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <inheritdoc />
     public Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
