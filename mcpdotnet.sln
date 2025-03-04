@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI.Tests", "tests\McpDotNet.Extensions.AI.Tests\McpDotNet.Extensions.AI.Tests.csproj", "{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mcpdotnet.TestSseServer", "tests\mcpdotnet.TestSseServer\mcpdotnet.TestSseServer.csproj", "{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

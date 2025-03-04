@@ -18,7 +18,6 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
     private readonly ILogger<SseServerTransport> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private CancellationTokenSource? _shutdownCts;
-    private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
 
     private string EndpointName => $"Server (SSE) ({_serverName})";
 
@@ -35,7 +34,6 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
         _httpServerProvider = httpServerProvider;
         _logger = loggerFactory.CreateLogger<SseServerTransport>();
         _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
-        _pendingRequests = new ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>>();
     }
 
     /// <inheritdoc/>
@@ -65,17 +63,6 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
         if (message is IJsonRpcMessageWithId messageWithId)
         {
             id = messageWithId.Id.ToString();
-
-            // If the message has an ID and is a response, it might be the response to a request
-            if (message is JsonRpcResponse response)
-            {
-                if (_pendingRequests.TryGetValue(messageWithId.Id, out var tcs))
-                {
-                    tcs.SetResult(response);
-                    return;
-                }
-                _logger.NoRequestFoundForMessageWithId(EndpointName, id);
-            }
         }
 
         try
@@ -115,7 +102,11 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
         _logger.TransportCleanedUp(EndpointName);
     }
 
-    private async Task<string> HttpMessageHandler(string request, CancellationToken cancellationToken)
+    /// <summary>
+    /// Handles HTTP messages received by the HTTP server provider.
+    /// </summary>
+    /// <returns>true if the message was accepted (return 202), false otherwise (return 400)</returns>
+    private bool HttpMessageHandler(string request, CancellationToken cancellationToken)
     {
         _logger.TransportReceivedMessage(EndpointName, request);
 
@@ -124,42 +115,32 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
             var message = JsonSerializer.Deserialize<IJsonRpcMessage>(request, _jsonOptions);
             if (message != null)
             {
-                string messageId = "(no id)";
-                if (message is IJsonRpcMessageWithId messageWithId)
+                // Fire-and-forget the message to the message channel
+                Task.Run(async () =>
                 {
-                    messageId = messageWithId.Id.ToString();
-                    var tcs = new TaskCompletionSource<IJsonRpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    _pendingRequests.TryAdd(messageWithId.Id, tcs);
+                    string messageId = "(no id)";
+                    if (message is IJsonRpcMessageWithId messageWithId)
+                    {
+                        messageId = messageWithId.Id.ToString();
+                    }
 
                     _logger.TransportReceivedMessageParsed(EndpointName, messageId);
                     await WriteMessageAsync(message, cancellationToken);
                     _logger.TransportMessageWritten(EndpointName, messageId);
+                });
 
-                    var response = await tcs.Task;
-                    _pendingRequests.TryRemove(messageWithId.Id, out _);
-                    return JsonSerializer.Serialize(response, _jsonOptions);
-                }
-                else
-                {
-                    // No id, just write an empty response
-                    _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                    await WriteMessageAsync(message, cancellationToken);
-                    _logger.TransportMessageWritten(EndpointName, messageId);
-                    return JsonSerializer.Serialize(new { jsonrpc = "2.0" }); 
-                }
+                return true;
             }
             else
             {
                 _logger.TransportMessageParseUnexpectedType(EndpointName, request);
-                // TODO: proper error response
-                return JsonSerializer.Serialize(new { jsonrpc = "2.0" });
+                return false;
             }
         }
         catch (JsonException ex)
         {
             _logger.TransportMessageParseFailed(EndpointName, request, ex);
-            // TODO: proper error response
-            return JsonSerializer.Serialize(new { jsonrpc = "2.0" });
+            return false;
         }
     }
 }

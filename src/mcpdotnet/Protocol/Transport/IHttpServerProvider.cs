@@ -24,8 +24,11 @@ public interface IHttpServerProvider
 
     /// <summary>
     /// Initializes the message handler for POST requests.
+    /// If the message handler returns false, the server should return a 400 Bad Request response.
+    /// If the message handler returns true, the server should return a 202 Accepted response.
     /// </summary>
-    Task InitializeMessageHandler(Func<string, CancellationToken, Task<string>> messageHandler);
+    /// <param name="messageHandler">An action to call when a message is received.</param>
+    Task InitializeMessageHandler(Func<string, CancellationToken, bool> messageHandler);
 
     /// <summary>
     /// Starts the HTTP server.
