@@ -1,5 +1,5 @@
-﻿using McpDotNet.Protocol.Types;
-using McpDotNet.Protocol.Messages;
+﻿using McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Server;
 
@@ -22,6 +22,11 @@ public interface IMcpServer : IAsyncDisposable
     /// Gets the version and implementation information of the client.
     /// </summary>
     Implementation? ClientInfo { get; }
+
+    /// <summary>
+    /// Gets the service provider for the server.
+    /// </summary>
+    IServiceProvider? ServiceProvider { get; }
 
     /// <summary>
     /// Starts the server and begins listening for client requests.

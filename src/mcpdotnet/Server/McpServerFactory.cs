@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using McpDotNet.Protocol.Transport;
+﻿using McpDotNet.Protocol.Transport;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Server;
 
@@ -19,6 +19,7 @@ public class McpServerFactory
     private readonly McpServerOptions _options;
     private readonly ILoggerFactory _loggerFactory;
     private readonly string? _serverInstructions;
+    private readonly IServiceProvider? _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpServerFactory"/> class.
@@ -27,14 +28,16 @@ public class McpServerFactory
     /// <param name="options">Configuration options for this server, including capabilities. 
     /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>
     /// <param name="serverInstructions">Optional server instructions to send to clients</param>
+    /// <param name="serviceProvider">Optional service provider to create new instances.</param>
     /// <param name="loggerFactory">Logger factory to use for logging</param>
     public McpServerFactory(IServerTransport serverTransport, McpServerOptions options, ILoggerFactory loggerFactory,
-        string? serverInstructions = null)
+        string? serverInstructions = null, IServiceProvider? serviceProvider = null)
     {
         _serverTransport = serverTransport;
         _options = options;
         _loggerFactory = loggerFactory;
         _serverInstructions = serverInstructions;
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -44,6 +47,6 @@ public class McpServerFactory
     /// </summary>
     public IMcpServer CreateServer()
     {
-        return new McpServer(_serverTransport, _options, _serverInstructions, _loggerFactory);
+        return new McpServer(_serverTransport, _options, _serverInstructions, _loggerFactory, _serviceProvider);
     }
 }
