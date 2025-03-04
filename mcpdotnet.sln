@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnthropicToolsConsole", "sa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mcpdotnet.TestServer", "tests\mcpdotnet.TestServer\mcpdotnet.TestServer.csproj", "{7C229573-A085-4ECC-8131-958CDA2BE731}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI", "src\McpDotNet.Extensions.AI\McpDotNet.Extensions.AI.csproj", "{B3E019B8-3459-4D52-864E-703DDA2C02AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI.Tests", "tests\McpDotNet.Extensions.AI.Tests\McpDotNet.Extensions.AI.Tests.csproj", "{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{7C229573-A085-4ECC-8131-958CDA2BE731}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C229573-A085-4ECC-8131-958CDA2BE731}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C229573-A085-4ECC-8131-958CDA2BE731}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3E019B8-3459-4D52-864E-703DDA2C02AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3E019B8-3459-4D52-864E-703DDA2C02AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3E019B8-3459-4D52-864E-703DDA2C02AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3E019B8-3459-4D52-864E-703DDA2C02AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

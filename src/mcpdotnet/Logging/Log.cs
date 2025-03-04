@@ -480,4 +480,25 @@ internal static partial class Log
         this ILogger logger,
         string endpointName,
         Exception e);
+
+    [LoggerMessage(
+        EventId = 7018,
+        Level = LogLevel.Debug,
+        Message = "SSE transport POST accepted for {endpointName} with message ID {messageId}"
+    )]
+    public static partial void SSETransportPostAccepted(
+        this ILogger logger,
+        string endpointName,
+        string messageId);
+
+    [LoggerMessage(
+        EventId = 7019,
+        Level = LogLevel.Error,
+        Message = "SSE transport POST not accepted for {endpointName} with message ID {messageId} and server response {responseContent}"
+    )]
+    public static partial void SSETransportPostNotAccepted(
+        this ILogger logger,
+        string endpointName,
+        string messageId,
+        string responseContent);
 }

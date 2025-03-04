@@ -35,6 +35,11 @@ public sealed class TestSseServer : IAsyncDisposable
     }
 
     /// <summary>
+    /// This is to be able to use the full URL for the endpoint event.
+    /// </summary>
+    public bool UseFullUrlForEndpointEvent { get; set; }
+
+    /// <summary>
     /// Full URL for the SSE endpoint, e.g. "http://localhost:5000/sse"
     /// </summary>
     public string SseEndpoint
@@ -120,14 +125,15 @@ public sealed class TestSseServer : IAsyncDisposable
         _sseClients.Add(writer);
 
         // Immediately send the "endpoint" event with the POST URL
-        var endpointData = new
-        {
-            uri = MessageEndpoint
-        };
-        var json = JsonSerializer.Serialize(endpointData);
-
         await writer.WriteLineAsync("event: endpoint");
-        await writer.WriteLineAsync($"data: {json}");
+        if (UseFullUrlForEndpointEvent)
+        {
+            await writer.WriteLineAsync($"data: {MessageEndpoint}");
+        }
+        else
+        {
+            await writer.WriteLineAsync($"data: {_messagePath}");
+        }
         await writer.WriteLineAsync(); // blank line to end an SSE message
         await writer.FlushAsync();
 
@@ -183,33 +189,50 @@ public sealed class TestSseServer : IAsyncDisposable
             using var reader = new StreamReader(request.InputStream);
             string content = await reader.ReadToEndAsync();
 
+            var jsonRpcNotification = JsonSerializer.Deserialize<JsonRpcNotification>(content);
+            if (jsonRpcNotification != null && jsonRpcNotification.Method != "initialize")
+            {
+                // Test server so just ignore notifications
+
+                // Set status code to 202 Accepted
+                response.StatusCode = 202;
+
+                // Write "accepted" as the response body
+                using var writer = new StreamWriter(response.OutputStream);
+                await writer.WriteAsync("accepted");
+                await writer.FlushAsync();
+                return;
+            }
+
             var jsonRpcRequest = JsonSerializer.Deserialize<JsonRpcRequest>(content);
 
-            if (jsonRpcRequest != null && !jsonRpcRequest.Method.StartsWith("notification"))
+            if (jsonRpcRequest != null)
             {
                 if (jsonRpcRequest.Method == "initialize")
                 {
                     await HandleInitializationRequest(response, jsonRpcRequest);
-                    return;
                 }
+                else
+                {
+                    // Set status code to 202 Accepted
+                    response.StatusCode = 202;
 
-                // Method not found - proper JSON-RPC error response
-                await SendJsonRpcErrorAsync(response, jsonRpcRequest.Id, -32601, $"Method '{jsonRpcRequest.Method}' not found");
-                return;
-            }
- 
-            var notification = JsonSerializer.Deserialize<JsonRpcNotification>(content);
-            if (notification != null)
-            {
-                response.StatusCode = 200;
-                response.ContentType = "application/json";
-                await using var writer = new StreamWriter(response.OutputStream);
-                await writer.WriteAsync(JsonSerializer.Serialize(new { jsonrpc = "2.0" }));
-                return;
-            }
+                    // Write "accepted" as the response body
+                    using var writer = new StreamWriter(response.OutputStream);
+                    await writer.WriteAsync("accepted");
+                    await writer.FlushAsync();
 
-            // Invalid JSON-RPC message - proper JSON-RPC error response
-            await SendJsonRpcErrorAsync(response, null, -32700, "Parse error");
+                    // Then process the message and send the response via SSE
+                    if (jsonRpcRequest != null)
+                    {
+                        // Process the request and generate a response
+                        var responseMessage = await ProcessRequestAsync(jsonRpcRequest);
+
+                        // Send the response via the SSE connection instead of HTTP response
+                        await SendSseMessageAsync(responseMessage);
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -220,6 +243,22 @@ public sealed class TestSseServer : IAsyncDisposable
         {
             response.Close();
         }
+    }
+
+    private async Task<JsonRpcResponse> ProcessRequestAsync(JsonRpcRequest jsonRpcRequest)
+    {
+        // This is a test server so we just echo back the request
+        return new JsonRpcResponse
+        {
+            Id = jsonRpcRequest.Id,
+            Result = jsonRpcRequest.Params
+        };
+    }
+
+    private async Task SendSseMessageAsync(JsonRpcResponse jsonRpcResponse)
+    {
+        // This is a test server so we just send to all connected clients
+        await BroadcastMessageAsync(JsonSerializer.Serialize(jsonRpcResponse));
     }
 
     private async Task SendJsonRpcErrorAsync(HttpListenerResponse response, RequestId? id, int code, string message, string? data = null)
