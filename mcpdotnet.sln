@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpDotNet.Extensions.AI.Tests", "tests\McpDotNet.Extensions.AI.Tests\McpDotNet.Extensions.AI.Tests.csproj", "{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestServerWithHosting", "samples\TestServerWithHosting\TestServerWithHosting.csproj", "{6499876E-2F76-44A8-B6EB-5B889C6E9B7F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,9 +55,18 @@ Global
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67BEF596-AD39-4BDD-B505-31DE7FF0C8D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{76E295FA-9E85-7B99-332A-2CDBFCD5860A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{CA0BB450-1903-2F92-A68D-1285976551D6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {384A3888-751F-4D75-9AE5-587330582D89}

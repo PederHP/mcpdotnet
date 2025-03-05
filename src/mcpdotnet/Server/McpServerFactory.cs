@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using McpDotNet.Protocol.Transport;
+﻿using McpDotNet.Protocol.Transport;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace McpDotNet.Server;
 
@@ -13,12 +14,12 @@ namespace McpDotNet.Server;
 /// 
 /// You must register handlers for all supported capabilities on the server instance, before calling BeginListeningAsync.
 /// </summary>
-public class McpServerFactory
+public class McpServerFactory : IMcpServerFactory
 {
     private readonly IServerTransport _serverTransport;
     private readonly McpServerOptions _options;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly string? _serverInstructions;
+    private readonly McpServerDelegates? _serverDelegates;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpServerFactory"/> class.
@@ -26,15 +27,14 @@ public class McpServerFactory
     /// <param name="serverTransport">Transport to use for the server</param>
     /// <param name="options">Configuration options for this server, including capabilities. 
     /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>
-    /// <param name="serverInstructions">Optional server instructions to send to clients</param>
     /// <param name="loggerFactory">Logger factory to use for logging</param>
-    public McpServerFactory(IServerTransport serverTransport, McpServerOptions options, ILoggerFactory loggerFactory,
-        string? serverInstructions = null)
+    /// <param name="serverDelegates"></param>
+    public McpServerFactory(IServerTransport serverTransport, McpServerOptions options, ILoggerFactory loggerFactory, IOptions<McpServerDelegates>? serverDelegates = null)
     {
-        _serverTransport = serverTransport;
-        _options = options;
-        _loggerFactory = loggerFactory;
-        _serverInstructions = serverInstructions;
+        _serverTransport = serverTransport ?? throw new ArgumentNullException(nameof(serverTransport));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        _serverDelegates = serverDelegates?.Value;
     }
 
     /// <summary>
@@ -44,6 +44,10 @@ public class McpServerFactory
     /// </summary>
     public IMcpServer CreateServer()
     {
-        return new McpServer(_serverTransport, _options, _serverInstructions, _loggerFactory);
+        var server = new McpServer(_serverTransport, _options, _loggerFactory);
+
+        _serverDelegates?.Apply(server);
+
+        return server;
     }
 }

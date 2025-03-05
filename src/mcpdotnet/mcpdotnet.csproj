@@ -20,7 +20,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!-- Assembly properties -->
     <AssemblyName>mcpdotnet</AssemblyName>
-    <RootNamespace>mcpdotnet</RootNamespace>
+    <RootNamespace>McpDotNet</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -35,6 +35,7 @@
   </ItemGroup>  
   
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
   </ItemGroup>
 

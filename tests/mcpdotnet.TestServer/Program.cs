@@ -1,10 +1,9 @@
-﻿using McpDotNet.Protocol.Transport;
+﻿using System.Text;
+using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Serilog;
-using System.Text;
 
 internal class Program
 {
@@ -38,11 +37,11 @@ internal class Program
                 Resources = new(),
                 Prompts = new(),
             },
-            ProtocolVersion = "2024-11-05"
+            ProtocolVersion = "2024-11-05",
+            ServerInstructions = "This is a test server with only stub functionality",
         };
         var loggerFactory = CreateLoggerFactory();
-        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory,
-            "This is a test server with only stub functionality");
+        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
         Console.WriteLine("Server object created, registering handlers.");
@@ -51,7 +50,7 @@ internal class Program
         static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
         {
             return new CreateMessageRequestParams()
-            { 
+            {
                 Messages = [new SamplingMessage()
                 {
                     Role = Role.User,
@@ -61,10 +60,10 @@ internal class Program
                         Text = $"Resource {uri} context: {context}"
                     }
                 }],
-                SystemPrompt = "You are a helpful test server.", 
-                MaxTokens = maxTokens, 
-                Temperature = 0.7f, 
-                IncludeContext = ContextInclusion.ThisServer 
+                SystemPrompt = "You are a helpful test server.",
+                MaxTokens = maxTokens,
+                Temperature = 0.7f,
+                IncludeContext = ContextInclusion.ThisServer
             };
         }
         #endregion
@@ -74,9 +73,9 @@ internal class Program
         {
             return Task.FromResult(new ListToolsResult()
             {
-                Tools = 
+                Tools =
                 [
-                    new Tool()                
+                    new Tool()
                     {
                         Name = "echo",
                         Description = "Echoes the input back to the client.",
@@ -122,8 +121,8 @@ internal class Program
             }
             else if (request.Name == "sampleLLM")
             {
-                if (request.Arguments is null || 
-                    !request.Arguments.TryGetValue("prompt", out var prompt) || 
+                if (request.Arguments is null ||
+                    !request.Arguments.TryGetValue("prompt", out var prompt) ||
                     !request.Arguments.TryGetValue("maxTokens", out var maxTokens))
                 {
                     throw new McpServerException("Missing required arguments 'prompt' and 'maxTokens'");
@@ -200,10 +199,10 @@ internal class Program
                     throw new McpServerException("Invalid cursor");
                 }
             }
-            
+
             int endIndex = Math.Min(startIndex + pageSize, resources.Count);
             string? nextCursor = null;
-            
+
             if (endIndex < resources.Count)
             {
                 nextCursor = Convert.ToBase64String(Encoding.UTF8.GetBytes(endIndex.ToString()));

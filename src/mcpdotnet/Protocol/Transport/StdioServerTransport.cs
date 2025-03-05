@@ -1,8 +1,9 @@
 ﻿using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using McpDotNet.Protocol.Messages;
-using McpDotNet.Utils.Json;
 using McpDotNet.Logging;
+using McpDotNet.Protocol.Messages;
+using McpDotNet.Server;
+using McpDotNet.Utils.Json;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -18,6 +19,16 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     private CancellationTokenSource? _shutdownCts;
 
     private string EndpointName => $"Server (stdio) ({_serverName})";
+
+    /// <summary>
+    /// Initializes a new instance of the StdioServerTransport class.
+    /// </summary>
+    /// <param name="serverOptions">The server options.</param>
+    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
+    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory loggerFactory)
+        : this(serverOptions.ServerInfo.Name, loggerFactory)
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the StdioServerTransport class.
@@ -64,7 +75,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
         {
             var json = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.TransportSendingMessage(EndpointName, id, json);
-            
+
             using (Console.OpenStandardOutput())
             {
                 await Console.Out.WriteLineAsync(json.AsMemory(), cancellationToken);
@@ -159,7 +170,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     private async Task CleanupAsync(CancellationToken cancellationToken)
     {
         _logger.TransportCleaningUp(EndpointName);
-        
+
         _shutdownCts?.Cancel();
         _shutdownCts?.Dispose();
         _shutdownCts = null;
