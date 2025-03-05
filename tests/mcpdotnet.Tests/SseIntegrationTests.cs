@@ -254,10 +254,10 @@ public class SseIntegrationTests
         // Wait for SSE connection to be established
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
 
-        var receivedNotification = new TaskCompletionSource<string>();
+        var receivedNotification = new TaskCompletionSource<string?>();
         client.OnNotification("test/notification", (args) =>
             {
-                var msg = ((JsonElement)args.Params).GetProperty("message").GetString();
+                var msg = ((JsonElement?)args.Params)?.GetProperty("message").GetString();
                 receivedNotification.SetResult(msg);
 
                 return Task.CompletedTask;

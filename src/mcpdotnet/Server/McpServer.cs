@@ -139,8 +139,8 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         SetRequestHandler<InitializeRequestParams, InitializeResult>("initialize",
             (request) =>
             {
-                ClientCapabilities = request.Capabilities ?? new();
-                ClientInfo = request.ClientInfo;
+                ClientCapabilities = request?.Capabilities ?? new();
+                ClientInfo = request?.ClientInfo;
                 return Task.FromResult(new InitializeResult()
                 {
                     ProtocolVersion = options.ProtocolVersion,
@@ -171,25 +171,25 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     public string? ServerInstructions { get; set; }
 
     /// <inheritdoc />
-    public Func<ListToolsRequestParams, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
+    public Func<ListToolsRequestParams?, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<CallToolRequestParams, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
+    public Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ListPromptsRequestParams, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
+    public Func<ListPromptsRequestParams?, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<GetPromptRequestParams, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
+    public Func<GetPromptRequestParams?, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ListResourcesRequestParams, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
+    public Func<ListResourcesRequestParams?, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ReadResourceRequestParams, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
+    public Func<ReadResourceRequestParams?, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<CompleteRequestParams, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
+    public Func<CompleteRequestParams?, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
 
     /// <inheritdoc />
     public Func<string, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }

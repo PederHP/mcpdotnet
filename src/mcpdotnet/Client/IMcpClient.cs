@@ -1,7 +1,7 @@
 ﻿namespace McpDotNet.Client;
 
-using McpDotNet.Protocol.Types;
 using McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Represents an instance of the MCP client connecting to a specific server.
@@ -35,12 +35,12 @@ public interface IMcpClient : IAsyncDisposable
     /// <summary>
     /// Gets or sets the handler for server sampling requests.
     /// </summary>
-    Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+    Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for providing root URIs to servers.
     /// </summary>
-    Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
+    Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
     /// <summary>
     /// Establishes a connection to the server.

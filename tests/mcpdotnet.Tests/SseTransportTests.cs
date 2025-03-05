@@ -35,10 +35,11 @@ public class SseTransportTests
 
         // Assert
         Assert.NotNull(transport);
-        Assert.True(transport.Options.ConnectionTimeout == TimeSpan.FromSeconds(10));
-        Assert.True(transport.Options.MaxReconnectAttempts == 2);
-        Assert.True(transport.Options.ReconnectDelay == TimeSpan.FromSeconds(5));
-        Assert.True(transport.Options.AdditionalHeaders["test"] == "header");
+        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
+        Assert.Equal(2, transport.Options.MaxReconnectAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(5), transport.Options.ReconnectDelay);
+        Assert.NotNull(transport.Options.AdditionalHeaders);
+        Assert.Equal("header", transport.Options.AdditionalHeaders["test"]);
     }
 
     [Fact]

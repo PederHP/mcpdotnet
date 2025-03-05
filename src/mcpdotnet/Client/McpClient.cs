@@ -353,10 +353,10 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
     }
 
     /// <inheritdoc/>
-    public Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+    public Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
 
     /// <inheritdoc/>
-    public Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
+    public Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
     /// <inheritdoc/>
     public override string EndpointName

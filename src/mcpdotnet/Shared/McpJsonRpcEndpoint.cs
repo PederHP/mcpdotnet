@@ -349,7 +349,7 @@ internal abstract class McpJsonRpcEndpoint
     /// <typeparam name="TResponse">Type of response payload (not full RPC response</typeparam>
     /// <param name="method">Method identifier to register for</param>
     /// <param name="handler">Handler to be called when a request with specified method identifier is received</param>
-    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest, Task<TResponse>> handler) where TResponse : class
+    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, Task<TResponse>> handler) where TResponse : class
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -357,8 +357,7 @@ internal abstract class McpJsonRpcEndpoint
         {
             // Convert the params JsonElement to our type using the same options
             var jsonString = JsonSerializer.Serialize(request.Params);
-            var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions)
-                ?? throw new McpTransportException($"Could not deserialize request to {typeof(TRequest)}.");
+            var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
 
             return await handler(typedRequest);
         };

@@ -90,13 +90,13 @@ public sealed class TestSseServer : IAsyncDisposable
 
         // Handle SSE endpoint
         if (request.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase)
-            && request.Url.AbsolutePath.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
+            && request.Url?.AbsolutePath.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase) == true)
         {
             await HandleSseConnectionAsync(context, ct);
         }
         // Handle POST /message
         else if (request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase)
-                 && request.Url.AbsolutePath.Equals(_messagePath, StringComparison.OrdinalIgnoreCase))
+                 && request.Url?.AbsolutePath.Equals(_messagePath, StringComparison.OrdinalIgnoreCase) == true)
         {
             await HandlePostMessageAsync(context, ct);
         }
