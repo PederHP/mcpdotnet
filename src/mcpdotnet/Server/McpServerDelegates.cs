@@ -10,47 +10,47 @@ public class McpServerDelegates
     /// <summary>
     /// Gets or sets the handler for list tools requests.
     /// </summary>
-    public Func<ListToolsRequestParams?, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
+    public Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for call tool requests.
     /// </summary>
-    public Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
+    public Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for list prompts requests.
     /// </summary>
-    public Func<ListPromptsRequestParams?, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
+    public Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for get prompt requests.
     /// </summary>
-    public Func<GetPromptRequestParams?, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
+    public Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for list resources requests.
     /// </summary>
-    public Func<ListResourcesRequestParams?, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
+    public Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for read resources requests.
     /// </summary>
-    public Func<ReadResourceRequestParams?, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
+    public Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for get resources requests.
     /// </summary>
-    public Func<CompleteRequestParams?, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
+    public Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    public Func<string, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
+    public Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    public Func<string, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
+    public Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
 
     /// <summary>
     /// Applies the delegates to the server.

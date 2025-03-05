@@ -1,6 +1,6 @@
 ﻿using McpDotNet.Server;
 
-namespace mcpdotnet.TestServer;
+namespace TestServerWithHosting.Tools;
 
 public static class EchoTool
 {

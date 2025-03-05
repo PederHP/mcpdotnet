@@ -19,7 +19,8 @@ try
     builder.Services.AddSerilog();
     builder.Services.AddMcpServer()
         .WithStdioServerTransport()
-        .WithCallToolHandler((r, ct) => Task.FromResult(new McpDotNet.Protocol.Types.CallToolResponse()));
+        .WithTools()
+        .WithCallToolHandler(async (r, ct) => new McpDotNet.Protocol.Types.CallToolResponse());
 
     var app = builder.Build();
 

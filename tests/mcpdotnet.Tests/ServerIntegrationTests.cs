@@ -1,6 +1,4 @@
 ﻿using McpDotNet.Client;
-using McpDotNet.Configuration;
-using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests;
@@ -18,7 +16,7 @@ public class ServerIntegrationTests : IClassFixture<ServerIntegrationTestFixture
     public async Task ConnectAndPing_Stdio_TestServer()
     {
         // Arrange
-        
+
         // Act
         var client = await _fixture.Factory.GetClientAsync("test_server");
         await client.PingAsync(CancellationToken.None);
@@ -45,7 +43,7 @@ public class ServerIntegrationTests : IClassFixture<ServerIntegrationTestFixture
     public async Task ListTools_Stdio_TestServer()
     {
         // arrange
-       
+
         // act
         var client = await _fixture.Factory.GetClientAsync("test_server");
         var tools = await client.ListToolsAsync();
@@ -59,7 +57,7 @@ public class ServerIntegrationTests : IClassFixture<ServerIntegrationTestFixture
     public async Task CallTool_Stdio_EchoServer()
     {
         // arrange
-        
+
         // act
         var client = await _fixture.Factory.GetClientAsync("test_server");
         var result = await client.CallToolAsync(

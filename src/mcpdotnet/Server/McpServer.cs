@@ -47,7 +47,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListTools handler not configured");
                     }
 
-                    return await ListToolsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListToolsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
 
             SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call",
@@ -60,7 +60,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("CallTool handler not configured");
                     }
 
-                    return await CallToolHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await CallToolHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
         }
         if (options.Capabilities?.Prompts != null)
@@ -75,7 +75,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListPrompts handler not configured");
                     }
 
-                    return await ListPromptsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListPromptsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
 
             SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get",
@@ -88,7 +88,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("GetPrompt handler not configured");
                     }
 
-                    return await GetPromptHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await GetPromptHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
         }
         if (options.Capabilities?.Resources != null)
@@ -103,7 +103,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListResources handler not configured");
                     }
 
-                    return await ListResourcesHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
 
             SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read",
@@ -116,7 +116,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ReadResource handler not configured");
                     }
 
-                    return await ReadResourceHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ReadResourceHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
         }
         SetRequestHandler<CompleteRequestParams, CompleteResult>("completion/complete",
@@ -136,7 +136,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         };
                     }
 
-                    return await GetCompletionHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await GetCompletionHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
                 });
         SetRequestHandler<InitializeRequestParams, InitializeResult>("initialize",
             (request) =>
@@ -176,31 +176,31 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
     public IServiceProvider? ServiceProvider { get; }
 
     /// <inheritdoc />
-    public Func<ListToolsRequestParams, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
+    public Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
+    public Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ListPromptsRequestParams?, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
+    public Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<GetPromptRequestParams?, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
+    public Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ListResourcesRequestParams?, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
+    public Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<ReadResourceRequestParams?, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
+    public Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<CompleteRequestParams?, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
+    public Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<string, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
+    public Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
 
     /// <inheritdoc />
-    public Func<string, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
+    public Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
 
     /// <inheritdoc />
     public override string EndpointName

@@ -1,7 +1,7 @@
 ﻿using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 
-namespace mcpdotnet.TestServer;
+namespace TestServerWithHosting.Tools;
 
 /// <summary>
 /// This tool uses depenency injection and async method
