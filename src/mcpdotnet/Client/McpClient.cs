@@ -269,7 +269,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         }
         if (argumentValue is null)
         {
-            _logger.InvalidCompletionArgumentValue(EndpointName, argumentValue ?? "null", argumentName);
+            _logger.InvalidCompletionArgumentValue(EndpointName, "null", argumentName);
             throw new McpClientException("Argument value cannot be null");
         }
 

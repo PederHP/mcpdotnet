@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\McpDotNet.Extensions.AI\McpDotNet.Extensions.AI.csproj" />
+    <ProjectReference Include="..\..\src\mcpdotnet\mcpdotnet.csproj" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.3.0-preview.1.25114.11" />
   </ItemGroup>
 

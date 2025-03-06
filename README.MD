@@ -52,7 +52,7 @@ var config = new McpServerConfig
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",

@@ -31,7 +31,7 @@ public class SseIntegrationTests
         {
             Id = "test_server",
             Name = "In-memory Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
@@ -74,7 +74,7 @@ public class SseIntegrationTests
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:3001/sse"
         };
@@ -122,7 +122,7 @@ public class SseIntegrationTests
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:3001/sse"
         };
@@ -192,7 +192,7 @@ public class SseIntegrationTests
         {
             Id = "test_server",
             Name = "In-memory Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
@@ -237,7 +237,7 @@ public class SseIntegrationTests
         {
             Id = "test_server",
             Name = "In-memory Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };
@@ -292,7 +292,7 @@ public class SseIntegrationTests
         {
             Id = "test_server",
             Name = "In-memory Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             TransportOptions = [],
             Location = "http://localhost:5000/sse"
         };

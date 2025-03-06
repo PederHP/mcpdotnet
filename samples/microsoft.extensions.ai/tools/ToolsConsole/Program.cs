@@ -1,9 +1,9 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
-using OpenAI.Chat;
 using SimpleToolsConsole;
 
 internal class Program
@@ -20,7 +20,7 @@ internal class Program
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",

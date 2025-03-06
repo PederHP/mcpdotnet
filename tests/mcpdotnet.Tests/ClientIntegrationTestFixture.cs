@@ -1,5 +1,6 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Tests;
@@ -26,7 +27,7 @@ public class ClientIntegrationTestFixture : IDisposable
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",

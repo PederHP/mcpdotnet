@@ -15,7 +15,7 @@ public class SseTransportTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -50,7 +50,7 @@ public class SseTransportTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 

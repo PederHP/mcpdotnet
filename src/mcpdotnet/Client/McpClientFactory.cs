@@ -47,12 +47,9 @@ public class McpClientFactory
         // Initialize commands for stdio transport, this is to run commands in a shell even if specified directly, as otherwise
         //  the stdio protocol will not work correctly.
         _logger.InitializingStdioCommands();
-        foreach (var config in _serverConfigs.Values)
+        foreach (var config in _serverConfigs.Values.Where(c => c.TransportType.Equals(TransportTypes.StdIo, StringComparison.OrdinalIgnoreCase)))
         {
-            if (config.TransportType.Equals("stdio", StringComparison.OrdinalIgnoreCase))
-            {
-                InitializeCommand(config);
-            }
+            InitializeCommand(config);
         }
     }
 
@@ -101,7 +98,7 @@ public class McpClientFactory
         _logger.CreatingTransport(endpointName, config.TransportType, options);
         return config.TransportType.ToLowerInvariant() switch
         {
-            "stdio" => new StdioClientTransport(new StdioClientTransportOptions
+            TransportTypes.StdIo => new StdioClientTransport(new StdioClientTransportOptions
             {
                 Command = GetCommand(config),
                 Arguments = config.TransportOptions?.GetValueOrDefault("arguments")?.Split(' '),
@@ -110,7 +107,7 @@ public class McpClientFactory
                     .Where(kv => kv.Key.StartsWith("env:"))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
             }, config, _loggerFactory),
-            "sse" or "http" => new SseClientTransport(
+            TransportTypes.Sse or "http" => new SseClientTransport(
                new SseClientTransportOptions
                {
                    ConnectionTimeout = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "connectionTimeout", 30)),

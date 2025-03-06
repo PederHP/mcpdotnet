@@ -3,6 +3,7 @@ using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging.Abstractions;
 
 internal class Program
@@ -19,7 +20,7 @@ internal class Program
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",

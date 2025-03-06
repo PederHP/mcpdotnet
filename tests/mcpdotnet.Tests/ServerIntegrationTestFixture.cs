@@ -1,7 +1,7 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 
 namespace McpDotNet.Tests;
 
@@ -28,7 +28,7 @@ public class ServerIntegrationTestFixture : IDisposable
         {
             Id = "test_server",
             Name = "TestServer",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "TestServer.exe",

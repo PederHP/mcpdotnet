@@ -23,7 +23,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server",
             TransportOptions = new Dictionary<string, string>
             {
@@ -70,7 +70,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server"
         };
 
@@ -144,7 +144,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server"
         };
 
@@ -180,8 +180,8 @@ public class McpClientFactoryTests
         // Arrange
         McpServerConfig[] configs =
         [
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path1" },
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path2" }
+            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path1" },
+            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path2" }
         ];
 
         // Act & Assert
@@ -197,7 +197,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -238,7 +238,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {
@@ -275,7 +275,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -306,7 +306,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {
@@ -346,7 +346,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {
