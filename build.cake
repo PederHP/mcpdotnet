@@ -14,7 +14,7 @@ var solution = "./mcpdotnet.sln";
 var project = "./src/mcpdotnet.csproj";
 var outputDir = MakeAbsolute(Directory("./buildArtifacts/"));
 var outputDirNuget = outputDir.Combine("NuGet");
-var sonarProjectKey = "pederhp_mcpdotnet";
+var sonarProjectKey = "PederHP_mcpdotnet";
 var sonarUrl = "https://sonarcloud.io";
 var sonarOrganization = "pederhp";
 

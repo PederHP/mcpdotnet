@@ -1,5 +1,14 @@
 # mcpdotnet
 [![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg)](https://www.nuget.org/packages/mcpdotnet/)
+![Build](https://github.com/PederHP/mcpdotnet/actions/workflows/ci.yml/badge.svg?branch=main)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=bugs)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=coverage)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
 
 A .NET implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP clients and servers.
 
