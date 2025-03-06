@@ -1,0 +1,51 @@
+name: .NET Build, Test
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths: [ 'src/**' ]
+  pull_request:
+    branches: [ "main", "master" ]
+    paths: [ 'src/**' ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Fetch all history for all tags and branches
+      run: git fetch --prune --unshallow
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3
+      with:
+          versionSpec: '6.0.x'
+    
+    - name: Use GitVersion
+      id: gitversion # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v3
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: | 
+          8.0.x
+          9.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore mcpdotnet.sln
+      
+    - name: Build
+      run: dotnet build --no-restore --configuration=Release /p:Version=${{steps.gitversion.outputs.semVer}}
+
+    - name: Test
+      run: dotnet test --no-build --configuration=Release --verbosity normal --filter 'FullyQualifiedName!~FunctionalTests'
+      
+    - name: pack nuget packages
+      run: dotnet pack --output nupkgs --configuration=Release --no-restore --no-build /p:PackageVersion=${{steps.gitversion.outputs.semVer}}
