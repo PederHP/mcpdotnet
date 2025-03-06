@@ -22,7 +22,7 @@ public static partial class McpServerBuilderExtensions
         return WithTools(builder, typeof(TTool));
     }
     /// <summary>
-    /// Adds all found tools from the current assembly to the server.
+    /// Adds all tools marked with <see cref="McpToolTypeAttribute"/> from the current assembly to the server.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder)
@@ -78,7 +78,7 @@ public static partial class McpServerBuilderExtensions
     }
 
     /// <summary>
-    /// Adds types marked with the <see cref="McpToolAttribute"/> attribute from the given assembly as tools to the server.
+    /// Adds types marked with the <see cref="McpToolTypeAttribute"/> attribute from the given assembly as tools to the server.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="assembly">The assembly to load the types from. Null to get the current assembly</param>
@@ -90,6 +90,10 @@ public static partial class McpServerBuilderExtensions
 
         foreach (var type in assembly.GetTypes())
         {
+            bool hasToolTypeAttribute = type.GetCustomAttribute<McpToolTypeAttribute>() != null;
+            if (!hasToolTypeAttribute)
+                continue;
+
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
             foreach (var method in methods)
             {

@@ -106,7 +106,33 @@ Remember you can connect to any MCP server, not just ones created using mcpdotne
 
 ## Getting Started (Server)
 
-Here is an example of how to create an MCP server with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
+Here is an example of how to create an MCP server and register all tools from the current application.
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddMcpServer()
+    .WithStdioServerTransport()
+    .WithTools()
+
+var app = builder.Build();
+
+await app.RunAsync();
+```
+
+The `EchoTool` class is a simple example of a tool implementation:
+```csharp
+[McpToolType]
+public static class EchoTool
+{
+    [McpTool(Description = "Echoes the input back to the client.")]
+    public static string Echo([McpParameter(true)] string message)
+    {
+        return "hello " + message;
+    }
+}
+```
+
+Here is an example of how to create an MCP server manually with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
 
 ```csharp
 McpServerOptions options = new McpServerOptions()
@@ -120,7 +146,47 @@ McpServerOptions options = new McpServerOptions()
 McpServerFactory factory = new McpServerFactory(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
 IMcpServer server = factory.CreateServer();
 
-server.AddTools(typeof(EchoTool));
+server.ListToolsHandler = (request, cancellationToken) =>
+{
+    return Task.FromResult(new ListToolsResult()
+    {
+        Tools = 
+        [
+            new Tool()                
+            {
+                Name = "echo",
+                Description = "Echoes the input back to the client.",
+                InputSchema = new JsonSchema()
+                {
+                    Type = "object",
+                    Properties = new Dictionary<string, JsonSchemaProperty>()
+                    {
+                        ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
+                    }
+                },
+            }
+        ]
+    });
+};
+
+server.CallToolHandler = async (request, cancellationToken) =>
+{
+    if (request.Name == "echo")
+    {
+        if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
+        {
+            throw new McpServerException("Missing required argument 'message'");
+        }
+        return new CallToolResponse()
+        {
+            Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
+        };
+    }
+    else
+    {
+        throw new McpServerException($"Unknown tool: {request.Name}");
+    }
+};
 
 await server.StartAsync();
 
@@ -131,17 +197,6 @@ while (true)
 }
 ```
 
-The `EchoTool` class is a simple example of a tool implementation:
-```csharp
-public static class EchoTool
-{
-    [McpTool(Description = "Echoes the input back to the client.")]
-    public static string Echo([McpParameter(true)] string message)
-    {
-        return "hello " + message;
-    }
-}
-```
 
 ## Roadmap
 

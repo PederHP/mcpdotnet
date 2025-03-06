@@ -6,6 +6,7 @@ namespace TestServerWithHosting.Tools;
 /// <summary>
 /// This tool uses depenency injection and async method
 /// </summary>
+[McpToolType]
 public class SampleLlmTool
 {
     private readonly IMcpServer _server;

@@ -2,6 +2,7 @@
 
 namespace TestServerWithHosting.Tools;
 
+[McpToolType]
 public static class EchoTool
 {
     [McpTool(Description = "Echoes the input back to the client.")]
