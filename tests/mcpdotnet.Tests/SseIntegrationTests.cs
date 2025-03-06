@@ -1,14 +1,14 @@
-﻿using McpDotNet.Client;
+﻿using System.Text.Json;
+using McpDotNet.Client;
 using McpDotNet.Configuration;
-using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Tests.Utils;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace McpDotNet.Tests;
 
+[Trait("Execution", "Manual")]
 public class SseIntegrationTests
 {
     [Fact]
@@ -19,7 +19,7 @@ public class SseIntegrationTests
             builder.AddConsole()
             .SetMinimumLevel(LogLevel.Debug));
 
-        await using TestSseServer server = new(logger:loggerFactory.CreateLogger<TestSseServer>());
+        await using TestSseServer server = new(logger: loggerFactory.CreateLogger<TestSseServer>());
         await server.StartAsync();
 
 
@@ -111,7 +111,7 @@ public class SseIntegrationTests
             ClientInfo = new()
             {
                 Name = "IntegrationTestClient",
-                Version = "1.0.0"                
+                Version = "1.0.0"
             },
             Capabilities = new()
             {
@@ -228,7 +228,7 @@ public class SseIntegrationTests
         await using TestSseServer server = new(logger: loggerFactory.CreateLogger<TestSseServer>());
         await server.StartAsync();
 
-        
+
         var defaultOptions = new McpClientOptions
         {
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }

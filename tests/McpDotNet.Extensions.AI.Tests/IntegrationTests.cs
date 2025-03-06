@@ -6,6 +6,7 @@ using OpenAI;
 
 namespace McpDotNet.Extensions.AI.Tests;
 
+[Trait("Execution", "Manual")]
 public class IntegrationTests
 {
     private const string OpenAIKey = ""; // Provide your own key when running the test. Do not commit it.

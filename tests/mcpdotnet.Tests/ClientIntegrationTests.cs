@@ -5,6 +5,7 @@ using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests;
 
+[Trait("Execution", "Manual")]
 public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture>
 {
     private readonly ClientIntegrationTestFixture _fixture;
@@ -18,7 +19,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ConnectAndPing_Stdio_EverythingServer()
     {
         // Arrange
-        
+
         // Act
         var client = await _fixture.Factory.GetClientAsync("everything");
         await client.PingAsync(CancellationToken.None);
@@ -47,7 +48,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ListTools_Stdio_EverythingServer()
     {
         // arrange
-       
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var tools = await client.ListToolsAsync();
@@ -62,7 +63,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task CallTool_Stdio_EchoServer()
     {
         // arrange
-        
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var result = await client.CallToolAsync(
@@ -184,7 +185,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ReadResource_Stdio_BinaryResource()
     {
         // arrange
-        
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
@@ -214,11 +215,11 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var result = await client.GetCompletionAsync(new Reference
-            {
-                Type = "ref/resource",
-                Uri = "test://static/resource/1"
-            },
-            "argument_name", "1", 
+        {
+            Type = "ref/resource",
+            Uri = "test://static/resource/1"
+        },
+            "argument_name", "1",
             CancellationToken.None
         );
 
@@ -249,7 +250,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
             Type = "ref/prompt",
             Name = "irrelevant"
         },
-            argumentName:"style", argumentValue:"fo",
+            argumentName: "style", argumentValue: "fo",
             CancellationToken.None
         );
 
@@ -293,7 +294,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_,_) =>
+        client.SamplingHandler = async (_, _) =>
         {
             samplingHandlerCalls++;
             return new CreateMessageResult
@@ -312,10 +313,10 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
             "sampleLLM",
-            new Dictionary<string, object> 
+            new Dictionary<string, object>
             {
-                ["prompt"] = "Test prompt", 
-                ["maxTokens"] = 100 
+                ["prompt"] = "Test prompt",
+                ["maxTokens"] = 100
             }
         );
 

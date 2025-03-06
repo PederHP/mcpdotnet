@@ -1,4 +1,4 @@
-name: .NET Build, Test
+name: .NET Build, Test and publish
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
   pull_request:
     branches: [ "main", "master" ]
     paths: [ 'src/**' ]
+  release:    
+    types: [published,edited]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -16,20 +18,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    steps:
+    steps: 
     - uses: actions/checkout@v4
+      with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Fetch all history for all tags and branches
-      run: git fetch --prune --unshallow
-
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3
-      with:
-          versionSpec: '6.0.x'
-    
-    - name: Use GitVersion
-      id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v3
+      run: git fetch --prune --unshallow     
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
@@ -37,15 +32,12 @@ jobs:
         dotnet-version: | 
           8.0.x
           9.0.x
-
-    - name: Restore dependencies
-      run: dotnet restore mcpdotnet.sln
-      
-    - name: Build
-      run: dotnet build --no-restore --configuration=Release /p:Version=${{steps.gitversion.outputs.semVer}}
-
-    - name: Test
-      run: dotnet test --no-build --configuration=Release --verbosity normal --filter 'FullyQualifiedName!~FunctionalTests'
-      
-    - name: pack nuget packages
-      run: dotnet pack --output nupkgs --configuration=Release --no-restore --no-build /p:PackageVersion=${{steps.gitversion.outputs.semVer}}
+    
+    - name: Run Cake script
+      uses: cake-build/cake-action@v1
+      with:
+        verbosity: Diagnostic
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY}}  
+        SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }} 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
