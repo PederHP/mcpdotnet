@@ -111,7 +111,7 @@ internal static class Program
         {
             if (request.Params?.Name == "echo")
             {
-                if (request.Params?.Arguments is null || request.Params.Arguments.TryGetValue("message", out var message))
+                if (request.Params?.Arguments is null || !request.Params.Arguments.TryGetValue("message", out var message))
                 {
                     throw new McpServerException("Missing required argument 'message'");
                 }
