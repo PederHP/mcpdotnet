@@ -11,7 +11,7 @@
     <PackageId>mcpdotnet</PackageId>
     <Version>1.0.1.3</Version>
     <Authors>PederHP</Authors>
-    <Description>.NET client library for the Model Context Protocol (MCP)</Description>
+    <Description>.NET library for the Model Context Protocol (MCP)</Description>
     <PackageProjectUrl>https://github.com/PederHP/mcpdotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PederHP/mcpdotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -32,11 +32,12 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="McpDotNet.Tests" />
-  </ItemGroup>  
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.0" />
   </ItemGroup>
 
 </Project>

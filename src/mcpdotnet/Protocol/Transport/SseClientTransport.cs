@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Net.ServerSentEvents;
 using System.Text;
 using System.Text.Json;
 using McpDotNet.Configuration;
@@ -191,30 +192,21 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                 response.EnsureSuccessStatusCode();
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var reader = new StreamReader(stream);
 
                 // Reset reconnect attempts on successful connection
                 reconnectAttempts = 0;
 
-                string? currentEvent = null;
-                string? line;
-                while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
+                await foreach (SseItem<string> sseEvent in SseParser.Create(stream).EnumerateAsync(cancellationToken))
                 {
-                    if (line.StartsWith("event: "))
+                    switch (sseEvent.EventType)
                     {
-                        currentEvent = line.Substring(7);
-                    }
-                    else if (line.StartsWith("data: "))
-                    {
-                        var data = line.Substring(6);
-                        if (currentEvent == "endpoint")
-                        {
-                            HandleEndpointEvent(data);
-                        }
-                        else
-                        {
-                            await ProcessSseMessage(data, cancellationToken);
-                        }
+                        case "endpoint":
+                            HandleEndpointEvent(sseEvent.Data);
+                            break;
+
+                        case "message":
+                            await ProcessSseMessage(sseEvent.Data, cancellationToken);
+                            break;
                     }
                 }
             }
