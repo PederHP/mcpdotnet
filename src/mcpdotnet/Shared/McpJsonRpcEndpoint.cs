@@ -71,7 +71,7 @@ internal abstract class McpJsonRpcEndpoint
                 // Fire and forget the message handling task to avoid blocking the transport
                 // If awaiting the task, the transport will not be able to read more messages,
                 // which could lead to a deadlock if the handler sends a message back
-                FireAndForget(Task.Run(() => HandleMessageAsync(message, cancellationToken)), message);
+                FireAndForget(Task.Run(() => HandleMessageAsync(message, cancellationToken), CancellationToken.None), message);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -351,7 +351,10 @@ internal abstract class McpJsonRpcEndpoint
     /// <param name="handler">Handler to be called when a request with specified method identifier is received</param>
     protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, Task<TResponse>> handler) where TResponse : class
     {
-        ArgumentNullException.ThrowIfNull(handler);
+        if (handler is null)
+        {
+            throw new ArgumentNullException(nameof(handler));
+        }
 
         _requestHandlers[method] = async (request) =>
         {
@@ -397,9 +400,9 @@ internal abstract class McpJsonRpcEndpoint
         }
 
         // Complete all pending requests with cancellation
-        foreach (var (_, tcs) in _pendingRequests)
+        foreach (var entry in _pendingRequests)
         {
-            tcs.TrySetCanceled();
+            entry.Value.TrySetCanceled();
         }
         _pendingRequests.Clear();
 

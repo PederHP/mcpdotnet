@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -61,28 +63,31 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = OperatingSystem.IsWindows(),
+                CreateNoWindow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
                 WorkingDirectory = _options.WorkingDirectory ?? Environment.CurrentDirectory,
             };
 
-            if (_options.Arguments != null)
+            if (_options.Arguments is { Length: > 0 })
             {
+                StringBuilder argsBuilder = new();
                 foreach (var arg in _options.Arguments)
                 {
-                    startInfo.ArgumentList.Add(arg);
+                    PasteArguments.AppendArgument(argsBuilder, arg);
                 }
+
+                startInfo.Arguments = argsBuilder.ToString();
             }
 
             if (_options.EnvironmentVariables != null)
             {
-                foreach (var (key, value) in _options.EnvironmentVariables)
+                foreach (var entry in _options.EnvironmentVariables)
                 {
-                    startInfo.Environment[key] = value;
+                    startInfo.Environment[entry.Key] = entry.Value;
                 }
             }
 
             _logger.CreateProcessForTransport(EndpointName, _options.Command,
-                string.Join(", ", startInfo.ArgumentList), string.Join(", ", startInfo.Environment.Select(kvp => kvp.Key + "=" + kvp.Value)),
+                startInfo.Arguments, string.Join(", ", startInfo.Environment.Select(kvp => kvp.Key + "=" + kvp.Value)),
                 startInfo.WorkingDirectory, _options.ShutdownTimeout.ToString());
 
             _process = new Process { StartInfo = startInfo };
@@ -102,9 +107,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _processStarted = true;
             _process.BeginErrorReadLine();
 
-
             // Start reading messages in the background
-            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token));
+            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token), CancellationToken.None);
             _logger.TransportReadingMessages(EndpointName);
 
             SetConnected(true);

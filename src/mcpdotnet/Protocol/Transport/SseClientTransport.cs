@@ -63,13 +63,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
 
             _logger.TransportReadingMessages(EndpointName);
 
-            await Task.WhenAny(
-                _connectionEstablished.Task,
-                Task.Delay(_options.ConnectionTimeout, cancellationToken)
-            );
-
-            if (!IsConnected)
-                throw new TimeoutException("Failed to receive endpoint event");
+            await _connectionEstablished.Task.WaitAsync(_options.ConnectionTimeout, cancellationToken);
         }
         catch (McpTransportException)
         {

@@ -2,6 +2,7 @@
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace McpDotNet.Client;
 /// <summary>
@@ -139,7 +140,7 @@ public class McpClientFactory
         if (string.IsNullOrEmpty(command))
             return config.Location!;
 
-        return OperatingSystem.IsWindows() ? "cmd.exe" : command;
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : command!;
     }
 
     /// <summary>
@@ -152,13 +153,13 @@ public class McpClientFactory
         // If the command is empty or already contains cmd.exe, we don't need to do anything
         var command = config.TransportOptions?.GetValueOrDefault("command");
 
-        if (string.IsNullOrEmpty(command) || !OperatingSystem.IsWindows())
+        if (string.IsNullOrEmpty(command) || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return;
         }
 
         // On Windows, we need to wrap non-shell commands with cmd.exe /c
-        if (command.Contains("cmd.exe", StringComparison.OrdinalIgnoreCase))
+        if (command!.IndexOf("cmd.exe", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             _logger.SkippingShellWrapper(endpointName);
             return;

@@ -48,7 +48,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     {
         _shutdownCts = new CancellationTokenSource();
 
-        _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token));
+        _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token), CancellationToken.None);
 
         SetConnected(true);
 
@@ -79,7 +79,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             using (Console.OpenStandardOutput())
             {
                 await Console.Out.WriteLineAsync(json.AsMemory(), cancellationToken);
-                await Console.Out.FlushAsync();
+                await Console.Out.FlushAsync(cancellationToken);
             }
 
             _logger.TransportSentMessage(EndpointName, id);

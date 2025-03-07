@@ -45,7 +45,7 @@ public class McpSessionScope : IAsyncDisposable
         scope.Tools = tools.Tools.Select(t => new McpAIFunction(t, client)).ToList<AITool>();
         if (!string.IsNullOrEmpty(client.ServerInstructions))
         {
-            scope.ServerInstructions = [client.ServerInstructions];
+            scope.ServerInstructions = [client.ServerInstructions!];
         }
         return scope;
     }
