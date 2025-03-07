@@ -38,7 +38,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         _options = options;
         _serverConfig = serverConfig;
         _logger = loggerFactory.CreateLogger<StdioClientTransport>();
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
