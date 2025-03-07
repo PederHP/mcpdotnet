@@ -1,4 +1,5 @@
-﻿using McpDotNet.Configuration;
+﻿using System.Text.Json;
+using McpDotNet.Configuration;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -76,6 +77,145 @@ public class McpServerBuilderExtensionsToolsTests
         Assert.NotEmpty(result.Content);
 
         Assert.Equal("hello Peter", result.Content[0].Text);
+        Assert.Equal("text", result.Content[0].Type);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_With_Array_Result()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "EchoArray", Arguments = new() { { "message", "Peter" } } }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("hello Peter", result.Content[0].Text);
+        Assert.Equal("hello2 Peter", result.Content[1].Text);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_With_Null_Result()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnNull" }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("null", result.Content[0].Text);
+        Assert.Empty(result.Content[0].Type);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_With_Json_Result()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnJson" }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("{\"SomeProp\": false}", result.Content[0].Text);
+        Assert.Equal("text", result.Content[0].Type);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_With_Int_Result()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnInteger" }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("5", result.Content[0].Text);
+        Assert.Equal("text", result.Content[0].Type);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_And_Pass_Cancellation_Token()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnCancellationToken" }), token);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal(token.GetHashCode().ToString(), result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_And_Returns_Cancelled_Response()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+        await cts.CancelAsync();
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnCancellationToken" }), token);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("Operation was cancelled", result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task Can_Call_Registered_Tool_And_Pass_ComplexType()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "EchoComplex", Arguments = new() { { "complex", JsonDocument.Parse("{\"Name\": \"Peter\", \"Age\": 25}").RootElement } } }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("Peter", result.Content[0].Text);
+        Assert.Equal("text", result.Content[0].Type);
+    }
+
+    [Fact]
+    public async Task Throws_Exception_When_Tool_Fails()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var action = async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnError" }), CancellationToken.None);
+
+        var exception = await Assert.ThrowsAsync<McpServerException>(action);
+        Assert.Equal("Tool 'ReturnError' raised an error: Test error", exception.Message);
     }
 
     [Fact]
@@ -88,7 +228,7 @@ public class McpServerBuilderExtensionsToolsTests
             return Mock.Of<IDependendService>();
         });
 
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoToolWithDi));
+        McpServerBuilderExtensions.WithTool<EchoToolWithDi>(_builder.Object);
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -130,7 +270,93 @@ public class McpServerBuilderExtensionsToolsTests
         Assert.Equal("Missing required argument 'message'.", exception.Message);
     }
 
-    private static class EchoTool
+    [Fact]
+    public void Throws_Exception_For_Null_Types()
+    {
+        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, toolTypes: null!);
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
+    }
+
+    [Fact]
+    public void Throws_Exception_For_Empty_Types()
+    {
+        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, toolTypes: []);
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
+    }
+
+    [Fact]
+    public async Task Register_Tools_From_Current_Assembly()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object);
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Tools);
+
+        var tool = result.Tools[0];
+        Assert.Equal("Echo", tool.Name);
+    }
+
+    [Fact]
+    public void Throws_Exception_When_No_Tools_Are_Found_In_Given_Assembly()
+    {
+        var action = () => McpServerBuilderExtensions.WithToolsFromAssembly(_builder.Object, typeof(Mock).Assembly);
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("No types with marked methods found in the assembly. (Parameter 'assembly')", exception.Message);
+    }
+
+    [Fact]
+    public async Task Recognizes_Parameter_Types()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Tools);
+
+        var tool = result.Tools.First(t => t.Name == "TestTool");
+        Assert.Equal("TestTool", tool.Name);
+        Assert.Null(tool.Description);
+        Assert.NotNull(tool.InputSchema);
+        Assert.Equal("object", tool.InputSchema.Type);
+        Assert.NotNull(tool.InputSchema.Properties);
+        Assert.NotEmpty(tool.InputSchema.Properties);
+
+        Assert.Contains("number", tool.InputSchema.Properties);
+        Assert.Equal("number", tool.InputSchema.Properties["number"].Type);
+
+        Assert.Contains("otherNumber", tool.InputSchema.Properties);
+        Assert.Equal("number", tool.InputSchema.Properties["otherNumber"].Type);
+
+        Assert.Contains("someCheck", tool.InputSchema.Properties);
+        Assert.Equal("boolean", tool.InputSchema.Properties["someCheck"].Type);
+
+        Assert.Contains("someDate", tool.InputSchema.Properties);
+        Assert.Equal("string", tool.InputSchema.Properties["someDate"].Type);
+
+        Assert.Contains("someOtherDate", tool.InputSchema.Properties);
+        Assert.Equal("string", tool.InputSchema.Properties["someOtherDate"].Type);
+
+        Assert.Contains("data", tool.InputSchema.Properties);
+        Assert.Equal("array", tool.InputSchema.Properties["data"].Type);
+
+        Assert.Contains("complexObject", tool.InputSchema.Properties);
+        Assert.Equal("object", tool.InputSchema.Properties["complexObject"].Type);
+    }
+
+    [McpToolType]
+    public static class EchoTool
     {
         [McpTool, Description("Echoes the input back to the client.")]
         public static string Echo([Description("the echoes message")] string message)
@@ -142,6 +368,54 @@ public class McpServerBuilderExtensionsToolsTests
         public static string Echo2(string message)
         {
             return "hello hello" + message;
+        }
+
+        [McpTool]
+        public static string TestTool(int number, double otherNumber, bool someCheck, DateTime someDate, DateTimeOffset someOtherDate, string[] data, ComplexObject complexObject)
+        {
+            return "hello hello";
+        }
+
+        [McpTool]
+        public static string[] EchoArray(string message)
+        {
+            return ["hello " + message, "hello2 " + message];
+        }
+
+        [McpTool]
+        public static string? ReturnNull()
+        {
+            return null;
+        }
+
+        [McpTool]
+        public static JsonElement ReturnJson()
+        {
+            return JsonDocument.Parse("{\"SomeProp\": false}").RootElement;
+        }
+
+        [McpTool]
+        public static int ReturnInteger()
+        {
+            return 5;
+        }
+
+        [McpTool]
+        public static string ReturnError()
+        {
+            throw new InvalidOperationException("Test error");
+        }
+
+        [McpTool]
+        public static int ReturnCancellationToken(CancellationToken cancellationToken)
+        {
+            return cancellationToken.GetHashCode();
+        }
+
+        [McpTool]
+        public static string EchoComplex(ComplexObject complex)
+        {
+            return complex.Name!;
         }
     }
 
@@ -163,5 +437,11 @@ public class McpServerBuilderExtensionsToolsTests
         {
             return Task.FromResult("hello " + message);
         }
+    }
+
+    public class ComplexObject
+    {
+        public string? Name { get; set; }
+        public int Age { get; set; }
     }
 }

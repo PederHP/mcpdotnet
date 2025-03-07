@@ -165,7 +165,7 @@ public static partial class McpServerBuilderExtensions
             Type t when t == typeof(int) || t == typeof(double) || t == typeof(float) => "number",
             Type t when t == typeof(bool) => "boolean",
             Type t when t.IsArray => "array",
-            Type t when t == typeof(DateTime) => "string",
+            Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset) => "string",
             _ => "object"
         };
     }
