@@ -3,21 +3,24 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace McpDotNet.Utils.Json;
+
 /// <summary>
 /// Extensions for configuring System.Text.Json serialization options for MCP.
 /// </summary>
 internal static class JsonSerializerOptionsExtensions
 {
+    public static JsonSerializerOptions DefaultOptions { get; } = CreateDefaultOptions();
+
     /// <summary>
-    /// Configures JsonSerializerOptions with MCP-specific settings and converters.
+    /// Creates default options to use for MCP-related serialization.
     /// </summary>
-    /// <param name="options">The options to configure.</param>
-    /// <param name="loggerFactory">The logger factory to use for logging.</param>
     /// <returns>The configured options.</returns>
-    public static JsonSerializerOptions ConfigureForMcp(this JsonSerializerOptions options, ILoggerFactory loggerFactory)
+    private static JsonSerializerOptions CreateDefaultOptions()
     {
+        JsonSerializerOptions options = new();
+
         // Add custom converters
-        options.Converters.Add(new JsonRpcMessageConverter(loggerFactory.CreateLogger<JsonRpcMessageConverter>()));
+        options.Converters.Add(new JsonRpcMessageConverter());
         options.Converters.Add(new JsonStringEnumConverter());
 
         // Configure general options

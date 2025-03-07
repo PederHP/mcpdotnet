@@ -40,7 +40,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     {
         _serverName = serverName;
         _logger = loggerFactory.CreateLogger<StdioClientTransport>();
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>

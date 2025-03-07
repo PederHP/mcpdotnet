@@ -266,33 +266,6 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaned up for {endpointName}")]
     internal static partial void TransportCleanedUp(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message start object token expected")]
-    internal static partial void JsonRpcMessageConverterExpectedStartObjectToken(this ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message invalid version")]
-    internal static partial void JsonRpcMessageConverterInvalidJsonRpcVersion(this ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Trace, Message = "JSON-RPC message deserializing error response: {rawText}")]
-    internal static partial void JsonRpcMessageConverterDeserializingErrorResponse(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Trace, Message = "JSON-RPC message deserializing response: {rawText}")]
-    internal static partial void JsonRpcMessageConverterDeserializingResponse(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message response must have result or error: {rawText}")]
-    internal static partial void JsonRpcMessageConverterResponseMustHaveResultOrError(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Trace, Message = "JSON-RPC message deserializing notification: {rawText}")]
-    internal static partial void JsonRpcMessageConverterDeserializingNotification(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Trace, Message = "JSON-RPC message deserializing request: {rawText}")]
-    internal static partial void JsonRpcMessageConverterDeserializingRequest(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message invalid format: {rawText}")]
-    internal static partial void JsonRpcMessageConverterInvalidMessageFormat(this ILogger logger, string rawText);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "JSON-RPC message write unknown message type: {type}")]
-    internal static partial void JsonRpcMessageConverterWriteUnknownMessageType(this ILogger logger, string type);
-
     [LoggerMessage(Level = LogLevel.Debug, Message = "Sending notification payload for {endpointName}: {payload}")]
     internal static partial void SendingNotificationPayload(this ILogger logger, string endpointName, string payload);
 

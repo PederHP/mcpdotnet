@@ -37,7 +37,7 @@ internal abstract class McpJsonRpcEndpoint
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _logger = loggerFactory.CreateLogger<McpClient>();
     }
 
