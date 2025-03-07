@@ -27,6 +27,9 @@ jobs:
         dotnet-version: | 
           8.0.x
           9.0.x
+
+    - name: Setup Mono
+      run: sudo apt-get install -y mono-devel
     
     - name: Set up Node.js
       uses: actions/setup-node@v3
