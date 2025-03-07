@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace McpDotNet.Protocol.Transport;
 
 /// <summary>
-/// 
+/// The ServerSideEvents client transport implementation
 /// </summary>
 public sealed class SseClientTransport : TransportBase, IClientTransport
 {

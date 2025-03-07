@@ -12,7 +12,7 @@ public class Completion
     /// An array of completion values. Must not exceed 100 items.
     /// </summary>
     [JsonPropertyName("values")]
-    public string[] Values { get; set; } = new string[0];
+    public string[] Values { get; set; } = [];
 
     /// <summary>
     /// The total number of completion options available. This can exceed the number of values actually sent in the response.

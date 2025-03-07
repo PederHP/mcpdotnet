@@ -200,7 +200,7 @@ public sealed class TestSseServer : IAsyncDisposable
                 // Write "accepted" as the response body
                 using var writer = new StreamWriter(response.OutputStream);
                 await writer.WriteAsync("accepted");
-                await writer.FlushAsync();
+                await writer.FlushAsync(ct);
                 return;
             }
 

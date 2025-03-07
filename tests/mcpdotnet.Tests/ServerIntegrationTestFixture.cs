@@ -52,5 +52,6 @@ public class ServerIntegrationTestFixture : IDisposable
         var client = Factory.GetClientAsync("test_server").Result;
         client.DisposeAsync().AsTask().Wait();
         LoggerFactory?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
