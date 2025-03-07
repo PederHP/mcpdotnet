@@ -166,31 +166,7 @@ public static partial class McpServerBuilderExtensions
     private static async Task<CallToolResponse> CallTool(RequestContext<CallToolRequestParams> request, MethodInfo method, CancellationToken cancellationToken)
     {
         var methodParameters = method.GetParameters();
-        var parameters = new List<object?>(methodParameters.Length);
-
-        foreach (var parameter in methodParameters)
-        {
-            if (parameter.ParameterType == typeof(CancellationToken))
-            {
-                parameters.Add(cancellationToken);
-            }
-            else if (request.Params?.Arguments != null && request.Params.Arguments.TryGetValue(parameter.Name ?? "NoName", out var value))
-            {
-                if (value is JsonElement element)
-                    value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
-
-                parameters.Add(Convert.ChangeType(value, parameter.ParameterType));
-            }
-            else
-            {
-                var parameterAttribute = parameter.GetCustomAttribute<McpParameterAttribute>();
-
-                if (parameterAttribute?.Required == true)
-                    throw new McpServerException($"Missing required argument '{parameter.Name}'.");
-
-                parameters.Add(parameter.HasDefaultValue ? parameter.DefaultValue : null);
-            }
-        }
+        List<object?> parameters = ResolveParameters(request, methodParameters, cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)
             return new CallToolResponse { Content = [new Content { Text = "Operation was cancelled" }] };
@@ -227,6 +203,37 @@ public static partial class McpServerBuilderExtensions
         {
             throw new McpServerException(e.Message, e);
         }
+    }
+
+    private static List<object?> ResolveParameters(RequestContext<CallToolRequestParams> request, ParameterInfo[] methodParameters, CancellationToken cancellationToken)
+    {
+        var parameters = new List<object?>(methodParameters.Length);
+
+        foreach (var parameter in methodParameters)
+        {
+            if (parameter.ParameterType == typeof(CancellationToken))
+            {
+                parameters.Add(cancellationToken);
+            }
+            else if (request.Params?.Arguments != null && request.Params.Arguments.TryGetValue(parameter.Name ?? "NoName", out var value))
+            {
+                if (value is JsonElement element)
+                    value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
+
+                parameters.Add(Convert.ChangeType(value, parameter.ParameterType));
+            }
+            else
+            {
+                var parameterAttribute = parameter.GetCustomAttribute<McpParameterAttribute>();
+
+                if (parameterAttribute?.Required == true)
+                    throw new McpServerException($"Missing required argument '{parameter.Name}'.");
+
+                parameters.Add(parameter.HasDefaultValue ? parameter.DefaultValue : null);
+            }
+        }
+
+        return parameters;
     }
 
     private static object? CreateObjectInstance(MethodInfo method, IServiceProvider? serviceProvider)
