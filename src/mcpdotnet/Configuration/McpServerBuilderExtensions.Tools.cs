@@ -157,7 +157,7 @@ public static partial class McpServerBuilderExtensions
             Type t when t == typeof(int) || t == typeof(double) || t == typeof(float) => "number",
             Type t when t == typeof(bool) => "boolean",
             Type t when t.IsArray => "array",
-            Type t when t == typeof(DateTime) => "string",
+            Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset) => "string",
             _ => "object"
         };
     }
@@ -200,7 +200,10 @@ public static partial class McpServerBuilderExtensions
         }
         catch (TargetInvocationException e)
         {
-            throw new McpServerException(e.Message, e);
+            if (e.InnerException != null)
+                throw new McpServerException($"Tool '{request.Params?.Name}' raised an error: {e.InnerException.Message}", e.InnerException);
+
+            throw new McpServerException($"Tool '{request.Params?.Name}' raised an error: {e.Message}", e);
         }
     }
 
