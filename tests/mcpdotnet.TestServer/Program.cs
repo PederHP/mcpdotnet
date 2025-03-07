@@ -118,7 +118,7 @@ internal class Program
                 }
                 return new CallToolResponse()
                 {
-                    Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
+                    Content = [new Content() { Text = "Echo: " + message?.ToString(), Type = "text" }]
                 };
             }
             else if (request.Params?.Name == "sampleLLM")
@@ -222,9 +222,9 @@ internal class Program
             {
                 throw new McpServerException("Missing required argument 'uri'");
             }
-            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri);           
+            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
                 ?? throw new McpServerException("Resource not found");
-            
+
             return Task.FromResult(new ReadResourceResult()
             {
                 Contents = [contents]

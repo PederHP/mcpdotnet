@@ -20,7 +20,7 @@ try
     builder.Services.AddMcpServer()
         .WithStdioServerTransport()
         .WithTools()
-        .WithCallToolHandler(async (r, ct) => new McpDotNet.Protocol.Types.CallToolResponse());
+        .WithCallToolHandler((r, ct) => Task.FromResult(new McpDotNet.Protocol.Types.CallToolResponse()));
 
     var app = builder.Build();
 

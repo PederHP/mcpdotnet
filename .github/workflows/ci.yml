@@ -3,10 +3,8 @@ name: .NET Build, Test and publish
 on:
   push:
     branches: [ "main", "master" ]
-    paths: [ 'src/**' ]
   pull_request:
     branches: [ "main", "master" ]
-    paths: [ 'src/**' ]
   release:    
     types: [published,edited]
 

@@ -21,7 +21,7 @@ internal abstract class McpJsonRpcEndpoint
     private readonly ITransport _transport;
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
     private readonly ConcurrentDictionary<string, List<Func<JsonRpcNotification, Task>>> _notificationHandlers;
-    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object>>> _requestHandlers = [];
+    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object?>>> _requestHandlers = [];
     private int _nextRequestId;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<McpClient> _logger;
