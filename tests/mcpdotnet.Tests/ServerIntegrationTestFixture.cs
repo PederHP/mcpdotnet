@@ -31,7 +31,7 @@ public class ServerIntegrationTestFixture : IDisposable
             TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
-                ["command"] = "TestServer.exe",
+                ["command"] = OperatingSystem.IsWindows() ? "TestServer.exe" : "TestServer.dll",
                 // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
             }
         };

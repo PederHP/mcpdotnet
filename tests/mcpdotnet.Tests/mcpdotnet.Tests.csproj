@@ -32,7 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\mcpdotnet.TestServer\bin\$(Configuration)\net8.0\TestServer.exe">
+    <Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="..\mcpdotnet.TestServer\bin\$(Configuration)\net8.0\TestServer.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="..\mcpdotnet.TestServer\bin\$(Configuration)\net8.0\TestServer.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
