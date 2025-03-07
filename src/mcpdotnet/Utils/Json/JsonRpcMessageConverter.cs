@@ -1,8 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using McpDotNet.Protocol.Messages;
-using Microsoft.Extensions.Logging;
-using McpDotNet.Logging;
 
 namespace McpDotNet.Utils.Json;
 
@@ -44,21 +42,24 @@ internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
             {
                 return JsonSerializer.Deserialize<JsonRpcError>(rawText, options);
             }
+
             // Messages with a result property are success responses
-            else if (root.TryGetProperty("result", out _))
+            if (root.TryGetProperty("result", out _))
             {
                 return JsonSerializer.Deserialize<JsonRpcResponse>(rawText, options);
             }
 
             throw new JsonException("Response must have either result or error");
         }
+
         // Messages with a method but no id are notifications
-        else if (hasMethod && !hasId)
+        if (hasMethod && !hasId)
         {
             return JsonSerializer.Deserialize<JsonRpcNotification>(rawText, options);
         }
+
         // Messages with both method and id are requests
-        else if (hasMethod && hasId)
+        if (hasMethod && hasId)
         {
             return JsonSerializer.Deserialize<JsonRpcRequest>(rawText, options);
         }

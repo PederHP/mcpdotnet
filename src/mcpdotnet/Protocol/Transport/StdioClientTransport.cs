@@ -186,30 +186,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
 
                 _logger.TransportReceivedMessage(EndpointName, line);
 
-                try
-                {
-                    var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
-                    if (message != null)
-                    {
-                        string messageId = "(no id)";
-                        if (message is IJsonRpcMessageWithId messageWithId)
-                        {
-                            messageId = messageWithId.Id.ToString();
-                        }
-                        _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                        await WriteMessageAsync(message, cancellationToken);
-                        _logger.TransportMessageWritten(EndpointName, messageId);
-                    }
-                    else
-                    {
-                        _logger.TransportMessageParseUnexpectedType(EndpointName, line);
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _logger.TransportMessageParseFailed(EndpointName, line, ex);
-                    // Continue reading even if we fail to parse a message
-                }
+                await ProcessMessageAsync(line, cancellationToken);
             }
             _logger.TransportExitingReadMessagesLoop(EndpointName);
         }
@@ -225,6 +202,34 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         finally
         {
             await CleanupAsync(cancellationToken);
+        }
+    }
+
+    private async Task ProcessMessageAsync(string line, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
+            if (message != null)
+            {
+                string messageId = "(no id)";
+                if (message is IJsonRpcMessageWithId messageWithId)
+                {
+                    messageId = messageWithId.Id.ToString();
+                }
+                _logger.TransportReceivedMessageParsed(EndpointName, messageId);
+                await WriteMessageAsync(message, cancellationToken);
+                _logger.TransportMessageWritten(EndpointName, messageId);
+            }
+            else
+            {
+                _logger.TransportMessageParseUnexpectedType(EndpointName, line);
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.TransportMessageParseFailed(EndpointName, line, ex);
+            // Continue reading even if we fail to parse a message
         }
     }
 

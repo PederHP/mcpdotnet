@@ -152,10 +152,13 @@ public class McpServerBuilderExtensionsToolsTests
     {
         public EchoToolWithDi(IDependendService service)
         {
+
         }
 
         [McpTool(Description = "Echoes the input back to the client.")]
+#pragma warning disable CA1822 // Mark members as static
         public Task<string> Echo([McpParameter(true)] string message)
+#pragma warning restore CA1822 // Mark members as static
         {
             return Task.FromResult("hello " + message);
         }

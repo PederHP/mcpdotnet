@@ -1,5 +1,5 @@
-using McpDotNet.Protocol.Types;
 using System.Text.Json;
+using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Extensions.AI.Tests;
 
@@ -89,7 +89,7 @@ public class AIFunctionUtilitiesTests
         Assert.Equal("object", resultObj.GetProperty("type").GetString());
         Assert.Equal("minimal", resultObj.GetProperty("title").GetString());
         Assert.Equal("Minimal tool", resultObj.GetProperty("description").GetString());
-        Assert.True(resultObj.GetProperty("properties").GetRawText() == "{}");
+        Assert.Equal("{}", resultObj.GetProperty("properties").GetRawText());
         Assert.Empty(resultObj.GetProperty("required").EnumerateArray());
     }
 }

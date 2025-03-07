@@ -11,8 +11,8 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Debug, Message = "Client {clientId} initializing connection to server {serverId}")]
     internal static partial void ClientConnecting(this ILogger logger, string clientId, string serverId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Server capabilities received: {capabilities}")]
-    internal static partial void ServerCapabilitiesReceived(this ILogger logger, string capabilities);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Server {endpointName} capabilities received: {capabilities}, server info: {serverInfo}")]
+    internal static partial void ServerCapabilitiesReceived(this ILogger logger, string endpointName, string capabilities, string serverInfo);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Request {requestId} timed out")]
     internal static partial void RequestTimeout(this ILogger logger, int requestId);
@@ -73,9 +73,6 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Client server {endpointName} initialization error")]
     internal static partial void ClientInitializationError(this ILogger logger, string endpointName, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Server {endpointName} capabilities received: {capabilities}, server info: {serverInfo}")]
-    internal static partial void ServerCapabilitiesReceived(this ILogger logger, string endpointName, string capabilities, string serverInfo);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Server {endpointName} protocol version mismatch, expected {expected}, received {received}")]
     internal static partial void ServerProtocolVersionMismatch(this ILogger logger, string endpointName, string expected, string received);
