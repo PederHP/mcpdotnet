@@ -5,7 +5,7 @@ using McpDotNet.Server;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
-internal class Program
+internal static class Program
 {
     private static ILoggerFactory CreateLoggerFactory()
     {
@@ -17,7 +17,6 @@ internal class Program
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
-        var logsPath = Path.Combine(AppContext.BaseDirectory, "testserver.log");
         return LoggerFactory.Create(builder =>
         {
             builder.AddSerilog();
@@ -26,7 +25,7 @@ internal class Program
 
     private static async Task Main(string[] args)
     {
-        Console.WriteLine("Starting server...");
+        Log.Logger.Information("Starting server...");
 
         McpServerOptions options = new McpServerOptions()
         {
@@ -45,7 +44,7 @@ internal class Program
         McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
-        Console.WriteLine("Server object created, registering handlers.");
+        Log.Logger.Information("Server object created, registering handlers.");
 
         #region Helped method
         static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
@@ -330,11 +329,11 @@ internal class Program
         #region Sampling
         #endregion
 
-        Console.WriteLine("Server initialized.");
+        Log.Logger.Information("Server initialized.");
 
         await server.StartAsync();
 
-        Console.WriteLine("Server started.");
+        Log.Logger.Information("Server started.");
 
         // Run until process is stopped by the client (parent process)
         while (true)

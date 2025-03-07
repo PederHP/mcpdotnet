@@ -6,7 +6,6 @@ using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests;
 
-[Trait("Execution", "Manual")]
 public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture>
 {
     private readonly ClientIntegrationTestFixture _fixture;
