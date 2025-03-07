@@ -33,11 +33,14 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// <param name="loggerFactory">The logger factory.</param>
     protected McpJsonRpcEndpoint(ITransport transport, ILoggerFactory loggerFactory)
     {
-        _transport = transport;
+        _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+
+        if (loggerFactory is null)
+            throw new ArgumentNullException(nameof(loggerFactory));
         _logger = loggerFactory.CreateLogger<McpClient>();
     }
 
