@@ -17,7 +17,7 @@ public class IntegrationTests
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = McpDotNet.Protocol.Transport.TransportTypes.StdIo,
+            TransportType = "stdio",
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",

@@ -106,7 +106,33 @@ Remember you can connect to any MCP server, not just ones created using mcpdotne
 
 ## Getting Started (Server)
 
-Here is an example of how to create an MCP server with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
+Here is an example of how to create an MCP server and register all tools from the current application.
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddMcpServer()
+    .WithStdioServerTransport()
+    .WithTools()
+
+var app = builder.Build();
+
+await app.RunAsync();
+```
+
+The `EchoTool` class is a simple example of a tool implementation:
+```csharp
+[McpToolType]
+public static class EchoTool
+{
+    [McpTool(Description = "Echoes the input back to the client.")]
+    public static string Echo([McpParameter(true)] string message)
+    {
+        return "hello " + message;
+    }
+}
+```
+
+Here is an example of how to create an MCP server manually with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
 
 ```csharp
 McpServerOptions options = new McpServerOptions()
@@ -170,6 +196,7 @@ while (true)
     await Task.Delay(1000);
 }
 ```
+
 
 ## Roadmap
 

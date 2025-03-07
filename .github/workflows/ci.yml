@@ -3,10 +3,8 @@ name: .NET Build, Test and publish
 on:
   push:
     branches: [ "main", "master" ]
-    paths: [ 'src/**' ]
   pull_request:
     branches: [ "main", "master" ]
-    paths: [ 'src/**' ]
   release:    
     types: [published,edited]
 
@@ -24,7 +22,12 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Fetch all history for all tags and branches
-      run: git fetch --prune --unshallow     
+      run: |
+        if [ -f "$(git rev-parse --git-dir)/shallow" ]; then
+          git fetch --prune --unshallow
+        else
+          echo "Repository is already complete."
+        fi 
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
@@ -32,6 +35,17 @@ jobs:
         dotnet-version: | 
           8.0.x
           9.0.x
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' 
+    
+    - name: Install dependencies for tests
+      run: npm install @modelcontextprotocol/server-everything
+
+    - name: Install dependencies for tests
+      run: npm install @modelcontextprotocol/server-memory
     
     - name: Run Cake script
       uses: cake-build/cake-action@v1

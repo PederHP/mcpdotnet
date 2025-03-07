@@ -24,6 +24,11 @@ public interface IMcpServer : IAsyncDisposable
     Implementation? ClientInfo { get; }
 
     /// <summary>
+    /// Gets the service provider for the server.
+    /// </summary>
+    IServiceProvider? ServiceProvider { get; }
+
+    /// <summary>
     /// Starts the server and begins listening for client requests.
     /// </summary>
     Task StartAsync(CancellationToken cancellationToken = default);
@@ -31,47 +36,47 @@ public interface IMcpServer : IAsyncDisposable
     /// <summary>
     /// Gets or sets the handler for list tools requests.
     /// </summary>
-    Func<ListToolsRequestParams?, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
+    Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for call tool requests.
     /// </summary>
-    Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
+    Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for list prompts requests.
     /// </summary>
-    Func<ListPromptsRequestParams?, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
+    Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for get prompt requests.
     /// </summary>
-    Func<GetPromptRequestParams?, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
+    Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for list resources requests.
     /// </summary>
-    Func<ListResourcesRequestParams?, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
+    Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for read resources requests.
     /// </summary>
-    Func<ReadResourceRequestParams?, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
+    Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for get resources requests.
     /// </summary>
-    Func<CompleteRequestParams?, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
+    Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    Func<string, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
+    Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    Func<string, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
+    Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
 
 
     /// <summary>

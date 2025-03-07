@@ -1,5 +1,4 @@
 ﻿using McpDotNet.Configuration;
-using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,28 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace McpDotNet;
 
 /// <summary>
-/// Extension to configure the MCP server
+/// Extension to configure the MCP server with handlers
 /// </summary>
-public static class McpServerBuilderExtensions
+public static partial class McpServerBuilderExtensions
 {
-    /// <summary>
-    /// Adds a server transport that uses stdin/stdout for communication.
-    /// </summary>
-    /// <param name="builder">The builder instance.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithStdioServerTransport(this IMcpServerBuilder builder)
-    {
-        builder.Services.AddSingleton<IServerTransport, StdioServerTransport>();
-        return builder;
-    }
-
     /// <summary>
     /// Sets the handler for list tools requests.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithListToolsHandler(this IMcpServerBuilder builder, Func<ListToolsRequestParams?, CancellationToken, Task<ListToolsResult>> handler)
+    public static IMcpServerBuilder WithListToolsHandler(this IMcpServerBuilder builder, Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.ListToolsHandler = handler);
         return builder;
@@ -39,8 +26,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithCallToolHandler(this IMcpServerBuilder builder, Func<CallToolRequestParams?, CancellationToken, Task<CallToolResponse>> handler)
+    public static IMcpServerBuilder WithCallToolHandler(this IMcpServerBuilder builder, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.CallToolHandler = handler);
         return builder;
@@ -51,8 +37,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithListPromptsHandler(this IMcpServerBuilder builder, Func<ListPromptsRequestParams?, CancellationToken, Task<ListPromptsResult>> handler)
+    public static IMcpServerBuilder WithListPromptsHandler(this IMcpServerBuilder builder, Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.ListPromptsHandler = handler);
         return builder;
@@ -63,8 +48,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithGetPromptHandler(this IMcpServerBuilder builder, Func<GetPromptRequestParams?, CancellationToken, Task<GetPromptResult>> handler)
+    public static IMcpServerBuilder WithGetPromptHandler(this IMcpServerBuilder builder, Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.GetPromptHandler = handler);
         return builder;
@@ -75,8 +59,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithListResourcesHandler(this IMcpServerBuilder builder, Func<ListResourcesRequestParams?, CancellationToken, Task<ListResourcesResult>> handler)
+    public static IMcpServerBuilder WithListResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.ListResourcesHandler = handler);
         return builder;
@@ -87,8 +70,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithReadResourceHandler(this IMcpServerBuilder builder, Func<ReadResourceRequestParams?, CancellationToken, Task<ReadResourceResult>> handler)
+    public static IMcpServerBuilder WithReadResourceHandler(this IMcpServerBuilder builder, Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.ReadResourceHandler = handler);
         return builder;
@@ -99,8 +81,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithGetCompletionHandler(this IMcpServerBuilder builder, Func<CompleteRequestParams?, CancellationToken, Task<CompleteResult>> handler)
+    public static IMcpServerBuilder WithGetCompletionHandler(this IMcpServerBuilder builder, Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.GetCompletionHandler = handler);
         return builder;
@@ -111,8 +92,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithSubscribeToResourcesHandler(this IMcpServerBuilder builder, Func<string, CancellationToken, Task> handler)
+    public static IMcpServerBuilder WithSubscribeToResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.SubscribeToResourcesHandler = handler);
         return builder;
@@ -123,8 +103,7 @@ public static class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    /// <returns></returns>
-    public static IMcpServerBuilder WithUnsubscribeFromResourcesHandler(this IMcpServerBuilder builder, Func<string, CancellationToken, Task> handler)
+    public static IMcpServerBuilder WithUnsubscribeFromResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
     {
         builder.Services.Configure<McpServerDelegates>(s => s.UnsubscribeFromResourcesHandler = handler);
         return builder;

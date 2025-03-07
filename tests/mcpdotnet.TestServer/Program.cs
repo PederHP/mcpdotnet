@@ -5,7 +5,7 @@ using McpDotNet.Server;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
-internal class Program
+internal static class Program
 {
     private static ILoggerFactory CreateLoggerFactory()
     {
@@ -17,7 +17,6 @@ internal class Program
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
-        var logsPath = Path.Combine(AppContext.BaseDirectory, "testserver.log");
         return LoggerFactory.Create(builder =>
         {
             builder.AddSerilog();
@@ -26,7 +25,7 @@ internal class Program
 
     private static async Task Main(string[] args)
     {
-        Console.WriteLine("Starting server...");
+        Log.Logger.Information("Starting server...");
 
         McpServerOptions options = new McpServerOptions()
         {
@@ -40,11 +39,12 @@ internal class Program
             ProtocolVersion = "2024-11-05",
             ServerInstructions = "This is a test server with only stub functionality",
         };
+
         var loggerFactory = CreateLoggerFactory();
         McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
-        Console.WriteLine("Server object created, registering handlers.");
+        Log.Logger.Information("Server object created, registering handlers.");
 
         #region Helped method
         static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
@@ -69,6 +69,7 @@ internal class Program
         #endregion
 
         #region Tools
+
         server.ListToolsHandler = (request, cancellationToken) =>
         {
             return Task.FromResult(new ListToolsResult()
@@ -108,22 +109,22 @@ internal class Program
 
         server.CallToolHandler = async (request, cancellationToken) =>
         {
-            if (request?.Name == "echo")
+            if (request.Params?.Name == "echo")
             {
-                if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
+                if (request.Params?.Arguments is null || !request.Params.Arguments.TryGetValue("message", out var message))
                 {
                     throw new McpServerException("Missing required argument 'message'");
                 }
                 return new CallToolResponse()
                 {
-                    Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
+                    Content = [new Content() { Text = "Echo: " + message?.ToString(), Type = "text" }]
                 };
             }
-            else if (request?.Name == "sampleLLM")
+            else if (request.Params?.Name == "sampleLLM")
             {
-                if (request.Arguments is null ||
-                    !request.Arguments.TryGetValue("prompt", out var prompt) ||
-                    !request.Arguments.TryGetValue("maxTokens", out var maxTokens))
+                if (request.Params?.Arguments is null ||
+                    !request.Params.Arguments.TryGetValue("prompt", out var prompt) ||
+                    !request.Params.Arguments.TryGetValue("maxTokens", out var maxTokens))
                 {
                     throw new McpServerException("Missing required arguments 'prompt' and 'maxTokens'");
                 }
@@ -137,7 +138,7 @@ internal class Program
             }
             else
             {
-                throw new McpServerException($"Unknown tool: {request?.Name}");
+                throw new McpServerException($"Unknown tool: {request.Params?.Name}");
             }
         };
         #endregion
@@ -186,12 +187,12 @@ internal class Program
         server.ListResourcesHandler = (request, cancellationToken) =>
         {
             int startIndex = 0;
-            if (request is null) request = new();
-            if (request.Cursor is not null)
+            request ??= new(server, new());
+            if (request.Params?.Cursor is not null)
             {
                 try
                 {
-                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Cursor));
+                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Params.Cursor));
                     startIndex = Convert.ToInt32(startIndexAsString);
                 }
                 catch
@@ -216,12 +217,11 @@ internal class Program
 
         server.ReadResourceHandler = (request, cancellationToken) =>
         {
-            if (request?.Uri is null)
+            if (request.Params?.Uri is null)
             {
                 throw new McpServerException("Missing required argument 'uri'");
             }
-
-            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Uri)
+            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
                 ?? throw new McpServerException("Resource not found");
 
             return Task.FromResult(new ReadResourceResult()
@@ -268,8 +268,8 @@ internal class Program
 
         server.GetPromptHandler = (request, cancellationToken) =>
         {
-            List<PromptMessage> messages = [];
-            if (request?.Name == "simple_prompt")
+            List<PromptMessage> messages = new();
+            if (request.Params?.Name == "simple_prompt")
             {
                 messages.Add(new PromptMessage()
                 {
@@ -281,10 +281,10 @@ internal class Program
                     }
                 });
             }
-            else if (request?.Name == "complex_prompt")
+            else if (request.Params?.Name == "complex_prompt")
             {
-                string temperature = request.Arguments?["temperature"]?.ToString() ?? "unknown";
-                string style = request.Arguments?["style"]?.ToString() ?? "unknown";
+                string temperature = request.Params.Arguments?["temperature"]?.ToString() ?? "unknown";
+                string style = request.Params.Arguments?["style"]?.ToString() ?? "unknown";
                 messages.Add(new PromptMessage()
                 {
                     Role = Role.User,
@@ -316,7 +316,7 @@ internal class Program
             }
             else
             {
-                throw new McpServerException($"Unknown prompt: {request?.Name}");
+                throw new McpServerException($"Unknown prompt: {request.Params?.Name}");
             }
 
             return Task.FromResult(new GetPromptResult()
@@ -329,11 +329,11 @@ internal class Program
         #region Sampling
         #endregion
 
-        Console.WriteLine("Server initialized.");
+        Log.Logger.Information("Server initialized.");
 
         await server.StartAsync();
 
-        Console.WriteLine("Server started.");
+        Log.Logger.Information("Server started.");
 
         // Run until process is stopped by the client (parent process)
         while (true)
