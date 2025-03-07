@@ -35,7 +35,7 @@ public sealed class McpSessionScope : IAsyncDisposable
     /// <param name="options">An options object with the client name and capabilities. Passed to the server.</param>
     /// <param name="loggerFactory">A logger factory for mcpdotnet.</param>
     /// <returns>A session scope which will keep the connection alive until disposed.</returns>
-    public static async Task<McpSessionScope> CreateAsync(McpServerConfig serverConfig, 
+    public static async Task<McpSessionScope> CreateAsync(McpServerConfig serverConfig,
         McpClientOptions? options = null,
         ILoggerFactory? loggerFactory = null)
     {
@@ -62,7 +62,7 @@ public sealed class McpSessionScope : IAsyncDisposable
     /// <param name="options">An options object with the client name and capabilities. Passed to the servers.</param>
     /// <param name="loggerFactory">A logger factory for mcpdotnet.</param>
     /// <returns>A session scope which keep the connections alive until disposed.</returns>
-    public static async Task<McpSessionScope> CreateAsync(IEnumerable<McpServerConfig> serverConfigs, 
+    public static async Task<McpSessionScope> CreateAsync(IEnumerable<McpServerConfig> serverConfigs,
         McpClientOptions? options = null,
         ILoggerFactory? loggerFactory = null)
     {
@@ -106,5 +106,7 @@ public sealed class McpSessionScope : IAsyncDisposable
         }
         _clients.Clear();
         Tools = [];
+
+        GC.SuppressFinalize(this);
     }
 }

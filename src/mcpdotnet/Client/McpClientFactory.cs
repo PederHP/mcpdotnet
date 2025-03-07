@@ -1,8 +1,8 @@
-﻿using McpDotNet.Configuration;
+﻿using System.Runtime.InteropServices;
+using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
 
 namespace McpDotNet.Client;
 /// <summary>
@@ -13,6 +13,8 @@ namespace McpDotNet.Client;
 /// </summary>
 public class McpClientFactory
 {
+    private const string ARGUMENTS_OPTIONS_KEY = "arguments";
+    private const string COMMAND_OPTIONS_KEY = "command";
     private readonly Dictionary<string, McpServerConfig> _serverConfigs;
     private readonly McpClientOptions _clientOptions;
     private readonly Dictionary<string, IMcpClient> _clients = [];
@@ -103,7 +105,7 @@ public class McpClientFactory
             return new StdioClientTransport(new StdioClientTransportOptions
             {
                 Command = GetCommand(config),
-                Arguments = config.TransportOptions?.GetValueOrDefault("arguments")?.Split(' '),
+                Arguments = config.TransportOptions?.GetValueOrDefault(ARGUMENTS_OPTIONS_KEY)?.Split(' '),
                 WorkingDirectory = config.TransportOptions?.GetValueOrDefault("workingDirectory"),
                 EnvironmentVariables = config.TransportOptions?
                     .Where(kv => kv.Key.StartsWith("env:", StringComparison.Ordinal))
@@ -142,7 +144,7 @@ public class McpClientFactory
 
     private static string GetCommand(McpServerConfig config)
     {
-        var command = config.TransportOptions?.GetValueOrDefault("command");
+        var command = config.TransportOptions?.GetValueOrDefault(COMMAND_OPTIONS_KEY);
 
         if (string.IsNullOrEmpty(command))
             return config.Location!;
@@ -158,7 +160,7 @@ public class McpClientFactory
         string endpointName = $"Client ({config.Id}: {config.Name})";
 
         // If the command is empty or already contains cmd.exe, we don't need to do anything
-        var command = config.TransportOptions?.GetValueOrDefault("command");
+        var command = config.TransportOptions?.GetValueOrDefault(COMMAND_OPTIONS_KEY);
 
         if (string.IsNullOrEmpty(command) || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -174,8 +176,8 @@ public class McpClientFactory
 
         // If the command is not empty and does not contain cmd.exe, we need to inject /c {command} (usually npx or uvicorn)
         // This is because the stdio transport will not work correctly if the command is not run in a shell
-        _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions!.GetValueOrDefault("arguments") ?? "");
-        config.TransportOptions!["arguments"] = config.TransportOptions.TryGetValue("arguments", out var args)
+        _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions!.GetValueOrDefault(ARGUMENTS_OPTIONS_KEY) ?? "");
+        config.TransportOptions![ARGUMENTS_OPTIONS_KEY] = config.TransportOptions.TryGetValue(ARGUMENTS_OPTIONS_KEY, out var args)
             ? $"/c {command} {args}"
             : $"/c {command}";
     }

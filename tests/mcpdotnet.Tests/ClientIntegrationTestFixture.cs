@@ -47,5 +47,6 @@ public class ClientIntegrationTestFixture : IDisposable
     public void Dispose()
     {
         LoggerFactory?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
