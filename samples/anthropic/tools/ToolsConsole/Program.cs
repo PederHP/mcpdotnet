@@ -1,9 +1,11 @@
-﻿using McpDotNet.Client;
-using McpDotNet.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
+﻿using Anthropic.SDK;
 using Anthropic.SDK.Constants;
+using Anthropic.SDK.Messaging;
+using McpDotNet;
+using McpDotNet.Client;
+using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
+using Microsoft.Extensions.Logging.Abstractions;
 
 internal class Program
 {
@@ -19,7 +21,7 @@ internal class Program
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -85,7 +87,7 @@ internal class Program
 
             foreach (var toolCall in res.ToolCalls)
             {
-                var response = await client.CallToolAsync(toolCall.Name, toolCall.Arguments?.ToMCPArguments());
+                var response = await client.CallToolAsync(toolCall.Name, toolCall.Arguments?.ToMCPArguments() ?? []);
 
                 messages.Add(new Message(toolCall, response.Content[0].Text));
             }

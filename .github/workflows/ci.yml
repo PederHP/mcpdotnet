@@ -1,0 +1,52 @@
+name: .NET Build, Test and publish
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  release:    
+    types: [published,edited]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps: 
+    - uses: actions/checkout@v4
+      with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+     
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: | 
+          8.0.x
+          9.0.x
+
+    - name: Setup Mono
+      run: sudo apt-get install -y mono-devel
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' 
+    
+    - name: Install dependencies for tests
+      run: npm install @modelcontextprotocol/server-everything
+
+    - name: Install dependencies for tests
+      run: npm install @modelcontextprotocol/server-memory
+    
+    - name: Run Cake script
+      uses: cake-build/cake-action@v1
+      with:
+        verbosity: Diagnostic
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY}}  
+        SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }} 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  

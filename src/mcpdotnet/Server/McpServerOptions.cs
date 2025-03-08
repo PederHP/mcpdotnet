@@ -29,4 +29,9 @@ public record McpServerOptions
     /// Timeout for initialization sequence.
     /// </summary>
     public TimeSpan InitializationTimeout { get; init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Optional server instructions to send to clients
+    /// </summary>
+    public string ServerInstructions { get; init; } = string.Empty;
 }

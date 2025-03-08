@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
+using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
-using McpDotNet.Logging;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -36,7 +38,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         _options = options;
         _serverConfig = serverConfig;
         _logger = loggerFactory.CreateLogger<StdioClientTransport>();
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
@@ -61,28 +63,31 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = OperatingSystem.IsWindows(),
+                CreateNoWindow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
                 WorkingDirectory = _options.WorkingDirectory ?? Environment.CurrentDirectory,
             };
 
-            if (_options.Arguments != null)
+            if (_options.Arguments is { Length: > 0 })
             {
+                StringBuilder argsBuilder = new();
                 foreach (var arg in _options.Arguments)
                 {
-                    startInfo.ArgumentList.Add(arg);
+                    PasteArguments.AppendArgument(argsBuilder, arg);
                 }
+
+                startInfo.Arguments = argsBuilder.ToString();
             }
 
             if (_options.EnvironmentVariables != null)
             {
-                foreach (var (key, value) in _options.EnvironmentVariables)
+                foreach (var entry in _options.EnvironmentVariables)
                 {
-                    startInfo.Environment[key] = value;
+                    startInfo.Environment[entry.Key] = entry.Value;
                 }
             }
 
             _logger.CreateProcessForTransport(EndpointName, _options.Command,
-                string.Join(", ", startInfo.ArgumentList), string.Join(", ", startInfo.Environment.Select(kvp => kvp.Key + "=" + kvp.Value)),
+                startInfo.Arguments, string.Join(", ", startInfo.Environment.Select(kvp => kvp.Key + "=" + kvp.Value)),
                 startInfo.WorkingDirectory, _options.ShutdownTimeout.ToString());
 
             _process = new Process { StartInfo = startInfo };
@@ -102,9 +107,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _processStarted = true;
             _process.BeginErrorReadLine();
 
-
             // Start reading messages in the background
-            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token));
+            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token).ConfigureAwait(false), CancellationToken.None);
             _logger.TransportReadingMessages(EndpointName);
 
             SetConnected(true);
@@ -112,7 +116,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         catch (Exception ex)
         {
             _logger.TransportConnectFailed(EndpointName, ex);
-            await CleanupAsync(cancellationToken);
+            await CleanupAsync(cancellationToken).ConfigureAwait(false);
             throw new McpTransportException("Failed to connect transport", ex);
         }
     }
@@ -138,8 +142,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _logger.TransportSendingMessage(EndpointName, id, json);
 
             // Write the message followed by a newline
-            await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken);
-            await _process.StandardInput.FlushAsync();
+            await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await _process.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -153,7 +157,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CleanupAsync(CancellationToken.None);
+        await CleanupAsync(CancellationToken.None).ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -168,7 +172,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             while (!cancellationToken.IsCancellationRequested && !_process.HasExited)
             {
                 _logger.TransportWaitingForMessage(EndpointName);
-                var line = await reader.ReadLineAsync(cancellationToken);
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 if (line == null)
                 {
                     _logger.TransportEndOfStream(EndpointName);
@@ -193,7 +197,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
                             messageId = messageWithId.Id.ToString();
                         }
                         _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                        await WriteMessageAsync(message, cancellationToken);
+                        await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
                         _logger.TransportMessageWritten(EndpointName, messageId);
                     }
                     else
@@ -220,7 +224,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         }
         finally
         {
-            await CleanupAsync(cancellationToken);
+            await CleanupAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -228,7 +232,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     {
         _logger.TransportCleaningUp(EndpointName);
         if (_process != null && _processStarted && !_process.HasExited)
-        {            
+        {
             try
             {
                 // Try to close stdin to signal the process to exit
@@ -253,7 +257,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process = null;
         }
 
-        _shutdownCts?.Cancel();
+        if (_shutdownCts != null)
+            await _shutdownCts.CancelAsync().ConfigureAwait(false);
         _shutdownCts?.Dispose();
         _shutdownCts = null;
 
@@ -262,7 +267,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             try
             {
                 _logger.TransportWaitingForReadTask(EndpointName);
-                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {

@@ -1,12 +1,12 @@
 ﻿
-using McpDotNet.Protocol.Types;
-using McpDotNet.Protocol.Transport;
-using McpDotNet.Protocol.Messages;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using McpDotNet.Logging;
 using McpDotNet.Configuration;
+using McpDotNet.Logging;
+using McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Transport;
+using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Client;
 
@@ -46,7 +46,8 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         if (options.Capabilities?.Sampling != null)
         {
             SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>("sampling/createMessage",
-                async (request) => {
+                async (request) =>
+                {
                     if (SamplingHandler == null)
                     {
                         // Setting the capability, but not a handler means we have nothing to return to the server
@@ -54,7 +55,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
                         throw new McpClientException("Sampling handler not configured");
                     }
 
-                    return await SamplingHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await SamplingHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
         if (options.Capabilities?.Roots != null)
@@ -68,7 +69,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
                         _logger.RootsHandlerNotConfigured(EndpointName);
                         throw new McpClientException("Roots handler not configured");
                     }
-                    return await RootsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await RootsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
     }
@@ -168,7 +169,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
     }
 
     /// <inheritdoc/>
-    public async Task PingAsync(CancellationToken cancellationToken)
+    public async Task PingAsync(CancellationToken cancellationToken = default)
     {
         _logger.PingingServer(EndpointName);
         await SendRequestAsync<dynamic>(
@@ -268,7 +269,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         }
         if (argumentValue is null)
         {
-            _logger.InvalidCompletionArgumentValue(EndpointName, argumentValue);
+            _logger.InvalidCompletionArgumentValue(EndpointName, "null", argumentName);
             throw new McpClientException("Argument value cannot be null");
         }
 
@@ -330,13 +331,13 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
             new JsonRpcRequest
             {
                 Method = "tools/call",
-                Params = CreateParametersDictionary(toolName, arguments ?? new())
+                Params = CreateParametersDictionary(toolName, arguments ?? [])
             },
             cancellationToken
         ).ConfigureAwait(false);
     }
 
-    private static Dictionary<string, object?> CreateParametersDictionary(string nameParameter, Dictionary<string, object> arguments)
+    private static Dictionary<string, object?> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? arguments)
     {
         var parameters = new Dictionary<string, object?>
         {
@@ -352,10 +353,10 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
     }
 
     /// <inheritdoc/>
-    public Func<CreateMessageRequestParams, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
+    public Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
 
     /// <inheritdoc/>
-    public Func<ListRootsRequestParams, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
+    public Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
 
     /// <inheritdoc/>
     public override string EndpointName

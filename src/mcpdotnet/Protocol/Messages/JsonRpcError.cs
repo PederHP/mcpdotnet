@@ -1,6 +1,6 @@
-﻿namespace McpDotNet.Protocol.Messages;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace McpDotNet.Protocol.Messages;
 
 /// <summary>
 /// An error response message in the JSON-RPC protocol.

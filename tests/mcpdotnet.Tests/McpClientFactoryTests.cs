@@ -1,10 +1,10 @@
+using System.Threading.Channels;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Threading.Channels;
 
 namespace McpDotNet.Tests.Client;
 
@@ -23,7 +23,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server",
             TransportOptions = new Dictionary<string, string>
             {
@@ -70,7 +70,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server"
         };
 
@@ -87,11 +87,11 @@ public class McpClientFactoryTests
             .Returns(Task.CompletedTask);
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
-        var factory = new McpClientFactory([config], 
+        var factory = new McpClientFactory([config],
             _defaultOptions,
             NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object, 
-            clientFactoryMethod: (_,_,_) => mockClient.Object);
+            transportFactoryMethod: _ => mockTransport.Object,
+            clientFactoryMethod: (_, _, _) => mockClient.Object);
 
         // Act
         var client1 = await factory.GetClientAsync("test-server");
@@ -105,7 +105,7 @@ public class McpClientFactoryTests
     public async Task GetClientAsync_WithInvalidServerId_ThrowsArgumentException()
     {
         // Arrange
-        var factory = new McpClientFactory(Array.Empty<McpServerConfig>(), 
+        var factory = new McpClientFactory(Array.Empty<McpServerConfig>(),
             _defaultOptions,
             NullLoggerFactory.Instance);
 
@@ -144,7 +144,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             Location = "/path/to/server"
         };
 
@@ -164,7 +164,7 @@ public class McpClientFactoryTests
         var factory = new McpClientFactory([config],
             _defaultOptions,
             NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object, 
+            transportFactoryMethod: _ => mockTransport.Object,
             clientFactoryMethod: (_, _, _) => mockClient.Object);
 
         // Act
@@ -180,8 +180,8 @@ public class McpClientFactoryTests
         // Arrange
         McpServerConfig[] configs =
         [
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path1" },
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = "stdio", Location = "/path2" }
+            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path1" },
+            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path2" }
         ];
 
         // Act & Assert
@@ -197,10 +197,10 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
-                
+
         // Create a mock transport
         var mockTransport = new Mock<IClientTransport>();
         mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
@@ -238,7 +238,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {
@@ -260,10 +260,11 @@ public class McpClientFactoryTests
 
         // Assert
         Assert.NotNull(transport);
-        Assert.True(transport.Options.ConnectionTimeout == TimeSpan.FromSeconds(10));
-        Assert.True(transport.Options.MaxReconnectAttempts == 2);
-        Assert.True(transport.Options.ReconnectDelay == TimeSpan.FromSeconds(5));
-        Assert.True(transport.Options.AdditionalHeaders["test"] == "the_header_value");
+        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
+        Assert.Equal(2, transport.Options.MaxReconnectAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(5), transport.Options.ReconnectDelay);
+        Assert.NotNull(transport.Options.AdditionalHeaders);
+        Assert.Equal("the_header_value", transport.Options.AdditionalHeaders["test"]);
     }
 
     [Fact]
@@ -274,7 +275,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -305,7 +306,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {
@@ -327,10 +328,11 @@ public class McpClientFactoryTests
 
         // Assert
         Assert.NotNull(transport);
-        Assert.True(transport.Options.ConnectionTimeout == TimeSpan.FromSeconds(10));
-        Assert.True(transport.Options.MaxReconnectAttempts == defaultOptions.MaxReconnectAttempts);
-        Assert.True(transport.Options.ReconnectDelay == defaultOptions.ReconnectDelay);
-        Assert.True(transport.Options.AdditionalHeaders["test"] == "the_header_value");
+        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
+        Assert.Equal(defaultOptions.MaxReconnectAttempts, transport.Options.MaxReconnectAttempts);
+        Assert.Equal(defaultOptions.ReconnectDelay, transport.Options.ReconnectDelay);
+        Assert.NotNull(transport.Options.AdditionalHeaders);
+        Assert.Equal("the_header_value", transport.Options.AdditionalHeaders["test"]);
     }
 
     [Theory]
@@ -344,7 +346,7 @@ public class McpClientFactoryTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080",
             TransportOptions = new Dictionary<string, string>
             {

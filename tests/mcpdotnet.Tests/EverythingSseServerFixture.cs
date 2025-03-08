@@ -4,7 +4,7 @@ namespace McpDotNet.Tests;
 
 public class EverythingSseServerFixture : IAsyncDisposable
 {
-    private Process _process;
+    private Process? _process;
 
     public async Task StartAsync()
     {
@@ -18,7 +18,8 @@ public class EverythingSseServerFixture : IAsyncDisposable
             UseShellExecute = false,
         };
 
-        _process = Process.Start(processStartInfo);
+        _process = Process.Start(processStartInfo)
+            ?? throw new InvalidOperationException($"Could not start process for {processStartInfo.FileName} with '{processStartInfo.Arguments}'.");
 
         // Wait for the server to start
         await Task.Delay(10000);
@@ -36,7 +37,8 @@ public class EverythingSseServerFixture : IAsyncDisposable
                 UseShellExecute = false
             };
 
-            using var psProcess = Process.Start(psInfo);
+            using var psProcess = Process.Start(psInfo)
+                 ?? throw new InvalidOperationException($"Could not start process for {psInfo.FileName} with '{psInfo.Arguments}'.");
             string containerId = await psProcess.StandardOutput.ReadToEndAsync();
             containerId = containerId.Trim();
 
@@ -50,7 +52,8 @@ public class EverythingSseServerFixture : IAsyncDisposable
                     UseShellExecute = false
                 };
 
-                using var stopProcess = Process.Start(stopInfo);
+                using var stopProcess = Process.Start(stopInfo)
+                    ?? throw new InvalidOperationException($"Could not start process for {stopInfo.FileName} with '{stopInfo.Arguments}'.");
                 await stopProcess.WaitForExitAsync();
             }
         }

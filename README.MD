@@ -1,5 +1,14 @@
 # mcpdotnet
 [![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg)](https://www.nuget.org/packages/mcpdotnet/)
+![Build](https://github.com/PederHP/mcpdotnet/actions/workflows/ci.yml/badge.svg?branch=main)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=bugs)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=PederHP_mcpdotnet&metric=coverage)](https://sonarcloud.io/summary/new_code?id=PederHP_mcpdotnet)
 
 A .NET implementation of the Model Context Protocol (MCP), enabling .NET applications to connect to and interact with MCP clients and servers.
 
@@ -52,7 +61,7 @@ var config = new McpServerConfig
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -97,7 +106,33 @@ Remember you can connect to any MCP server, not just ones created using mcpdotne
 
 ## Getting Started (Server)
 
-Here is an example of how to create an MCP server with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
+Here is an example of how to create an MCP server and register all tools from the current application.
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddMcpServer()
+    .WithStdioServerTransport()
+    .WithTools()
+
+var app = builder.Build();
+
+await app.RunAsync();
+```
+
+The `EchoTool` class is a simple example of a tool implementation:
+```csharp
+[McpToolType]
+public static class EchoTool
+{
+    [McpTool(Description = "Echoes the input back to the client.")]
+    public static string Echo([McpParameter(true)] string message)
+    {
+        return "hello " + message;
+    }
+}
+```
+
+Here is an example of how to create an MCP server manually with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
 
 ```csharp
 McpServerOptions options = new McpServerOptions()
@@ -161,6 +196,7 @@ while (true)
     await Task.Delay(1000);
 }
 ```
+
 
 ## Roadmap
 

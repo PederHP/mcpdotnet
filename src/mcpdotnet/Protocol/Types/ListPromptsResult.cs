@@ -12,5 +12,5 @@ public class ListPromptsResult : PaginatedResult
     /// A list of prompts or prompt templates that the server offers.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("prompts")]
-    public List<Prompt> Prompts { get; set; } = new();
+    public List<Prompt> Prompts { get; set; } = [];
 }

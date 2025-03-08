@@ -23,7 +23,10 @@ public class McpAIFunction : AIFunction
     }
 
     /// <inheritdoc/>
-    public override string ToString() => _tool.Name;
+    public override string Name => _tool.Name;
+
+    /// <inheritdoc/>
+    public override string Description => _tool.Description ?? string.Empty;
 
     /// <inheritdoc/>
     public override JsonElement JsonSchema => AIFunctionUtilities.MapToJsonElement(_tool);
@@ -31,8 +34,13 @@ public class McpAIFunction : AIFunction
     /// <inheritdoc/>
     protected async override Task<object?> InvokeCoreAsync(IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
     {
+        if (arguments is null)
+        {
+            throw new ArgumentNullException(nameof(arguments));
+        }
+
         // Convert arguments to dictionary format expected by mcpdotnet
-        Dictionary<string, object> argDict = new();
+        Dictionary<string, object> argDict = [];
         foreach (var arg in arguments)
         {
             if (arg.Value is not null)
@@ -42,14 +50,9 @@ public class McpAIFunction : AIFunction
         }
 
         // Call the tool through mcpdotnet
-        var result = await _client.CallToolAsync(
-            _tool.Name,
-            argDict.Count == 0 ? new() : argDict,
-            cancellationToken: cancellationToken
-        );
+        var result = await _client.CallToolAsync(_tool.Name, argDict, cancellationToken).ConfigureAwait(false);
 
-        // Extract the text content from the result
-        // For simplicity in this sample, we'll just concatenate all text content
+        // Extract the text content from the result.
         return string.Join("\n", result.Content
             .Where(c => c.Type == "text")
             .Select(c => c.Text));

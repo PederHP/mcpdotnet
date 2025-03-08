@@ -1,3 +1,8 @@
+# Cake tools
+[Tt]ools/
+
+# Build output
+[Bb]uildArtifacts/
 # Build results
 [Dd]ebug/
 [Rr]elease/
@@ -58,3 +63,4 @@ Desktop.ini
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
+/mcpdotnet.v3.ncrunchsolution

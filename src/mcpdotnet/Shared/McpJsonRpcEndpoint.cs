@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using McpDotNet.Client;
+using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Utils.Json;
-using McpDotNet.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Shared;
 
@@ -16,15 +16,13 @@ namespace McpDotNet.Shared;
 /// This is especially true as a client represents a connection to one and only one server, and vice versa.
 /// Any multi-client or multi-server functionality should be implemented at a higher level of abstraction.
 /// </summary>
-internal abstract class McpJsonRpcEndpoint
+internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 {
     private readonly ITransport _transport;
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
     private readonly ConcurrentDictionary<string, List<Func<JsonRpcNotification, Task>>> _notificationHandlers;
-    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object>>> _requestHandlers = new();
+    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object?>>> _requestHandlers = [];
     private int _nextRequestId;
-    private Task? _messageProcessingTask;
-    private CancellationTokenSource? _cts;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<McpClient> _logger;
 
@@ -33,13 +31,13 @@ internal abstract class McpJsonRpcEndpoint
     /// </summary>
     /// <param name="transport">An MCP transport implementation.</param>
     /// <param name="loggerFactory">The logger factory.</param>
-    public McpJsonRpcEndpoint(ITransport transport, ILoggerFactory loggerFactory)
+    protected McpJsonRpcEndpoint(ITransport transport, ILoggerFactory loggerFactory)
     {
         _transport = transport;
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _logger = loggerFactory.CreateLogger<McpClient>();
     }
 
@@ -73,7 +71,7 @@ internal abstract class McpJsonRpcEndpoint
                 // Fire and forget the message handling task to avoid blocking the transport
                 // If awaiting the task, the transport will not be able to read more messages,
                 // which could lead to a deadlock if the handler sends a message back
-                FireAndForget(Task.Run(() => HandleMessageAsync(message, cancellationToken)), message);
+                FireAndForget(Task.Run(() => HandleMessageAsync(message, cancellationToken), CancellationToken.None), message);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -96,7 +94,7 @@ internal abstract class McpJsonRpcEndpoint
                 var payload = JsonSerializer.Serialize(message);
                 _logger.MessageHandlerError(EndpointName, message.GetType().Name, payload, t.Exception);
             }
-        }, TaskContinuationOptions.OnlyOnFaulted);
+        }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
 
     private async Task HandleMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
@@ -109,14 +107,14 @@ internal abstract class McpJsonRpcEndpoint
                     try
                     {
                         _logger.RequestHandlerCalled(EndpointName, request.Method);
-                        var result = await handler(request);
+                        var result = await handler(request).ConfigureAwait(false);
                         _logger.RequestHandlerCompleted(EndpointName, request.Method);
                         await _transport.SendMessageAsync(new JsonRpcResponse
                         {
                             Id = request.Id,
                             JsonRpc = "2.0",
                             Result = result
-                        }, cancellationToken);
+                        }, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -131,7 +129,7 @@ internal abstract class McpJsonRpcEndpoint
                                 Code = -32000,  // Implementation defined error
                                 Message = ex.Message
                             }
-                        }, cancellationToken);
+                        }, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 else
@@ -330,7 +328,7 @@ internal abstract class McpJsonRpcEndpoint
     /// <param name="handler">The async handler function to process notifications.</param>
     public void OnNotification(string method, Func<JsonRpcNotification, Task> handler)
     {
-        var handlers = _notificationHandlers.GetOrAdd(method, _ => new());
+        var handlers = _notificationHandlers.GetOrAdd(method, _ => []);
         lock (handlers)
         {
             handlers.Add(handler);
@@ -351,7 +349,7 @@ internal abstract class McpJsonRpcEndpoint
     /// <typeparam name="TResponse">Type of response payload (not full RPC response</typeparam>
     /// <param name="method">Method identifier to register for</param>
     /// <param name="handler">Handler to be called when a request with specified method identifier is received</param>
-    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest, Task<TResponse>> handler)
+    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, Task<TResponse>> handler)
     {
         if (handler is null)
         {
@@ -364,27 +362,19 @@ internal abstract class McpJsonRpcEndpoint
             var jsonString = JsonSerializer.Serialize(request.Params);
             var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
 
-            return await handler(typedRequest);
+            return await handler(typedRequest).ConfigureAwait(false);
         };
     }
 
     /// <summary>
     /// Task that processes incoming messages from the transport.
     /// </summary>
-    protected Task? MessageProcessingTask
-    {
-        get => _messageProcessingTask;
-        set => _messageProcessingTask = value;
-    }
+    protected Task? MessageProcessingTask { get; set; }
 
     /// <summary>
     /// CancellationTokenSource used to cancel the message processing task.
     /// </summary>
-    protected CancellationTokenSource? CancellationTokenSource
-    {
-        get => _cts;
-        set => _cts = value;
-    }
+    protected CancellationTokenSource? CancellationTokenSource { get; set; }
 
     /// <summary>
     /// Cleans up the endpoint and releases resources.
@@ -394,13 +384,14 @@ internal abstract class McpJsonRpcEndpoint
     {
         _logger.CleaningUpEndpoint(EndpointName);
 
-        _cts?.Cancel();
+        if (CancellationTokenSource != null)
+            await CancellationTokenSource.CancelAsync().ConfigureAwait(false);
 
-        if (_messageProcessingTask != null)
+        if (MessageProcessingTask != null)
         {
             try
             {
-                await _messageProcessingTask.ConfigureAwait(false);
+                await MessageProcessingTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -409,14 +400,14 @@ internal abstract class McpJsonRpcEndpoint
         }
 
         // Complete all pending requests with cancellation
-        foreach (var (_, tcs) in _pendingRequests)
+        foreach (var entry in _pendingRequests)
         {
-            tcs.TrySetCanceled();
+            entry.Value.TrySetCanceled();
         }
         _pendingRequests.Clear();
 
         await _transport.DisposeAsync().ConfigureAwait(false);
-        _cts?.Dispose();
+        CancellationTokenSource?.Dispose();
 
         IsInitialized = false;
 

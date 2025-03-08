@@ -1,6 +1,7 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
+using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests;
@@ -18,7 +19,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ConnectAndPing_Stdio_EverythingServer()
     {
         // Arrange
-        
+
         // Act
         var client = await _fixture.Factory.GetClientAsync("everything");
         await client.PingAsync(CancellationToken.None);
@@ -47,7 +48,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ListTools_Stdio_EverythingServer()
     {
         // arrange
-       
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var tools = await client.ListToolsAsync();
@@ -62,7 +63,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task CallTool_Stdio_EchoServer()
     {
         // arrange
-        
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var result = await client.CallToolAsync(
@@ -150,7 +151,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
 
-        List<Resource> allResources = new();
+        List<Resource> allResources = [];
         string? cursor = null;
         do
         {
@@ -184,7 +185,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task ReadResource_Stdio_BinaryResource()
     {
         // arrange
-        
+
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
@@ -214,17 +215,17 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var client = await _fixture.Factory.GetClientAsync("everything");
         var result = await client.GetCompletionAsync(new Reference
-            {
-                Type = "ref/resource",
-                Uri = "test://static/resource/1"
-            },
-            "argument_name", "1", 
+        {
+            Type = "ref/resource",
+            Uri = "test://static/resource/1"
+        },
+            "argument_name", "1",
             CancellationToken.None
         );
 
         Assert.NotNull(result);
         Assert.Single(result.Completion.Values);
-        Assert.True(result.Completion.Values[0] == "1");
+        Assert.Equal("1", result.Completion.Values[0]);
     }
 
     /// <summary>
@@ -249,13 +250,13 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
             Type = "ref/prompt",
             Name = "irrelevant"
         },
-            argumentName:"style", argumentValue:"fo",
+            argumentName: "style", argumentValue: "fo",
             CancellationToken.None
         );
 
         Assert.NotNull(result);
         Assert.Single(result.Completion.Values);
-        Assert.True(result.Completion.Values[0] == "formal");
+        Assert.Equal("formal", result.Completion.Values[0]);
     }
 
     [Fact]
@@ -266,7 +267,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         {
             Id = "everything",
             Name = "Everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -293,7 +294,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_,_) =>
+        client.SamplingHandler = async (_, _) =>
         {
             samplingHandlerCalls++;
             return new CreateMessageResult
@@ -312,10 +313,10 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
             "sampleLLM",
-            new Dictionary<string, object> 
+            new Dictionary<string, object>
             {
-                ["prompt"] = "Test prompt", 
-                ["maxTokens"] = 100 
+                ["prompt"] = "Test prompt",
+                ["maxTokens"] = 100
             }
         );
 
@@ -334,7 +335,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         {
             Id = "everything",
             Name = "everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -393,7 +394,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         {
             Id = "everything",
             Name = "everything",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -428,7 +429,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         {
             Id = "memory",
             Name = "memory",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
                 ["command"] = "npx",
@@ -449,7 +450,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         var result = await client.CallToolAsync(
             "read_graph",
-            new Dictionary<string, object>(),
+            [],
             CancellationToken.None
         );
 

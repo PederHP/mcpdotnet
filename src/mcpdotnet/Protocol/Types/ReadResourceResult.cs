@@ -10,5 +10,5 @@ public class ReadResourceResult
     /// A list of ResourceContents that this resource contains.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("contents")]
-    public List<ResourceContents> Contents { get; set; } = new();
+    public List<ResourceContents> Contents { get; set; } = [];
 }

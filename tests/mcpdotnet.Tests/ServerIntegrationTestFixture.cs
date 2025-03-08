@@ -1,7 +1,7 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 
 namespace McpDotNet.Tests;
 
@@ -28,13 +28,16 @@ public class ServerIntegrationTestFixture : IDisposable
         {
             Id = "test_server",
             Name = "TestServer",
-            TransportType = "stdio",
+            TransportType = TransportTypes.StdIo,
             TransportOptions = new Dictionary<string, string>
             {
-                ["command"] = "TestServer.exe",
+                ["command"] = OperatingSystem.IsWindows() ? "TestServer.exe" : "dotnet",
                 // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
             }
         };
+
+        if (!OperatingSystem.IsWindows())
+            DefaultConfig.TransportOptions["arguments"] = "TestServer.dll";
 
         // Inject the mock transport into the factory
         Factory = new McpClientFactory(

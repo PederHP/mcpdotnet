@@ -2,6 +2,7 @@
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace McpDotNet.Client;
 /// <summary>
@@ -14,7 +15,7 @@ public class McpClientFactory
 {
     private readonly Dictionary<string, McpServerConfig> _serverConfigs;
     private readonly McpClientOptions _clientOptions;
-    private readonly Dictionary<string, IMcpClient> _clients = new();
+    private readonly Dictionary<string, IMcpClient> _clients = [];
     private readonly Func<McpServerConfig, IClientTransport> _transportFactoryMethod;
     private readonly Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
     private readonly ILoggerFactory _loggerFactory;
@@ -47,12 +48,9 @@ public class McpClientFactory
         // Initialize commands for stdio transport, this is to run commands in a shell even if specified directly, as otherwise
         //  the stdio protocol will not work correctly.
         _logger.InitializingStdioCommands();
-        foreach (var config in _serverConfigs.Values)
+        foreach (var config in _serverConfigs.Values.Where(c => c.TransportType.Equals(TransportTypes.StdIo, StringComparison.OrdinalIgnoreCase)))
         {
-            if (config.TransportType.ToLowerInvariant() == "stdio")
-            {
-                InitializeCommand(config);
-            }
+            InitializeCommand(config);
         }
     }
 
@@ -83,7 +81,7 @@ public class McpClientFactory
 
         var transport = _transportFactoryMethod(config);
         var client = _clientFactoryMethod(transport, config, _clientOptions);
-        await client.ConnectAsync(cancellationToken);
+        await client.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.ClientCreated(endpointName);
 
@@ -97,34 +95,41 @@ public class McpClientFactory
     {
         string endpointName = $"Client ({config.Id}: {config.Name})";
 
-        var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? Enumerable.Empty<string>());
+        var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? []);
         _logger.CreatingTransport(endpointName, config.TransportType, options);
-        return config.TransportType.ToLowerInvariant() switch
+
+        if (string.Equals(config.TransportType, TransportTypes.StdIo, StringComparison.OrdinalIgnoreCase))
         {
-            "stdio" => new StdioClientTransport(new StdioClientTransportOptions
+            return new StdioClientTransport(new StdioClientTransportOptions
             {
                 Command = GetCommand(config),
                 Arguments = config.TransportOptions?.GetValueOrDefault("arguments")?.Split(' '),
                 WorkingDirectory = config.TransportOptions?.GetValueOrDefault("workingDirectory"),
                 EnvironmentVariables = config.TransportOptions?
-                    .Where(kv => kv.Key.StartsWith("env:"))
+                    .Where(kv => kv.Key.StartsWith("env:", StringComparison.Ordinal))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
-            }, config, _loggerFactory),
-            "sse" or "http" => new SseClientTransport(
+            }, config, _loggerFactory);
+        }
+
+        if (string.Equals(config.TransportType, TransportTypes.Sse, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(config.TransportType, "http", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SseClientTransport(
                new SseClientTransportOptions
                {
                    ConnectionTimeout = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "connectionTimeout", 30)),
                    MaxReconnectAttempts = ParseOrDefault(config.TransportOptions, "maxReconnectAttempts", 3),
                    ReconnectDelay = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "reconnectDelay", 5)),
                    AdditionalHeaders = config.TransportOptions?
-                       .Where(kv => kv.Key.StartsWith("header."))
+                       .Where(kv => kv.Key.StartsWith("header.", StringComparison.Ordinal))
                        .ToDictionary(kv => kv.Key.Substring(7), kv => kv.Value)
-               }, config, _loggerFactory),
-            _ => throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config))
-        };
+               }, config, _loggerFactory);
+        }
+
+        throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config));
     }
 
-    private static int ParseOrDefault(IDictionary<string, string>? options, string key, int defaultValue)
+    private static int ParseOrDefault(Dictionary<string, string>? options, string key, int defaultValue)
     {
         if (options?.TryGetValue(key, out var value) ?? false)
         {
@@ -135,15 +140,14 @@ public class McpClientFactory
         return defaultValue;
     }
 
-    private string? GetCommand(McpServerConfig config)
+    private static string GetCommand(McpServerConfig config)
     {
-        if (config.TransportOptions == null ||
-            string.IsNullOrEmpty(config.TransportOptions.GetValueOrDefault("command")))
-        {
-            return config.Location!;
-        }
+        var command = config.TransportOptions?.GetValueOrDefault("command");
 
-        return OperatingSystem.IsWindows() ? "cmd.exe" : config.TransportOptions?.GetValueOrDefault("command");
+        if (string.IsNullOrEmpty(command))
+            return config.Location!;
+
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : command!;
     }
 
     /// <summary>
@@ -156,13 +160,13 @@ public class McpClientFactory
         // If the command is empty or already contains cmd.exe, we don't need to do anything
         var command = config.TransportOptions?.GetValueOrDefault("command");
 
-        if (string.IsNullOrEmpty(command) || !OperatingSystem.IsWindows())
+        if (string.IsNullOrEmpty(command) || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return;
         }
 
         // On Windows, we need to wrap non-shell commands with cmd.exe /c
-        if (command.ToLowerInvariant().Contains("cmd.exe"))
+        if (command!.IndexOf("cmd.exe", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             _logger.SkippingShellWrapper(endpointName);
             return;
@@ -171,8 +175,8 @@ public class McpClientFactory
         // If the command is not empty and does not contain cmd.exe, we need to inject /c {command} (usually npx or uvicorn)
         // This is because the stdio transport will not work correctly if the command is not run in a shell
         _logger.PromotingCommandToShellArgumentForStdio(endpointName, command, config.TransportOptions!.GetValueOrDefault("arguments") ?? "");
-        config.TransportOptions!["arguments"] = config.TransportOptions.ContainsKey("arguments")
-            ? $"/c {command} {config.TransportOptions["arguments"]}"
+        config.TransportOptions!["arguments"] = config.TransportOptions.TryGetValue("arguments", out var args)
+            ? $"/c {command} {args}"
             : $"/c {command}";
     }
 }

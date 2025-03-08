@@ -1,6 +1,6 @@
-﻿namespace McpDotNet.Protocol.Types;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Result of the initialization request sent to the server.

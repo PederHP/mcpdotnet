@@ -15,6 +15,13 @@ public class McpServerException : Exception
     /// <summary>
     /// Initializes a new instance of the <see cref="McpServerException"/> class with a specified error message.
     /// </summary>
+    public McpServerException()
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="McpServerException"/> class with a specified error message.
+    /// </summary>
     /// <param name="message">The message that describes the error.</param>
     public McpServerException(string message) : base(message)
     {

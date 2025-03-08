@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using McpDotNet.Protocol.Messages;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Tests.Utils;
 
@@ -21,7 +21,7 @@ public sealed class TestSseServer : IAsyncDisposable
     private readonly string _messagePath;
 
     // Keep track of all open SSE connections (StreamWriters).
-    private readonly ConcurrentBag<StreamWriter> _sseClients = new();
+    private readonly ConcurrentBag<StreamWriter> _sseClients = [];
 
     public TestSseServer(int port = 5000, ILogger<TestSseServer>? logger = null)
     {
@@ -90,13 +90,13 @@ public sealed class TestSseServer : IAsyncDisposable
 
         // Handle SSE endpoint
         if (request.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase)
-            && request.Url.AbsolutePath.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase))
+            && request.Url?.AbsolutePath.Equals(_endpointPath, StringComparison.OrdinalIgnoreCase) == true)
         {
             await HandleSseConnectionAsync(context, ct);
         }
         // Handle POST /message
         else if (request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase)
-                 && request.Url.AbsolutePath.Equals(_messagePath, StringComparison.OrdinalIgnoreCase))
+                 && request.Url?.AbsolutePath.Equals(_messagePath, StringComparison.OrdinalIgnoreCase) == true)
         {
             await HandlePostMessageAsync(context, ct);
         }
@@ -135,7 +135,7 @@ public sealed class TestSseServer : IAsyncDisposable
             await writer.WriteLineAsync($"data: {_messagePath}");
         }
         await writer.WriteLineAsync(); // blank line to end an SSE message
-        await writer.FlushAsync();
+        await writer.FlushAsync(ct);
 
         _logger.LogInformation("New SSE client connected.");
         _connectionEstablished.TrySetResult(); // Signal connection is ready
@@ -149,7 +149,7 @@ public sealed class TestSseServer : IAsyncDisposable
                 _logger.LogDebug("SSE connection alive check");
                 // Optionally do a periodic no-op to keep connection alive:
                 await writer.WriteLineAsync(": keep-alive");
-                await writer.FlushAsync();
+                await writer.FlushAsync(ct);
                 await Task.Delay(TimeSpan.FromSeconds(5), ct);
             }
         }
@@ -179,7 +179,7 @@ public sealed class TestSseServer : IAsyncDisposable
     /// Handle POST /message endpoint.
     /// Echo the content back to the caller and broadcast it over SSE as well.
     /// </summary>
-    private async Task HandlePostMessageAsync(HttpListenerContext context, CancellationToken ct)
+    private async Task HandlePostMessageAsync(HttpListenerContext context, CancellationToken cancellationToken)
     {
         var request = context.Request;
         var response = context.Response;
@@ -187,7 +187,7 @@ public sealed class TestSseServer : IAsyncDisposable
         try
         {
             using var reader = new StreamReader(request.InputStream);
-            string content = await reader.ReadToEndAsync();
+            string content = await reader.ReadToEndAsync(cancellationToken);
 
             var jsonRpcNotification = JsonSerializer.Deserialize<JsonRpcNotification>(content);
             if (jsonRpcNotification != null && jsonRpcNotification.Method != "initialize")
@@ -200,7 +200,7 @@ public sealed class TestSseServer : IAsyncDisposable
                 // Write "accepted" as the response body
                 using var writer = new StreamWriter(response.OutputStream);
                 await writer.WriteAsync("accepted");
-                await writer.FlushAsync();
+                await writer.FlushAsync(cancellationToken);
                 return;
             }
 
@@ -220,7 +220,7 @@ public sealed class TestSseServer : IAsyncDisposable
                     // Write "accepted" as the response body
                     using var writer = new StreamWriter(response.OutputStream);
                     await writer.WriteAsync("accepted");
-                    await writer.FlushAsync();
+                    await writer.FlushAsync(cancellationToken);
 
                     // Then process the message and send the response via SSE
                     if (jsonRpcRequest != null)
@@ -245,14 +245,14 @@ public sealed class TestSseServer : IAsyncDisposable
         }
     }
 
-    private async Task<JsonRpcResponse> ProcessRequestAsync(JsonRpcRequest jsonRpcRequest)
+    private static Task<JsonRpcResponse> ProcessRequestAsync(JsonRpcRequest jsonRpcRequest)
     {
         // This is a test server so we just echo back the request
-        return new JsonRpcResponse
+        return Task.FromResult(new JsonRpcResponse
         {
             Id = jsonRpcRequest.Id,
-            Result = jsonRpcRequest.Params
-        };
+            Result = jsonRpcRequest.Params!
+        });
     }
 
     private async Task SendSseMessageAsync(JsonRpcResponse jsonRpcResponse)
@@ -261,7 +261,7 @@ public sealed class TestSseServer : IAsyncDisposable
         await BroadcastMessageAsync(JsonSerializer.Serialize(jsonRpcResponse));
     }
 
-    private async Task SendJsonRpcErrorAsync(HttpListenerResponse response, RequestId? id, int code, string message, string? data = null)
+    private static async Task SendJsonRpcErrorAsync(HttpListenerResponse response, RequestId? id, int code, string message, string? data = null)
     {
         var errorResponse = new JsonRpcError
         {
@@ -281,21 +281,10 @@ public sealed class TestSseServer : IAsyncDisposable
         await writer.WriteAsync(JsonSerializer.Serialize(errorResponse));
     }
 
-    private async Task HandleInitializationRequest(HttpListenerResponse response, JsonRpcRequest jsonRpcRequest)
+    private static async Task HandleInitializationRequest(HttpListenerResponse response, JsonRpcRequest jsonRpcRequest)
     {
         // We don't need to validate the client's initialization request for the test
         // Just send back a valid server initialization response
-        var jsonResponse = new
-        {
-            protocolVersion = "2024-11-05",
-            capabilities = new
-            {
-                experimental = (object?)null,
-                roots = (object?)null,
-                sampling = (object?)null
-            }
-        };
-
         var jsonRpcResponse = new JsonRpcResponse()
         {
             Id = jsonRpcRequest.Id,
@@ -353,7 +342,7 @@ public sealed class TestSseServer : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _cts.Cancel();
+        await _cts.CancelAsync();
 
         if (_serverTask != null)
         {

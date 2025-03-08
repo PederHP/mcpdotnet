@@ -15,7 +15,7 @@ public class SseTransportTests
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -35,21 +35,22 @@ public class SseTransportTests
 
         // Assert
         Assert.NotNull(transport);
-        Assert.True(transport.Options.ConnectionTimeout == TimeSpan.FromSeconds(10));
-        Assert.True(transport.Options.MaxReconnectAttempts == 2);
-        Assert.True(transport.Options.ReconnectDelay == TimeSpan.FromSeconds(5));
-        Assert.True(transport.Options.AdditionalHeaders["test"] == "header");
+        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
+        Assert.Equal(2, transport.Options.MaxReconnectAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(5), transport.Options.ReconnectDelay);
+        Assert.NotNull(transport.Options.AdditionalHeaders);
+        Assert.Equal("header", transport.Options.AdditionalHeaders["test"]);
     }
 
     [Fact]
-    public async void SseTransportSendMessageAsync_WithMessageEndpointNotSet_ThrowsException()
+    public async Task SseTransportSendMessageAsync_WithMessageEndpointNotSet_ThrowsException()
     {
         // Arrange
         var config = new McpServerConfig
         {
             Id = "test-server",
             Name = "Test Server",
-            TransportType = "sse",
+            TransportType = TransportTypes.Sse,
             Location = "http://localhost:8080"
         };
 
@@ -69,6 +70,6 @@ public class SseTransportTests
 
         // Assert
         Assert.True(string.IsNullOrEmpty(transport.MessageEndpoint?.ToString()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendMessageAsync(new JsonRpcRequest() { Method = "test"}, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendMessageAsync(new JsonRpcRequest() { Method = "test" }, CancellationToken.None));
     }
 }

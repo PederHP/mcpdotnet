@@ -1,8 +1,10 @@
 ﻿using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using McpDotNet.Protocol.Messages;
-using McpDotNet.Utils.Json;
 using McpDotNet.Logging;
+using McpDotNet.Protocol.Messages;
+using McpDotNet.Server;
+using McpDotNet.Utils.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -12,7 +14,7 @@ namespace McpDotNet.Protocol.Transport;
 public sealed class StdioServerTransport : TransportBase, IServerTransport
 {
     private readonly string _serverName;
-    private readonly ILogger<StdioClientTransport> _logger;
+    private readonly ILogger _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private Task? _readTask;
     private CancellationTokenSource? _shutdownCts;
@@ -22,14 +24,24 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// <summary>
     /// Initializes a new instance of the StdioServerTransport class.
     /// </summary>
+    /// <param name="serverOptions">The server options.</param>
+    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
+    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory)
+        : this(serverOptions is not null ? serverOptions.ServerInfo.Name : throw new ArgumentNullException(nameof(serverOptions)), loggerFactory)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the StdioServerTransport class.
+    /// </summary>
     /// <param name="serverName">The name of the server.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public StdioServerTransport(string serverName, ILoggerFactory loggerFactory)
+    public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory)
         : base(loggerFactory)
     {
         _serverName = serverName;
-        _logger = loggerFactory.CreateLogger<StdioClientTransport>();
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<StdioClientTransport>() : NullLogger.Instance;
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
@@ -37,7 +49,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     {
         _shutdownCts = new CancellationTokenSource();
 
-        _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token));
+        _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token).ConfigureAwait(false), CancellationToken.None);
 
         SetConnected(true);
 
@@ -64,12 +76,9 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
         {
             var json = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.TransportSendingMessage(EndpointName, id, json);
-            
-            using (Console.OpenStandardOutput())
-            {
-                await Console.Out.WriteLineAsync(json.AsMemory(), cancellationToken);
-                await Console.Out.FlushAsync();
-            }
+
+            await Console.Out.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await Console.Out.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -83,7 +92,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CleanupAsync(CancellationToken.None);
+        await CleanupAsync(CancellationToken.None).ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -99,7 +108,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
                 using (Console.OpenStandardInput())
                 {
                     var reader = Console.In;
-                    var line = await reader.ReadLineAsync(cancellationToken);
+                    var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                     if (line == null)
                     {
                         _logger.TransportEndOfStream(EndpointName);
@@ -124,7 +133,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
                                 messageId = messageWithId.Id.ToString();
                             }
                             _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                            await WriteMessageAsync(message, cancellationToken);
+                            await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
                             _logger.TransportMessageWritten(EndpointName, messageId);
                         }
                         else
@@ -152,24 +161,27 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
         }
         finally
         {
-            await CleanupAsync(cancellationToken);
+            await CleanupAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task CleanupAsync(CancellationToken cancellationToken)
     {
         _logger.TransportCleaningUp(EndpointName);
-        
-        _shutdownCts?.Cancel();
-        _shutdownCts?.Dispose();
-        _shutdownCts = null;
+
+        if (_shutdownCts != null)
+        {
+            await _shutdownCts.CancelAsync().ConfigureAwait(false);
+            _shutdownCts.Dispose();
+            _shutdownCts = null;
+        }
 
         if (_readTask != null)
         {
             try
             {
                 _logger.TransportWaitingForReadTask(EndpointName);
-                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {
