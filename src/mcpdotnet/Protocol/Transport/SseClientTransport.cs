@@ -7,6 +7,7 @@ using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -21,7 +22,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     private Uri? _messageEndpoint;
     private readonly CancellationTokenSource _connectionCts;
     private Task? _receiveTask;
-    private readonly ILogger<SseClientTransport> _logger;
+    private readonly ILogger _logger;
     private readonly McpServerConfig _serverConfig;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly TaskCompletionSource<bool> _connectionEstablished;
@@ -35,15 +36,25 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <param name="transportOptions">Configuration options for the transport.</param>
     /// <param name="serverConfig">The configuration object indicating which server to connect to.</param>
     /// <param name="loggerFactory">Logger factory for creating loggers.</param>
-    public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+    public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, ILoggerFactory? loggerFactory)
         : base(loggerFactory)
     {
+        if (transportOptions is null)
+        {
+            throw new ArgumentNullException(nameof(transportOptions));
+        }
+
+        if (serverConfig is null)
+        {
+            throw new ArgumentNullException(nameof(serverConfig));
+        }
+
         _options = transportOptions;
         _serverConfig = serverConfig;
         _sseEndpoint = new Uri(serverConfig.Location!);
         _httpClient = new HttpClient();
         _connectionCts = new CancellationTokenSource();
-        _logger = loggerFactory.CreateLogger<SseClientTransport>();
+        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<SseClientTransport>() : NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _connectionEstablished = new TaskCompletionSource<bool>();
     }
@@ -64,7 +75,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
 
             _logger.TransportReadingMessages(EndpointName);
 
-            await _connectionEstablished.Task.WaitAsync(_options.ConnectionTimeout, cancellationToken);
+            await _connectionEstablished.Task.WaitAsync(_options.ConnectionTimeout, cancellationToken).ConfigureAwait(false);
         }
         catch (McpTransportException)
         {
@@ -74,7 +85,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         catch (Exception ex)
         {
             _logger.TransportConnectFailed(EndpointName, ex);
-            await CloseAsync();
+            await CloseAsync().ConfigureAwait(false);
             throw new McpTransportException("Failed to connect transport", ex);
         }
     }
@@ -104,11 +115,11 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             _messageEndpoint,
             content,
             cancellationToken
-        );
+        ).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         // Check if the message was an initialize request
         if (message is JsonRpcRequest request && request.Method == "initialize")
@@ -125,7 +136,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                     throw new McpTransportException("Failed to initialize client");
 
                 _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                await WriteMessageAsync(initializeResponse, cancellationToken);
+                await WriteMessageAsync(initializeResponse, cancellationToken).ConfigureAwait(false);
                 _logger.TransportMessageWritten(EndpointName, messageId);
             }
             return;
@@ -146,9 +157,9 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public async Task CloseAsync()
     {
-        await _connectionCts.CancelAsync();
+        await _connectionCts.CancelAsync().ConfigureAwait(false);
         if (_receiveTask != null)
-            await _receiveTask;
+            await _receiveTask.ConfigureAwait(false);
 
         _httpClient.Dispose();
         _connectionCts.Dispose();
@@ -158,7 +169,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CloseAsync();
+        await CloseAsync().ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -181,16 +192,16 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken
-                );
+                ).ConfigureAwait(false);
 
                 response.EnsureSuccessStatusCode();
 
-                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 
                 // Reset reconnect attempts on successful connection
                 reconnectAttempts = 0;
 
-                await foreach (SseItem<string> sseEvent in SseParser.Create(stream).EnumerateAsync(cancellationToken))
+                await foreach (SseItem<string> sseEvent in SseParser.Create(stream).EnumerateAsync(cancellationToken).ConfigureAwait(false))
                 {
                     switch (sseEvent.EventType)
                     {
@@ -199,7 +210,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                             break;
 
                         case "message":
-                            await ProcessSseMessage(sseEvent.Data, cancellationToken);
+                            await ProcessSseMessage(sseEvent.Data, cancellationToken).ConfigureAwait(false);
                             break;
                     }
                 }
@@ -224,7 +235,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                     throw new McpTransportException("Exceeded reconnect limit", ex);
                 }
 
-                await Task.Delay(_options.ReconnectDelay, cancellationToken);
+                await Task.Delay(_options.ReconnectDelay, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -253,7 +264,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             }
 
             _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-            await WriteMessageAsync(message, cancellationToken);
+            await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
             _logger.TransportMessageWritten(EndpointName, messageId);
         }
         catch (JsonException ex)
@@ -282,7 +293,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             {
                 // If the endpoint is a relative URI, we need to combine it with the relative path of the SSE endpoint
                 var hostUrl = _sseEndpoint.AbsoluteUri;
-                if (hostUrl.EndsWith("/sse"))
+                if (hostUrl.EndsWith("/sse", StringComparison.Ordinal))
                     hostUrl = hostUrl[..^4];
 
                 var endpointUri = hostUrl + data;

@@ -179,7 +179,7 @@ public sealed class TestSseServer : IAsyncDisposable
     /// Handle POST /message endpoint.
     /// Echo the content back to the caller and broadcast it over SSE as well.
     /// </summary>
-    private async Task HandlePostMessageAsync(HttpListenerContext context, CancellationToken ct)
+    private async Task HandlePostMessageAsync(HttpListenerContext context, CancellationToken cancellationToken)
     {
         var request = context.Request;
         var response = context.Response;
@@ -187,7 +187,7 @@ public sealed class TestSseServer : IAsyncDisposable
         try
         {
             using var reader = new StreamReader(request.InputStream);
-            string content = await reader.ReadToEndAsync(ct);
+            string content = await reader.ReadToEndAsync(cancellationToken);
 
             var jsonRpcNotification = JsonSerializer.Deserialize<JsonRpcNotification>(content);
             if (jsonRpcNotification != null && jsonRpcNotification.Method != "initialize")
@@ -200,7 +200,7 @@ public sealed class TestSseServer : IAsyncDisposable
                 // Write "accepted" as the response body
                 using var writer = new StreamWriter(response.OutputStream);
                 await writer.WriteAsync("accepted");
-                await writer.FlushAsync();
+                await writer.FlushAsync(cancellationToken);
                 return;
             }
 
@@ -220,7 +220,7 @@ public sealed class TestSseServer : IAsyncDisposable
                     // Write "accepted" as the response body
                     using var writer = new StreamWriter(response.OutputStream);
                     await writer.WriteAsync("accepted");
-                    await writer.FlushAsync(ct);
+                    await writer.FlushAsync(cancellationToken);
 
                     // Then process the message and send the response via SSE
                     if (jsonRpcRequest != null)

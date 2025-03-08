@@ -34,6 +34,11 @@ public class McpAIFunction : AIFunction
     /// <inheritdoc/>
     protected async override Task<object?> InvokeCoreAsync(IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
     {
+        if (arguments is null)
+        {
+            throw new ArgumentNullException(nameof(arguments));
+        }
+
         // Convert arguments to dictionary format expected by mcpdotnet
         Dictionary<string, object> argDict = [];
         foreach (var arg in arguments)
@@ -45,7 +50,7 @@ public class McpAIFunction : AIFunction
         }
 
         // Call the tool through mcpdotnet
-        var result = await _client.CallToolAsync(_tool.Name, argDict, cancellationToken);
+        var result = await _client.CallToolAsync(_tool.Name, argDict, cancellationToken).ConfigureAwait(false);
 
         // Extract the text content from the result.
         return string.Join("\n", result.Content

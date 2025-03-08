@@ -58,6 +58,11 @@ public class McpServerDelegates
     /// <param name="server"></param>
     public void Apply(IMcpServer server)
     {
+        if (server is null)
+        {
+            throw new ArgumentNullException(nameof(server));
+        }
+
         if (ListToolsHandler != null)
             server.ListToolsHandler = ListToolsHandler;
 

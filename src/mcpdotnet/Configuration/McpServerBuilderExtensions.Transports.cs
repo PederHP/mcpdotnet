@@ -15,6 +15,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="builder">The builder instance.</param>
     public static IMcpServerBuilder WithStdioServerTransport(this IMcpServerBuilder builder)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.AddSingleton<IServerTransport, StdioServerTransport>();
         return builder;
     }

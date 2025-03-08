@@ -1,6 +1,7 @@
 ﻿using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
+using McpDotNet;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Transport;

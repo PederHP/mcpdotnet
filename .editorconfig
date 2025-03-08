@@ -1,0 +1,18 @@
+# Remove the line below if you want to inherit .editorconfig settings from higher directories
+root = true
+
+# C# files
+[*.cs]
+
+# Code Analysis
+dotnet_diagnostic.CA1002.severity = none            # CA1002: Do not expose generic lists
+dotnet_diagnostic.CA1031.severity = none            # CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1054.severity = none            # CA1054: URI-like parameters should not be strings
+dotnet_diagnostic.CA1056.severity = none            # CA1056: URI-like properties should not be strings
+dotnet_diagnostic.CA1062.severity = suggestion      # CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1510.severity = suggestion      # CA1510: Use ArgumentNullException throw helper
+dotnet_diagnostic.CA1849.severity = suggestion      # CA1849: Call async methods when in an async method
+dotnet_diagnostic.CA2000.severity = suggestion      # CA2000: Dispose objects before losing scope
+dotnet_diagnostic.CA2227.severity = suggestion      # CA2227: Collection properties should be read only
+dotnet_diagnostic.CA2249.severity = suggestion      # CA2249: Use 'string.Contains' instead of 'string.IndexOf'
+dotnet_diagnostic.CA1819.severity = suggestion      # CA1819: Properties should not return arrays

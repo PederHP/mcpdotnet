@@ -1,6 +1,6 @@
-﻿namespace McpDotNet.Protocol.Messages;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace McpDotNet.Protocol.Messages;
 
 /// <summary>
 /// A notification message in the JSON-RPC protocol (a request that doesn't expect a response).

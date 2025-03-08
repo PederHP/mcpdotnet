@@ -17,6 +17,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithListToolsHandler(this IMcpServerBuilder builder, Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.ListToolsHandler = handler);
         return builder;
     }
@@ -28,6 +33,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithCallToolHandler(this IMcpServerBuilder builder, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.CallToolHandler = handler);
         return builder;
     }
@@ -39,6 +49,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithListPromptsHandler(this IMcpServerBuilder builder, Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.ListPromptsHandler = handler);
         return builder;
     }
@@ -50,6 +65,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithGetPromptHandler(this IMcpServerBuilder builder, Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.GetPromptHandler = handler);
         return builder;
     }
@@ -61,6 +81,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithListResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.ListResourcesHandler = handler);
         return builder;
     }
@@ -72,6 +97,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithReadResourceHandler(this IMcpServerBuilder builder, Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.ReadResourceHandler = handler);
         return builder;
     }
@@ -83,6 +113,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithGetCompletionHandler(this IMcpServerBuilder builder, Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.GetCompletionHandler = handler);
         return builder;
     }
@@ -94,6 +129,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithSubscribeToResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.SubscribeToResourcesHandler = handler);
         return builder;
     }
@@ -105,6 +145,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="handler">The handler.</param>
     public static IMcpServerBuilder WithUnsubscribeFromResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         builder.Services.Configure<McpServerDelegates>(s => s.UnsubscribeFromResourcesHandler = handler);
         return builder;
     }

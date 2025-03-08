@@ -55,7 +55,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
                         throw new McpClientException("Sampling handler not configured");
                     }
 
-                    return await SamplingHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await SamplingHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
         if (options.Capabilities?.Roots != null)
@@ -69,7 +69,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
                         _logger.RootsHandlerNotConfigured(EndpointName);
                         throw new McpClientException("Roots handler not configured");
                     }
-                    return await RootsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await RootsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
     }

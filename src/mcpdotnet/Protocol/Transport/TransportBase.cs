@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -11,13 +12,13 @@ namespace McpDotNet.Protocol.Transport;
 public abstract class TransportBase : ITransport
 {
     private readonly Channel<IJsonRpcMessage> _messageChannel;
-    private readonly ILogger<TransportBase> _logger;
+    private readonly ILogger _logger;
     private bool _isConnected;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportBase"/> class.
     /// </summary>
-    protected TransportBase(ILoggerFactory loggerFactory)
+    protected TransportBase(ILoggerFactory? loggerFactory)
     {
         // Unbounded channel to prevent blocking on writes
         _messageChannel = Channel.CreateUnbounded<IJsonRpcMessage>(new UnboundedChannelOptions
@@ -25,7 +26,7 @@ public abstract class TransportBase : ITransport
             SingleReader = true,
             SingleWriter = true,
         });
-        _logger = loggerFactory.CreateLogger<TransportBase>();
+        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<TransportBase>() : NullLogger.Instance;
     }
 
     /// <inheritdoc/>
@@ -53,7 +54,7 @@ public abstract class TransportBase : ITransport
         }
 
         _logger.TransportWritingMessageToChannel(message);
-        await _messageChannel.Writer.WriteAsync(message, cancellationToken);
+        await _messageChannel.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
         _logger.TransportMessageWrittenToChannel();
     }
 

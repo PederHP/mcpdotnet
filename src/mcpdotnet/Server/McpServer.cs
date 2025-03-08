@@ -217,7 +217,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                                 };
                             }
 
-                            return await GetCompletionHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                            return await GetCompletionHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                         });
     }
 
@@ -235,7 +235,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListResources handler not configured");
                     }
 
-                    return await ListResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
 
             SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read",
@@ -248,7 +248,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ReadResource handler not configured");
                     }
 
-                    return await ReadResourceHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ReadResourceHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
     }
@@ -267,7 +267,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListPrompts handler not configured");
                     }
 
-                    return await ListPromptsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListPromptsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
 
             SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get",
@@ -280,7 +280,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("GetPrompt handler not configured");
                     }
 
-                    return await GetPromptHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await GetPromptHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
     }
@@ -299,7 +299,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("ListTools handler not configured");
                     }
 
-                    return await ListToolsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await ListToolsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
 
             SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call",
@@ -312,7 +312,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
                         throw new McpServerException("CallTool handler not configured");
                     }
 
-                    return await CallToolHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None);
+                    return await CallToolHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
         }
     }

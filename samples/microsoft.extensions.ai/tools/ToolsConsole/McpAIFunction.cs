@@ -29,6 +29,11 @@ public class McpAIFunction : AIFunction
 
     protected async override Task<object?> InvokeCoreAsync(IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
     {
+        if (arguments is null)
+        {
+            throw new ArgumentNullException(nameof(arguments));
+        }
+
         // Convert arguments to dictionary format expected by mcpdotnet
         Dictionary<string, object> argDict = [];
         foreach (var arg in arguments)

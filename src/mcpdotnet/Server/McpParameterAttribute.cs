@@ -4,17 +4,17 @@
 /// Attribute to mark a method parameter
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-public class McpParameterAttribute : Attribute
+public sealed class McpParameterAttribute : Attribute
 {
     /// <summary>
     /// Defines if the parameter is required.
     /// </summary>
-    public bool Required { get; set; }
+    public bool Required { get; }
 
     /// <summary>
     /// A description of the parameter.
     /// </summary>
-    public string? Description { get; set; }
+    public string? Description { get; }
 
     /// <summary>
     /// Attribute to mark a method as an MCP tool.

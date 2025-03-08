@@ -225,7 +225,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         Assert.NotNull(result);
         Assert.Single(result.Completion.Values);
-        Assert.True(result.Completion.Values[0] == "1");
+        Assert.Equal("1", result.Completion.Values[0]);
     }
 
     /// <summary>
@@ -256,7 +256,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         Assert.NotNull(result);
         Assert.Single(result.Completion.Values);
-        Assert.True(result.Completion.Values[0] == "formal");
+        Assert.Equal("formal", result.Completion.Values[0]);
     }
 
     [Fact]

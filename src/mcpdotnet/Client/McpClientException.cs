@@ -11,6 +11,13 @@ public class McpClientException : Exception
     public int? ErrorCode { get; }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="McpClientException"/> class.
+    /// </summary>
+    public McpClientException()
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="McpClientException"/> class with a specified error message.
     /// </summary>
     /// <param name="message">The message that describes the error.</param>

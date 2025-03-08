@@ -59,21 +59,25 @@ public class ModelPreferences
     {
         bool valid = true;
         List<string> errors = [];
-        if (CostPriority < 0 || CostPriority > 1)
+        
+        if (CostPriority is < 0 or > 1)
         {
             errors.Add("CostPriority must be between 0 and 1");
             valid = false;
         }
-        if (SpeedPriority < 0 || SpeedPriority > 1)
+        
+        if (SpeedPriority is < 0 or > 1)
         {
             errors.Add("SpeedPriority must be between 0 and 1");
             valid = false;
         }
-        if (IntelligencePriority < 0 || IntelligencePriority > 1)
+        
+        if (IntelligencePriority is < 0 or > 1)
         {
             errors.Add("IntelligencePriority must be between 0 and 1");
             valid = false;
         }
+        
         if (!valid)
         {
             errorMessage = string.Join(", ", errors);
@@ -82,6 +86,7 @@ public class ModelPreferences
         {
             errorMessage = "";
         }
+
         return valid;
     }
 }

@@ -27,7 +27,7 @@ internal static class Program
     {
         Log.Logger.Information("Starting server...");
 
-        McpServerOptions options = new McpServerOptions()
+        McpServerOptions options = new()
         {
             ServerInfo = new Implementation() { Name = "TestServer", Version = "1.0.0" },
             Capabilities = new ServerCapabilities()
@@ -41,7 +41,7 @@ internal static class Program
         };
 
         var loggerFactory = CreateLoggerFactory();
-        McpServerFactory factory = new McpServerFactory(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
+        McpServerFactory factory = new(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
         Log.Logger.Information("Server object created, registering handlers.");

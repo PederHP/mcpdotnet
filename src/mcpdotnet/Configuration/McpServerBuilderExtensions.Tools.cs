@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
@@ -37,6 +38,11 @@ public static partial class McpServerBuilderExtensions
     /// <param name="toolTypes">Types with marked methods to add as tools to the server.</param>
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params Type[] toolTypes)
     {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
         if (toolTypes is null || toolTypes.Length == 0)
             throw new ArgumentException("At least one tool type must be provided.", nameof(toolTypes));
 
@@ -54,7 +60,7 @@ public static partial class McpServerBuilderExtensions
                     var tool = CreateTool(method, attribute);
                     tools.Add(tool);
 
-                    callbacks.Add(tool.Name, async (request, cancellationToken) => await CallTool(request, method, cancellationToken));
+                    callbacks.Add(tool.Name, async (request, cancellationToken) => await CallTool(request, method, cancellationToken).ConfigureAwait(false));
 
                     // register type because method is not static and so we need an instance
                     if (!method.IsStatic)
@@ -68,7 +74,7 @@ public static partial class McpServerBuilderExtensions
         builder.WithCallToolHandler(async (request, cancellationToken) =>
         {
             if (request.Params != null && callbacks.TryGetValue(request.Params.Name, out var callback))
-                return await callback(request, cancellationToken);
+                return await callback(request, cancellationToken).ConfigureAwait(false);
 
             throw new McpServerException($"Unknown tool: {request.Params?.Name}");
         });
@@ -219,7 +225,7 @@ public static partial class McpServerBuilderExtensions
                 if (value is JsonElement element)
                     value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
 
-                parameters.Add(Convert.ChangeType(value, parameter.ParameterType));
+                parameters.Add(Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture));
             }
             else
             {

@@ -1,6 +1,6 @@
-﻿namespace McpDotNet.Protocol.Types;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Represents a known resource that the server is capable of reading.

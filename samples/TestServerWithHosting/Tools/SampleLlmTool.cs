@@ -16,8 +16,11 @@ public class SampleLlmTool
         _server = server ?? throw new ArgumentNullException(nameof(server));
     }
 
-    [McpTool(Name = "sampleLLM", Description = "Samples from an LLM using MCP's sampling feature")]
-    public async Task<string> SampleLLM([McpParameter(true, Description = "The prompt to send to the LLM")] string prompt, [McpParameter(true, Description = "Maximum number of tokens to generate")] int maxTokens, CancellationToken cancellationToken)
+    [McpTool(name: "sampleLLM", description: "Samples from an LLM using MCP's sampling feature")]
+    public async Task<string> SampleLLM(
+        [McpParameter(true, description: "The prompt to send to the LLM")] string prompt,
+        [McpParameter(true, description: "Maximum number of tokens to generate")] int maxTokens,
+        CancellationToken cancellationToken)
     {
         var samplingParams = CreateRequestSamplingParams(prompt ?? string.Empty, "sampleLLM", maxTokens);
         var sampleResult = await _server.RequestSamplingAsync(samplingParams, cancellationToken);

@@ -108,7 +108,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process.BeginErrorReadLine();
 
             // Start reading messages in the background
-            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token), CancellationToken.None);
+            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token).ConfigureAwait(false), CancellationToken.None);
             _logger.TransportReadingMessages(EndpointName);
 
             SetConnected(true);
@@ -116,7 +116,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         catch (Exception ex)
         {
             _logger.TransportConnectFailed(EndpointName, ex);
-            await CleanupAsync(cancellationToken);
+            await CleanupAsync(cancellationToken).ConfigureAwait(false);
             throw new McpTransportException("Failed to connect transport", ex);
         }
     }
@@ -142,8 +142,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _logger.TransportSendingMessage(EndpointName, id, json);
 
             // Write the message followed by a newline
-            await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken);
-            await _process.StandardInput.FlushAsync(cancellationToken);
+            await _process!.StandardInput.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await _process.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -157,7 +157,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CleanupAsync(CancellationToken.None);
+        await CleanupAsync(CancellationToken.None).ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -172,7 +172,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             while (!cancellationToken.IsCancellationRequested && !_process.HasExited)
             {
                 _logger.TransportWaitingForMessage(EndpointName);
-                var line = await reader.ReadLineAsync(cancellationToken);
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 if (line == null)
                 {
                     _logger.TransportEndOfStream(EndpointName);
@@ -197,7 +197,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
                             messageId = messageWithId.Id.ToString();
                         }
                         _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                        await WriteMessageAsync(message, cancellationToken);
+                        await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
                         _logger.TransportMessageWritten(EndpointName, messageId);
                     }
                     else
@@ -224,7 +224,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         }
         finally
         {
-            await CleanupAsync(cancellationToken);
+            await CleanupAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -258,7 +258,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         }
 
         if (_shutdownCts != null)
-            await _shutdownCts.CancelAsync();
+            await _shutdownCts.CancelAsync().ConfigureAwait(false);
         _shutdownCts?.Dispose();
         _shutdownCts = null;
 
@@ -267,7 +267,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             try
             {
                 _logger.TransportWaitingForReadTask(EndpointName);
-                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+                await _readTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {

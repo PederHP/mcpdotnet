@@ -81,7 +81,7 @@ public class McpClientFactory
 
         var transport = _transportFactoryMethod(config);
         var client = _clientFactoryMethod(transport, config, _clientOptions);
-        await client.ConnectAsync(cancellationToken);
+        await client.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.ClientCreated(endpointName);
 
@@ -97,29 +97,36 @@ public class McpClientFactory
 
         var options = string.Join(", ", config.TransportOptions?.Select(kv => $"{kv.Key}={kv.Value}") ?? []);
         _logger.CreatingTransport(endpointName, config.TransportType, options);
-        return config.TransportType.ToLowerInvariant() switch
+
+        if (string.Equals(config.TransportType, TransportTypes.StdIo, StringComparison.OrdinalIgnoreCase))
         {
-            TransportTypes.StdIo => new StdioClientTransport(new StdioClientTransportOptions
+            return new StdioClientTransport(new StdioClientTransportOptions
             {
                 Command = GetCommand(config),
                 Arguments = config.TransportOptions?.GetValueOrDefault("arguments")?.Split(' '),
                 WorkingDirectory = config.TransportOptions?.GetValueOrDefault("workingDirectory"),
                 EnvironmentVariables = config.TransportOptions?
-                    .Where(kv => kv.Key.StartsWith("env:"))
+                    .Where(kv => kv.Key.StartsWith("env:", StringComparison.Ordinal))
                     .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
-            }, config, _loggerFactory),
-            TransportTypes.Sse or "http" => new SseClientTransport(
+            }, config, _loggerFactory);
+        }
+
+        if (string.Equals(config.TransportType, TransportTypes.Sse, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(config.TransportType, "http", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SseClientTransport(
                new SseClientTransportOptions
                {
                    ConnectionTimeout = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "connectionTimeout", 30)),
                    MaxReconnectAttempts = ParseOrDefault(config.TransportOptions, "maxReconnectAttempts", 3),
                    ReconnectDelay = TimeSpan.FromSeconds(ParseOrDefault(config.TransportOptions, "reconnectDelay", 5)),
                    AdditionalHeaders = config.TransportOptions?
-                       .Where(kv => kv.Key.StartsWith("header."))
+                       .Where(kv => kv.Key.StartsWith("header.", StringComparison.Ordinal))
                        .ToDictionary(kv => kv.Key.Substring(7), kv => kv.Value)
-               }, config, _loggerFactory),
-            _ => throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config))
-        };
+               }, config, _loggerFactory);
+        }
+
+        throw new ArgumentException($"Unsupported transport type '{config.TransportType}'.", nameof(config));
     }
 
     private static int ParseOrDefault(Dictionary<string, string>? options, string key, int defaultValue)

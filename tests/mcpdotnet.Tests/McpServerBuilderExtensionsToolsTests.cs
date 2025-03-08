@@ -131,13 +131,13 @@ public class McpServerBuilderExtensionsToolsTests
 
     private static class EchoTool
     {
-        [McpTool(Description = "Echoes the input back to the client.")]
-        public static string Echo([McpParameter(true, Description = "the echoes message")] string message)
+        [McpTool(description: "Echoes the input back to the client.")]
+        public static string Echo([McpParameter(true, description: "the echoes message")] string message)
         {
             return "hello " + message;
         }
 
-        [McpTool(Name = "double_echo", Description = "Echoes the input back to the client.")]
+        [McpTool(name: "double_echo", description: "Echoes the input back to the client.")]
         public static string Echo2([McpParameter(true)] string message)
         {
             return "hello hello" + message;
@@ -154,7 +154,7 @@ public class McpServerBuilderExtensionsToolsTests
         {
         }
 
-        [McpTool(Description = "Echoes the input back to the client.")]
+        [McpTool(description: "Echoes the input back to the client.")]
         public Task<string> Echo([McpParameter(true)] string message)
         {
             return Task.FromResult("hello " + message);

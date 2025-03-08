@@ -12,7 +12,7 @@ namespace McpDotNet.Extensions.AI;
 /// 
 /// Disposing the scope will dispose all clients and tools, and close all connections.
 /// </summary>
-public class McpSessionScope : IAsyncDisposable
+public sealed class McpSessionScope : IAsyncDisposable
 {
     private readonly List<IMcpClient> _clients = [];
     private bool _disposed;
@@ -39,9 +39,14 @@ public class McpSessionScope : IAsyncDisposable
         McpClientOptions? options = null,
         ILoggerFactory? loggerFactory = null)
     {
+        if (serverConfig is null)
+        {
+            throw new ArgumentNullException(nameof(serverConfig));
+        }
+
         var scope = new McpSessionScope();
-        var client = await scope.AddClientAsync(serverConfig, options, loggerFactory);
-        var tools = await client.ListToolsAsync();
+        var client = await scope.AddClientAsync(serverConfig, options, loggerFactory).ConfigureAwait(false);
+        var tools = await client.ListToolsAsync().ConfigureAwait(false);
         scope.Tools = tools.Tools.Select(t => new McpAIFunction(t, client)).ToList<AITool>();
         if (!string.IsNullOrEmpty(client.ServerInstructions))
         {
@@ -61,11 +66,16 @@ public class McpSessionScope : IAsyncDisposable
         McpClientOptions? options = null,
         ILoggerFactory? loggerFactory = null)
     {
+        if (serverConfigs is null)
+        {
+            throw new ArgumentNullException(nameof(serverConfigs));
+        }
+
         var scope = new McpSessionScope();
         foreach (var config in serverConfigs)
         {
-            var client = await scope.AddClientAsync(config, options, loggerFactory);
-            var tools = await client.ListToolsAsync();
+            var client = await scope.AddClientAsync(config, options, loggerFactory).ConfigureAwait(false);
+            var tools = await client.ListToolsAsync().ConfigureAwait(false);
             scope.Tools = scope.Tools.Concat(tools.Tools.Select(t => new McpAIFunction(t, client))).ToList();
         }
         scope.ServerInstructions = scope._clients.Select(c => c.ServerInstructions).Where(s => !string.IsNullOrEmpty(s)).ToList()!;
@@ -79,7 +89,7 @@ public class McpSessionScope : IAsyncDisposable
         var factory = new McpClientFactory([config],
             options ?? new() { ClientInfo = new() { Name = "AnonymousClient", Version = "1.0.0.0" } },
             loggerFactory ?? NullLoggerFactory.Instance);
-        var client = await factory.GetClientAsync(config.Id);
+        var client = await factory.GetClientAsync(config.Id).ConfigureAwait(false);
         _clients.Add(client);
         return client;
     }
@@ -92,7 +102,7 @@ public class McpSessionScope : IAsyncDisposable
 
         foreach (var client in _clients)
         {
-            await client.DisposeAsync();
+            await client.DisposeAsync().ConfigureAwait(false);
         }
         _clients.Clear();
         Tools = [];

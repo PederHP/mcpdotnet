@@ -1,6 +1,6 @@
-﻿namespace McpDotNet.Protocol.Messages;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace McpDotNet.Protocol.Messages;
 
 /// <summary>
 /// Represents a JSON-RPC request identifier which can be either a string or a number.

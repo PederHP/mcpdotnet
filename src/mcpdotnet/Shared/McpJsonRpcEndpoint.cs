@@ -16,7 +16,7 @@ namespace McpDotNet.Shared;
 /// This is especially true as a client represents a connection to one and only one server, and vice versa.
 /// Any multi-client or multi-server functionality should be implemented at a higher level of abstraction.
 /// </summary>
-internal abstract class McpJsonRpcEndpoint
+internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 {
     private readonly ITransport _transport;
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
@@ -94,7 +94,7 @@ internal abstract class McpJsonRpcEndpoint
                 var payload = JsonSerializer.Serialize(message);
                 _logger.MessageHandlerError(EndpointName, message.GetType().Name, payload, t.Exception);
             }
-        }, TaskContinuationOptions.OnlyOnFaulted);
+        }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
 
     private async Task HandleMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken)
@@ -107,14 +107,14 @@ internal abstract class McpJsonRpcEndpoint
                     try
                     {
                         _logger.RequestHandlerCalled(EndpointName, request.Method);
-                        var result = await handler(request);
+                        var result = await handler(request).ConfigureAwait(false);
                         _logger.RequestHandlerCompleted(EndpointName, request.Method);
                         await _transport.SendMessageAsync(new JsonRpcResponse
                         {
                             Id = request.Id,
                             JsonRpc = "2.0",
                             Result = result
-                        }, cancellationToken);
+                        }, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -129,7 +129,7 @@ internal abstract class McpJsonRpcEndpoint
                                 Code = -32000,  // Implementation defined error
                                 Message = ex.Message
                             }
-                        }, cancellationToken);
+                        }, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 else
@@ -362,7 +362,7 @@ internal abstract class McpJsonRpcEndpoint
             var jsonString = JsonSerializer.Serialize(request.Params);
             var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
 
-            return await handler(typedRequest);
+            return await handler(typedRequest).ConfigureAwait(false);
         };
     }
 
@@ -385,7 +385,7 @@ internal abstract class McpJsonRpcEndpoint
         _logger.CleaningUpEndpoint(EndpointName);
 
         if (CancellationTokenSource != null)
-            await CancellationTokenSource.CancelAsync();
+            await CancellationTokenSource.CancelAsync().ConfigureAwait(false);
 
         if (MessageProcessingTask != null)
         {

@@ -1,7 +1,7 @@
-﻿namespace McpDotNet.Client;
-
-using McpDotNet.Protocol.Messages;
+﻿using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
+
+namespace McpDotNet.Client;
 
 /// <summary>
 /// Represents an instance of the MCP client connecting to a specific server.

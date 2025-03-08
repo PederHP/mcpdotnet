@@ -23,6 +23,6 @@ public class McpServerHostedService : BackgroundService
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _server.StartAsync(stoppingToken);
+        await _server.StartAsync(stoppingToken).ConfigureAwait(false);
     }
 }
