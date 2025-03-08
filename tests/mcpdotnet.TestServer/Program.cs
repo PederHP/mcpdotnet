@@ -5,6 +5,8 @@ using McpDotNet.Server;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
+namespace McpDotNet.TestServer;
+
 internal static class Program
 {
     private static ILoggerFactory CreateLoggerFactory()
@@ -336,7 +338,7 @@ internal static class Program
         Log.Logger.Information("Server started.");
 
         // Run until process is stopped by the client (parent process)
-        while (true)
+        while (true) // NOSONAR
         {
             await Task.Delay(1000);
         }

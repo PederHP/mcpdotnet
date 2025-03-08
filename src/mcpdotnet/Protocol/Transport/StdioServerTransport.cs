@@ -169,9 +169,12 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     {
         _logger.TransportCleaningUp(EndpointName);
 
-        _shutdownCts?.Cancel();
-        _shutdownCts?.Dispose();
-        _shutdownCts = null;
+        if (_shutdownCts != null)
+        {
+            await _shutdownCts.CancelAsync().ConfigureAwait(false);
+            _shutdownCts.Dispose();
+            _shutdownCts = null;
+        }
 
         if (_readTask != null)
         {

@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>TestServer</AssemblyName>
+    <RootNamespace>McpDotNet.TestServer</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
