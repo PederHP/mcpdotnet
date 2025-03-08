@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using McpDotNet.Configuration;
@@ -117,7 +118,7 @@ public static partial class McpServerBuilderExtensions
         return WithTools(builder, toolTypes.ToArray());
     }
 
-    private static Tool CreateTool(MethodInfo method, McpToolAttribute attribute)
+    private static Tool CreateTool(MethodInfo method, McpToolAttribute mcpAttribute)
     {
         Dictionary<string, JsonSchemaProperty> properties = [];
         List<string>? requiredProperties = null;
@@ -127,15 +128,15 @@ public static partial class McpServerBuilderExtensions
             if (parameter.ParameterType == typeof(CancellationToken))
                 continue;
 
-            var parameterAttribute = parameter.GetCustomAttribute<McpParameterAttribute>();
+            var parameterDescriptionAttr = parameter.GetCustomAttribute<DescriptionAttribute>();
 
             properties.Add(parameter.Name ?? "NoName", new JsonSchemaProperty()
             {
                 Type = GetParameterType(parameter.ParameterType),
-                Description = parameterAttribute?.Description
+                Description = parameterDescriptionAttr?.Description,
             });
 
-            if (parameterAttribute?.Required == true)
+            if (!parameter.HasDefaultValue)
             {
                 requiredProperties ??= [];
                 requiredProperties.Add(parameter.Name ?? "NoName");
@@ -144,8 +145,8 @@ public static partial class McpServerBuilderExtensions
 
         return new Tool()
         {
-            Name = attribute.Name ?? method.Name,
-            Description = attribute.Description,
+            Name = mcpAttribute.Name ?? method.Name,
+            Description = method.GetCustomAttribute<DescriptionAttribute>()?.Description,
             InputSchema = new JsonSchema()
             {
                 Type = "object",
@@ -229,12 +230,10 @@ public static partial class McpServerBuilderExtensions
             }
             else
             {
-                var parameterAttribute = parameter.GetCustomAttribute<McpParameterAttribute>();
-
-                if (parameterAttribute?.Required == true)
+                if (!parameter.HasDefaultValue)
                     throw new McpServerException($"Missing required argument '{parameter.Name}'.");
 
-                parameters.Add(parameter.HasDefaultValue ? parameter.DefaultValue : null);
+                parameters.Add(parameter.DefaultValue);
             }
         }
 
