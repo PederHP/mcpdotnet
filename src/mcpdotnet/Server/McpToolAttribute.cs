@@ -6,22 +6,15 @@
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class McpToolAttribute : Attribute
 {
-    /// The name of the tool. If not provided, the class name will be used.  
+    /// <summary>Gets the name of the tool.</summary>
+    /// <remarks>If not provided, the method name will be used.</remarks>
     public string? Name { get; }
-
-    /// <summary>
-    /// A description of the tool.
-    /// </summary>
-    public string? Description { get; }
-
     /// <summary>
     /// Attribute to mark a method as an MCP tool.
     /// </summary>
     /// <param name="name">The name of the tool. If not provided, the class name will be used.</param>
-    /// <param name="description">A description of the tool.</param>
-    public McpToolAttribute(string? name = null, string? description = null)
+    public McpToolAttribute(string? name = null)
     {
         Name = name;
-        Description = description;
     }
 }
