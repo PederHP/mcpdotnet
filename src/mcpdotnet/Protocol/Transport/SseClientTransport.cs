@@ -20,7 +20,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     private readonly SseClientTransportOptions _options;
     private readonly Uri _sseEndpoint;
     private Uri? _messageEndpoint;
-    private readonly CancellationTokenSource _connectionCts;
+    private CancellationTokenSource? _connectionCts;
     private Task? _receiveTask;
     private readonly ILogger _logger;
     private readonly McpServerConfig _serverConfig;
@@ -71,7 +71,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             }
 
             // Start message receiving loop
-            _receiveTask = ReceiveMessagesAsync(_connectionCts.Token);
+            _receiveTask = ReceiveMessagesAsync(_connectionCts!.Token);
 
             _logger.TransportReadingMessages(EndpointName);
 
@@ -157,12 +157,16 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <inheritdoc/>
     public async Task CloseAsync()
     {
-        await _connectionCts.CancelAsync().ConfigureAwait(false);
+        if (_connectionCts != null)
+        {
+            await _connectionCts.CancelAsync().ConfigureAwait(false);
+            _connectionCts.Dispose();
+            _connectionCts = null;
+        }
         if (_receiveTask != null)
             await _receiveTask.ConfigureAwait(false);
 
         _httpClient.Dispose();
-        _connectionCts.Dispose();
         SetConnected(false);
     }
 

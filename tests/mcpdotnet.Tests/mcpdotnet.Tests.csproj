@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\mcpdotnet\mcpdotnet.csproj" />
     <ProjectReference Include="..\mcpdotnet.TestServer\mcpdotnet.TestServer.csproj" />
+    <ProjectReference Include="..\mcpdotnet.TestSseServer\mcpdotnet.TestSseServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +38,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="..\mcpdotnet.TestServer\bin\$(Configuration)\net8.0\TestServer.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="..\mcpdotnet.TestSseServer\bin\$(Configuration)\net8.0\TestSseServer.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="..\mcpdotnet.TestSseServer\bin\$(Configuration)\net8.0\TestSseServer.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

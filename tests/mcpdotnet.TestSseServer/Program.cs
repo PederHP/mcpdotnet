@@ -42,7 +42,7 @@ internal class Program
         };
         var loggerFactory = CreateLoggerFactory();
 
-        var serverProvider = new HttpListenerServerProvider(3091);
+        var serverProvider = new HttpListenerServerProvider(3001);
 
         McpServerFactory factory = new McpServerFactory(new SseServerTransport("TestServer", serverProvider, loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();

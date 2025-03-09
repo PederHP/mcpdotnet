@@ -188,12 +188,23 @@ public class HttpListenerServerProvider : IHttpServerProvider
         // Keep the connection open until cancelled
         try
         {
-            // Send initial comment to establish connection
-            await writer.WriteLineAsync(":");
-            await writer.FlushAsync();
+            // Immediately send the "endpoint" event with the POST URL
+            await writer.WriteLineAsync("event: endpoint");
+            await writer.WriteLineAsync($"data: {_messageEndpoint}");
+            await writer.WriteLineAsync(); // blank line to end an SSE message
+            await writer.FlushAsync(cancellationToken);
 
             // Keep the connection open
-            await Task.Delay(-1, cancellationToken);
+            //await Task.Delay(-1, cancellationToken);
+            // Keep the connection open by "pinging" or just waiting
+            // until the client disconnects or the server is canceled.
+            while (!cancellationToken.IsCancellationRequested && response.OutputStream.CanWrite)
+            {
+                // Optionally do a periodic no-op to keep connection alive:
+                await writer.WriteLineAsync(": keep-alive");
+                await writer.FlushAsync(cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            }
         }
         catch (TaskCanceledException)
         {
@@ -233,6 +244,8 @@ public class HttpListenerServerProvider : IHttpServerProvider
         {
             // Return 202 Accepted
             response.StatusCode = 202;
+            // Write "accepted" response
+            await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Accepted"), cancellationToken);
         }
         else
         {
