@@ -105,47 +105,45 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             while (!cancellationToken.IsCancellationRequested)
             {
                 _logger.TransportWaitingForMessage(EndpointName);
-                using (Console.OpenStandardInput())
+
+                var reader = Console.In;
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (line == null)
                 {
-                    var reader = Console.In;
-                    var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-                    if (line == null)
-                    {
-                        _logger.TransportEndOfStream(EndpointName);
-                        break;
-                    }
+                    _logger.TransportEndOfStream(EndpointName);
+                    break;
+                }
 
-                    if (string.IsNullOrWhiteSpace(line))
-                    {
-                        continue;
-                    }
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
 
-                    _logger.TransportReceivedMessage(EndpointName, line);
+                _logger.TransportReceivedMessage(EndpointName, line);
 
-                    try
+                try
+                {
+                    var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
+                    if (message != null)
                     {
-                        var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
-                        if (message != null)
+                        string messageId = "(no id)";
+                        if (message is IJsonRpcMessageWithId messageWithId)
                         {
-                            string messageId = "(no id)";
-                            if (message is IJsonRpcMessageWithId messageWithId)
-                            {
-                                messageId = messageWithId.Id.ToString();
-                            }
-                            _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                            await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
-                            _logger.TransportMessageWritten(EndpointName, messageId);
+                            messageId = messageWithId.Id.ToString();
                         }
-                        else
-                        {
-                            _logger.TransportMessageParseUnexpectedType(EndpointName, line);
-                        }
+                        _logger.TransportReceivedMessageParsed(EndpointName, messageId);
+                        await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
+                        _logger.TransportMessageWritten(EndpointName, messageId);
                     }
-                    catch (JsonException ex)
+                    else
                     {
-                        _logger.TransportMessageParseFailed(EndpointName, line, ex);
-                        // Continue reading even if we fail to parse a message
+                        _logger.TransportMessageParseUnexpectedType(EndpointName, line);
                     }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.TransportMessageParseFailed(EndpointName, line, ex);
+                    // Continue reading even if we fail to parse a message
                 }
             }
             _logger.TransportExitingReadMessagesLoop(EndpointName);
