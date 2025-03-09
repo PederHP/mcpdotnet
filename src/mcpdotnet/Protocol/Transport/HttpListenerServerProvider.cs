@@ -1,41 +1,54 @@
-﻿using McpDotNet.Protocol.Transport;
+﻿using McpDotNet.Server;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 
-public class HttpListenerServerProvider : IHttpServerProvider
+namespace McpDotNet.Protocol.Transport;
+
+/// <summary>
+/// HTTP server provider using HttpListener.
+/// </summary>
+public class HttpListenerServerProvider : IHttpServerProvider, IDisposable
 {
     private readonly int _port;
     private readonly string _sseEndpoint = "/sse";
     private readonly string _messageEndpoint = "/message";
-    private HttpListener _listener;
-    private CancellationTokenSource _cts;
-    private Func<string, CancellationToken, bool> _messageHandler;
+    private HttpListener? _listener;
+    private CancellationTokenSource? _cts;
+    private Func<string, CancellationToken, bool>? _messageHandler;
     private ConcurrentDictionary<string, StreamWriter> _sseClients = new();
     private bool _isRunning;
     private readonly object _lock = new();
 
+    /// <summary>
+    /// Creates a new instance of the HTTP server provider.
+    /// </summary>
+    /// <param name="port">The port to listen on</param>
     public HttpListenerServerProvider(int port)
     {
         _port = port;
     }
 
+    /// <inheritdoc/>
     public Task<string> GetSseEndpointUri()
     {
         return Task.FromResult($"http://localhost:{_port}{_sseEndpoint}");
     }
 
+    /// <inheritdoc/>
     public Task InitializeMessageHandler(Func<string, CancellationToken, bool> messageHandler)
     {
         _messageHandler = messageHandler;
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public Task InitializeSseEvents()
     {
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public Task SendEvent(string data, string eventId)
     {
         foreach (var client in _sseClients)
@@ -59,6 +72,7 @@ public class HttpListenerServerProvider : IHttpServerProvider
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc/>
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
         lock (_lock)
@@ -73,11 +87,12 @@ public class HttpListenerServerProvider : IHttpServerProvider
             _isRunning = true;
 
             // Start listening for connections
-            Task.Run(() => ListenForConnectionsAsync(_cts.Token));
+            Task.Run(() => ListenForConnectionsAsync(_cts.Token), cancellationToken).ConfigureAwait(false);
             return Task.CompletedTask;
         }
     }
 
+    /// <inheritdoc/>
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
         lock (_lock)
@@ -105,11 +120,16 @@ public class HttpListenerServerProvider : IHttpServerProvider
 
     private async Task ListenForConnectionsAsync(CancellationToken cancellationToken)
     {
+        if (_listener == null)
+        {
+            throw new McpServerException("Listener not initialized");
+        }
+
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var context = await _listener.GetContextAsync();
+                var context = await _listener.GetContextAsync().ConfigureAwait(false);
 
                 // Process the request in a separate task
                 _ = Task.Run(() => ProcessRequestAsync(context, cancellationToken), cancellationToken);
@@ -138,15 +158,18 @@ public class HttpListenerServerProvider : IHttpServerProvider
             var request = context.Request;
             var response = context.Response;
 
+            if (request == null)
+                throw new McpServerException("Request is null");
+
             // Handle SSE connection
-            if (request.HttpMethod == "GET" && request.Url.LocalPath == _sseEndpoint)
+            if (request.HttpMethod == "GET" && request.Url?.LocalPath == _sseEndpoint)
             {
-                await HandleSseConnectionAsync(context, cancellationToken);
+                await HandleSseConnectionAsync(context, cancellationToken).ConfigureAwait(false);
             }
             // Handle message POST
-            else if (request.HttpMethod == "POST" && request.Url.LocalPath == _messageEndpoint)
+            else if (request.HttpMethod == "POST" && request.Url?.LocalPath == _messageEndpoint)
             {
-                await HandleMessageAsync(context, cancellationToken);
+                await HandleMessageAsync(context, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -189,10 +212,10 @@ public class HttpListenerServerProvider : IHttpServerProvider
         try
         {
             // Immediately send the "endpoint" event with the POST URL
-            await writer.WriteLineAsync("event: endpoint");
-            await writer.WriteLineAsync($"data: {_messageEndpoint}");
-            await writer.WriteLineAsync(); // blank line to end an SSE message
-            await writer.FlushAsync(cancellationToken);
+            await writer.WriteLineAsync("event: endpoint").ConfigureAwait(false);
+            await writer.WriteLineAsync($"data: {_messageEndpoint}").ConfigureAwait(false);
+            await writer.WriteLineAsync().ConfigureAwait(false); // blank line to end an SSE message
+            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             // Keep the connection open
             //await Task.Delay(-1, cancellationToken);
@@ -201,9 +224,9 @@ public class HttpListenerServerProvider : IHttpServerProvider
             while (!cancellationToken.IsCancellationRequested && response.OutputStream.CanWrite)
             {
                 // Optionally do a periodic no-op to keep connection alive:
-                await writer.WriteLineAsync(": keep-alive");
-                await writer.FlushAsync(cancellationToken);
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                await writer.WriteLineAsync(": keep-alive").ConfigureAwait(false);
+                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
         }
         catch (TaskCanceledException)
@@ -236,16 +259,23 @@ public class HttpListenerServerProvider : IHttpServerProvider
         string requestBody;
         using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
         {
-            requestBody = await reader.ReadToEndAsync();
+            // TODO: Add cancellation token and netstandard2.0 support (polyfill?)
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
+            requestBody = await reader.ReadToEndAsync().ConfigureAwait(false);
+#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods
         }
 
         // Process the message asynchronously
-        if (_messageHandler(requestBody, cancellationToken))
+        if (_messageHandler != null && _messageHandler(requestBody, cancellationToken))
         {
             // Return 202 Accepted
             response.StatusCode = 202;
             // Write "accepted" response
-            await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Accepted"), cancellationToken);
+            // TODO: Use WriteAsync, add cancellation token and netstandard2.0 support (polyfill?)
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
+            byte[] buffer = Encoding.UTF8.GetBytes("Accepted");
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods
         }
         else
         {
@@ -256,7 +286,16 @@ public class HttpListenerServerProvider : IHttpServerProvider
         response.Close();
     }
 
+
+    /// <inheritdoc/>
     public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc/>
+    protected virtual void Dispose(bool disposing)
     {
         StopAsync().GetAwaiter().GetResult();
         _cts?.Dispose();
