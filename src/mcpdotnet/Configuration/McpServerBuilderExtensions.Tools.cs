@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
@@ -170,44 +171,49 @@ public static partial class McpServerBuilderExtensions
 
     private static async Task<CallToolResponse> CallTool(RequestContext<CallToolRequestParams> request, MethodInfo method, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var methodParameters = method.GetParameters();
         List<object?> parameters = ResolveParameters(request, methodParameters, cancellationToken);
 
-        if (cancellationToken.IsCancellationRequested)
-            return new CallToolResponse { Content = [new Content { Text = "Operation was cancelled" }] };
-
+        using var scope = request.Server.ServiceProvider?.CreateScope();
+        var objectInstance = CreateObjectInstance(method, scope?.ServiceProvider);
+        object? result;
         try
         {
-            using var scope = request.Server.ServiceProvider?.CreateScope();
-            var objectInstance = CreateObjectInstance(method, scope?.ServiceProvider);
-            var result = method.Invoke(objectInstance, parameters.ToArray());
-
-
-            if (result is Task task)
-            {
-                await task.ConfigureAwait(false);
-                var resultProperty = task.GetType().GetProperty("Result");
-                result = resultProperty?.GetValue(task);
-            }
-
-            if (result is string resultString)
-                return new CallToolResponse { Content = [new Content() { Text = resultString, Type = "text" }] };
-
-            if (result is string[] resultStringArray)
-                return new CallToolResponse { Content = resultStringArray.Select(s => new Content() { Text = s, Type = "text" }).ToList() };
-
-            if (result is null)
-                return new CallToolResponse { Content = [new Content() { Text = "null" }] };
-
-            if (result is JsonElement jsonElement)
-                return new CallToolResponse { Content = [new Content() { Text = jsonElement.GetRawText(), Type = "text" }] };
-
-            return new CallToolResponse { Content = [new Content() { Text = result.ToString(), Type = "text" }] };
+            const BindingFlags InvokeFlags =
+#if NET
+                BindingFlags.DoNotWrapExceptions |
+#endif
+                BindingFlags.Default;
+            result = method.Invoke(objectInstance, InvokeFlags, binder: null, parameters.ToArray(), culture: null);
         }
-        catch (TargetInvocationException e)
+        catch (TargetInvocationException e) when (e.InnerException is not null)
         {
-            throw new McpServerException(e.Message, e);
+            ExceptionDispatchInfo.Capture(e.InnerException).Throw();
+            throw; // unreachable
         }
+
+        if (result is Task task)
+        {
+            await task.ConfigureAwait(false);
+            var resultProperty = task.GetType().GetProperty("Result");
+            result = resultProperty?.GetValue(task);
+        }
+
+        if (result is string resultString)
+            return new CallToolResponse { Content = [new Content() { Text = resultString, Type = "text" }] };
+
+        if (result is string[] resultStringArray)
+            return new CallToolResponse { Content = resultStringArray.Select(s => new Content() { Text = s, Type = "text" }).ToList() };
+
+        if (result is null)
+            return new CallToolResponse { Content = [new Content() { Text = "null" }] };
+
+        if (result is JsonElement jsonElement)
+            return new CallToolResponse { Content = [new Content() { Text = jsonElement.GetRawText(), Type = "text" }] };
+
+        return new CallToolResponse { Content = [new Content() { Text = result.ToString(), Type = "text" }] };
     }
 
     private static List<object?> ResolveParameters(RequestContext<CallToolRequestParams> request, ParameterInfo[] methodParameters, CancellationToken cancellationToken)
