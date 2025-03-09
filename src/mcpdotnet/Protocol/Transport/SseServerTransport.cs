@@ -31,9 +31,9 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
         : base(loggerFactory)
     {
         _serverName = serverName;
-        _httpServerProvider = httpServerProvider;
+        _httpServerProvider = httpServerProvider ?? throw new ArgumentNullException(nameof(httpServerProvider));
         _logger = loggerFactory.CreateLogger<SseServerTransport>();
-        _jsonOptions = new JsonSerializerOptions().ConfigureForMcp(loggerFactory);
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
@@ -70,7 +70,7 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
             var json = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.TransportSendingMessage(EndpointName, id, json);
 
-            await _httpServerProvider.SendEvent(json, "message");
+            await _httpServerProvider.SendEvent(json, "message").ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -84,7 +84,7 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CleanupAsync(CancellationToken.None);
+        await CleanupAsync(CancellationToken.None).ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -92,9 +92,12 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
     {
         _logger.TransportCleaningUp(EndpointName);
 
-        _shutdownCts?.Cancel();
-        _shutdownCts?.Dispose();
-        _shutdownCts = null;
+        if (_shutdownCts != null)
+        {
+            await _shutdownCts.CancelAsync().ConfigureAwait(false);
+            _shutdownCts.Dispose();
+            _shutdownCts = null;
+        }
 
         // TODO: Cleanup SSE server transport
 
@@ -125,9 +128,9 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
                     }
 
                     _logger.TransportReceivedMessageParsed(EndpointName, messageId);
-                    await WriteMessageAsync(message, cancellationToken);
+                    await WriteMessageAsync(message, cancellationToken).ConfigureAwait(false);
                     _logger.TransportMessageWritten(EndpointName, messageId);
-                });
+                }, cancellationToken);
 
                 return true;
             }

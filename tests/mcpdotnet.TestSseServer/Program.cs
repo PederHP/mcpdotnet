@@ -42,10 +42,9 @@ internal class Program
         };
         var loggerFactory = CreateLoggerFactory();
 
-        var serverProvider = new HttpServerProvider();
+        var serverProvider = new HttpListenerServerProvider(3091);
 
-        McpServerFactory factory = new McpServerFactory(new SseServerTransport("TestServer", serverProvider, loggerFactory), options, loggerFactory,
-            "This is a test server with only stub functionality");
+        McpServerFactory factory = new McpServerFactory(new SseServerTransport("TestServer", serverProvider, loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
         Console.WriteLine("Server object created, registering handlers.");
@@ -112,9 +111,13 @@ internal class Program
 
         server.CallToolHandler = async (request, cancellationToken) =>
         {
-            if (request.Name == "echo")
+            if (request.Params is null)
             {
-                if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
+                throw new McpServerException("Missing required parameter 'name'");
+            }
+            if (request.Params.Name == "echo")
+            {
+                if (request.Params.Arguments is null || !request.Params.Arguments.TryGetValue("message", out var message))
                 {
                     throw new McpServerException("Missing required argument 'message'");
                 }
@@ -123,11 +126,11 @@ internal class Program
                     Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
                 };
             }
-            else if (request.Name == "sampleLLM")
+            else if (request.Params.Name == "sampleLLM")
             {
-                if (request.Arguments is null || 
-                    !request.Arguments.TryGetValue("prompt", out var prompt) || 
-                    !request.Arguments.TryGetValue("maxTokens", out var maxTokens))
+                if (request.Params.Arguments is null || 
+                    !request.Params.Arguments.TryGetValue("prompt", out var prompt) || 
+                    !request.Params.Arguments.TryGetValue("maxTokens", out var maxTokens))
                 {
                     throw new McpServerException("Missing required arguments 'prompt' and 'maxTokens'");
                 }
@@ -141,7 +144,7 @@ internal class Program
             }
             else
             {
-                throw new McpServerException($"Unknown tool: {request.Name}");
+                throw new McpServerException($"Unknown tool: {request.Params.Name}");
             }
         };
         #endregion
@@ -190,12 +193,12 @@ internal class Program
         server.ListResourcesHandler = (request, cancellationToken) =>
         {
             int startIndex = 0;
-            if (request is null) request = new();
-            if (request.Cursor is not null)
+            var requestParams = request.Params ?? new();
+            if (requestParams.Cursor is not null)
             {
                 try
                 {
-                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Cursor));
+                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(requestParams.Cursor));
                     startIndex = Convert.ToInt32(startIndexAsString);
                 }
                 catch
@@ -220,11 +223,11 @@ internal class Program
 
         server.ReadResourceHandler = (request, cancellationToken) =>
         {
-            if (request.Uri is null)
+            if (request.Params?.Uri is null)
             {
                 throw new McpServerException("Missing required argument 'uri'");
             }
-            ResourceContents? contents = resourceContents.FirstOrDefault(r => r.Uri == request.Uri);
+            ResourceContents? contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri);
             if (contents is null)
             {
                 throw new McpServerException("Resource not found");
@@ -273,8 +276,12 @@ internal class Program
 
         server.GetPromptHandler = (request, cancellationToken) =>
         {
+            if (request.Params is null)
+            {
+                throw new McpServerException("Missing required parameter 'name'");
+            }
             List<PromptMessage> messages = new();
-            if (request.Name == "simple_prompt")
+            if (request.Params.Name == "simple_prompt")
             {
                 messages.Add(new PromptMessage()
                 {
@@ -286,10 +293,10 @@ internal class Program
                     }
                 });
             }
-            else if (request.Name == "complex_prompt")
+            else if (request.Params.Name == "complex_prompt")
             {
-                string temperature = request.Arguments?["temperature"]?.ToString() ?? "unknown";
-                string style = request.Arguments?["style"]?.ToString() ?? "unknown";
+                string temperature = request.Params.Arguments?["temperature"]?.ToString() ?? "unknown";
+                string style = request.Params.Arguments?["style"]?.ToString() ?? "unknown";
                 messages.Add(new PromptMessage()
                 {
                     Role = Role.User,
@@ -321,7 +328,7 @@ internal class Program
             }
             else
             {
-                throw new McpServerException($"Unknown prompt: {request.Name}");
+                throw new McpServerException($"Unknown prompt: {request.Params.Name}");
             }
 
             return Task.FromResult(new GetPromptResult()
