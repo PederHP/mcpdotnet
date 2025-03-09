@@ -1,5 +1,6 @@
 ﻿using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
+using System.ComponentModel;
 
 namespace TestServerWithHosting.Tools;
 
@@ -16,10 +17,10 @@ public class SampleLlmTool
         _server = server ?? throw new ArgumentNullException(nameof(server));
     }
 
-    [McpTool(name: "sampleLLM", description: "Samples from an LLM using MCP's sampling feature")]
+    [McpTool("sampleLLM"), Description("Samples from an LLM using MCP's sampling feature")]
     public async Task<string> SampleLLM(
-        [McpParameter(true, description: "The prompt to send to the LLM")] string prompt,
-        [McpParameter(true, description: "Maximum number of tokens to generate")] int maxTokens,
+        [Description("The prompt to send to the LLM")] string prompt,
+        [Description("Maximum number of tokens to generate")] int maxTokens,
         CancellationToken cancellationToken)
     {
         var samplingParams = CreateRequestSamplingParams(prompt ?? string.Empty, "sampleLLM", maxTokens);

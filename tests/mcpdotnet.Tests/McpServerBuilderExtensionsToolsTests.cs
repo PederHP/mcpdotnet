@@ -3,6 +3,7 @@ using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.ComponentModel;
 
 namespace McpDotNet.Tests;
 
@@ -131,14 +132,14 @@ public class McpServerBuilderExtensionsToolsTests
 
     private static class EchoTool
     {
-        [McpTool(description: "Echoes the input back to the client.")]
-        public static string Echo([McpParameter(true, description: "the echoes message")] string message)
+        [McpTool, Description("Echoes the input back to the client.")]
+        public static string Echo([Description("the echoes message")] string message)
         {
             return "hello " + message;
         }
 
-        [McpTool(name: "double_echo", description: "Echoes the input back to the client.")]
-        public static string Echo2([McpParameter(true)] string message)
+        [McpTool("double_echo"), Description("Echoes the input back to the client.")]
+        public static string Echo2(string message)
         {
             return "hello hello" + message;
         }
@@ -154,8 +155,8 @@ public class McpServerBuilderExtensionsToolsTests
         {
         }
 
-        [McpTool(description: "Echoes the input back to the client.")]
-        public Task<string> Echo([McpParameter(true)] string message)
+        [McpTool, Description("Echoes the input back to the client.")]
+        public Task<string> Echo(string message)
         {
             return Task.FromResult("hello " + message);
         }
