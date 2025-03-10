@@ -1,10 +1,10 @@
-﻿using System.Text.Json;
+﻿using System.ComponentModel;
+using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.ComponentModel;
 
 namespace McpDotNet.Tests;
 
@@ -179,12 +179,9 @@ public class McpServerBuilderExtensionsToolsTests
         var token = cts.Token;
         await cts.CancelAsync();
 
-        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnCancellationToken" }), token);
-        Assert.NotNull(result);
-        Assert.NotNull(result.Content);
-        Assert.NotEmpty(result.Content);
+        var action = async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnCancellationToken" }), token);
 
-        Assert.Equal("Operation was cancelled", result.Content[0].Text);
+        await Assert.ThrowsAsync<OperationCanceledException>(action);
     }
 
     [Fact]
@@ -214,8 +211,8 @@ public class McpServerBuilderExtensionsToolsTests
 
         var action = async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnError" }), CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<McpServerException>(action);
-        Assert.Equal("Tool 'ReturnError' raised an error: Test error", exception.Message);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(action);
+        Assert.Equal("Test error", exception.Message);
     }
 
     [Fact]
