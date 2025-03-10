@@ -187,8 +187,6 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         if (_receiveTask != null)
             await _receiveTask.ConfigureAwait(false);
 
-        _httpClient.Dispose();
-        _connectionCts.Dispose();
         SetConnected(false);
     }
 

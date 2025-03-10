@@ -38,7 +38,8 @@ internal class Program
                 Resources = new(),
                 Prompts = new(),
             },
-            ProtocolVersion = "2024-11-05"
+            ProtocolVersion = "2024-11-05",
+            ServerInstructions = "This is a test server with only stub functionality"
         };
         var loggerFactory = CreateLoggerFactory();
 

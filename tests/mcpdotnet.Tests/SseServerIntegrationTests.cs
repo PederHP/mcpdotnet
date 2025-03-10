@@ -172,7 +172,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         var client = await _fixture.Factory.GetClientAsync("test_server");
         var arguments = new Dictionary<string, object>
         {
-            { "temperature", 0.7 },
+            { "temperature", "0.7" },
             { "style", "formal" }
         };
         var result = await client.GetPromptAsync("complex_prompt", arguments, CancellationToken.None);

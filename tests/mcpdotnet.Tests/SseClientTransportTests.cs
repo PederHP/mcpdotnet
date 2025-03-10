@@ -64,7 +64,7 @@ public class SseClientTransportTests
     }
 
     [Fact]
-    public void Constructor_Throws_For_Null_HttpClientg()
+    public void Constructor_Throws_For_Null_HttpClient()
     {
         var exception = Assert.Throws<ArgumentNullException>(() => new SseClientTransport(_transportOptions, _serverConfig, null!, NullLoggerFactory.Instance));
         Assert.Equal("httpClient", exception.ParamName);
