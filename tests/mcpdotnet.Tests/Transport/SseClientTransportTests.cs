@@ -35,10 +35,10 @@ public class SseClientTransportTests
     }
 
     [Fact]
-    public void Constructor_Should_Initialize_With_Valid_Parameters()
+    public async Task Constructor_Should_Initialize_With_Valid_Parameters()
     {
         // Act
-        var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
 
         // Assert
         Assert.NotNull(transport);
@@ -73,8 +73,8 @@ public class SseClientTransportTests
     [Fact]
     public async Task ConnectAsync_Should_Connect_Successfully()
     {
-        var mockHttpHandler = new MockHttpHandler();
-        var httpClient = new HttpClient(mockHttpHandler);
+        using var mockHttpHandler = new MockHttpHandler();
+        using var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         bool firstCall = true;
@@ -112,8 +112,8 @@ public class SseClientTransportTests
     [Fact]
     public async Task ConnectAsync_Throws_Exception_On_Failure()
     {
-        var mockHttpHandler = new MockHttpHandler();
-        var httpClient = new HttpClient(mockHttpHandler);
+        using var mockHttpHandler = new MockHttpHandler();
+        using var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         var retries = 0;
@@ -144,8 +144,8 @@ public class SseClientTransportTests
     [Fact]
     public async Task SendMessageAsync_Handles_Accepted_Response()
     {
-        var mockHttpHandler = new MockHttpHandler();
-        var httpClient = new HttpClient(mockHttpHandler);
+        using var mockHttpHandler = new MockHttpHandler();
+        using var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         var firstCall = true;
@@ -183,8 +183,8 @@ public class SseClientTransportTests
     [Fact]
     public async Task SendMessageAsync_Handles_Accepted_Json_RPC_Response()
     {
-        var mockHttpHandler = new MockHttpHandler();
-        var httpClient = new HttpClient(mockHttpHandler);
+        using var mockHttpHandler = new MockHttpHandler();
+        using var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         var firstCall = true;
@@ -222,8 +222,8 @@ public class SseClientTransportTests
     [Fact]
     public async Task ReceiveMessagesAsync_Handles_Messages()
     {
-        var mockHttpHandler = new MockHttpHandler();
-        var httpClient = new HttpClient(mockHttpHandler);
+        using var mockHttpHandler = new MockHttpHandler();
+        using var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         var callIndex = 0;
@@ -261,7 +261,7 @@ public class SseClientTransportTests
     [Fact]
     public async Task CloseAsync_Should_Dispose_Resources()
     {
-        var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
 
         await transport.CloseAsync();
 
@@ -271,7 +271,7 @@ public class SseClientTransportTests
     [Fact]
     public async Task DisposeAsync_Should_Dispose_Resources()
     {
-        var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
 
         await transport.DisposeAsync();
 

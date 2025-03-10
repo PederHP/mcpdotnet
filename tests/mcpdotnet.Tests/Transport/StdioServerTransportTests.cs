@@ -28,10 +28,10 @@ public class StdioServerTransportTests
     }
 
     [Fact]
-    public void Constructor_Should_Initialize_With_Valid_Parameters()
+    public async Task Constructor_Should_Initialize_With_Valid_Parameters()
     {
         // Act
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
 
         // Assert
         Assert.NotNull(transport);
@@ -47,7 +47,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task StartListeningAsync_Should_Set_Connected_State()
     {
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
 
         await transport.StartListeningAsync();
 
@@ -76,7 +76,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task SendMessageAsync_Throws_Exception_If_Not_Connected()
     {
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
 
         var message = new JsonRpcRequest { Method = "test" };
 
@@ -86,7 +86,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task DisposeAsync_Should_Dispose_Resources()
     {
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
 
         await transport.DisposeAsync();
 
@@ -96,7 +96,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task ReadMessagesAsync_Should_Read_Messages()
     {
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
         await transport.StartListeningAsync();
 
         var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
@@ -105,7 +105,7 @@ public class StdioServerTransportTests
         using var sr = new StringReader(json);
         Console.SetIn(sr);
 
-        var readTask = transport.StartListeningAsync();
+        _ = transport.StartListeningAsync();
 
         await transport.MessageReader.WaitToReadAsync();
 
