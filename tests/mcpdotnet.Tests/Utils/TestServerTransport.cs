@@ -15,6 +15,8 @@ public class TestServerTransport : IServerTransport
 
     public List<IJsonRpcMessage> SentMessages { get; } = [];
 
+    public Action<IJsonRpcMessage>? OnMessageSent { get; set; }
+
     public TestServerTransport()
     {
         _messageChannel = Channel.CreateUnbounded<IJsonRpcMessage>(new UnboundedChannelOptions
@@ -31,35 +33,25 @@ public class TestServerTransport : IServerTransport
         SentMessages.Add(message);
         if (message is JsonRpcRequest request)
         {
-            if (request.Method == "initialize")
-                await Initialize(request, cancellationToken);
-            else if (request.Method == "roots/list")
+            if (request.Method == "roots/list")
                 await ListRoots(request, cancellationToken);
             else if (request.Method == "sampling/createMessage")
                 await Sampling(request, cancellationToken);
             else
-                await Error(request, cancellationToken);
+                await WriteMessageAsync(request, cancellationToken);
         }
+        else if (message is JsonRpcNotification notification)
+        {
+            await WriteMessageAsync(notification, cancellationToken);
+        }
+
+        OnMessageSent?.Invoke(message);
     }
 
     public Task StartListeningAsync(CancellationToken cancellationToken = default)
     {
         _isStarted = true;
         return Task.CompletedTask;
-    }
-
-    private async Task Initialize(JsonRpcRequest request, CancellationToken cancellationToken)
-    {
-        await WriteMessageAsync(new JsonRpcResponse
-        {
-            Id = request.Id,
-            Result = new McpDotNet.Protocol.Types.InitializeResult
-            {
-                ServerInfo = new() { Name = "TestServer", Version = "1.0.0" },
-                ProtocolVersion = "2024-11-05",
-                Capabilities = new() { },
-            }
-        }, cancellationToken);
     }
 
     private async Task ListRoots(JsonRpcRequest request, CancellationToken cancellationToken)

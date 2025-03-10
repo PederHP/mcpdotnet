@@ -122,6 +122,9 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "No request found for message with ID {messageWithId} for {endpointName}")]
     internal static partial void NoRequestFoundForMessageWithId(this ILogger logger, string endpointName, string messageWithId);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The request has not valid message ID for {endpointName}")]
+    internal static partial void RequestHasInvalidId(this ILogger logger, string endpointName);
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Notification handler error for {endpointName} with method {method}")]
     internal static partial void NotificationHandlerError(this ILogger logger, string endpointName, string method, Exception exception);
 

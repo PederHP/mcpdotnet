@@ -23,13 +23,19 @@ public class McpServerTests
         _loggerFactory = new Mock<ILoggerFactory>();
         _logger = new Mock<ILogger>();
         _loggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(_logger.Object);
-        _options = new McpServerOptions
+        _options = CreateOptions();
+        _serviceProvider = new Mock<IServiceProvider>().Object;
+    }
+
+    private static McpServerOptions CreateOptions(ServerCapabilities? capabilities = null)
+    {
+        return new McpServerOptions
         {
             ServerInfo = new Implementation { Name = "TestServer", Version = "1.0" },
-            ProtocolVersion = "1.0",
-            InitializationTimeout = TimeSpan.FromSeconds(30)
+            ProtocolVersion = "2024",
+            InitializationTimeout = TimeSpan.FromSeconds(30),
+            Capabilities = capabilities
         };
-        _serviceProvider = new Mock<IServiceProvider>().Object;
     }
 
     [Fact]
@@ -82,14 +88,28 @@ public class McpServerTests
     }
 
     [Fact]
-    public async Task StartAsync_AlreadyInitializing_ShouldThrowInvalidOperationException()
+    public async Task StartAsync_Should_Throw_InvalidOperationException_If_Already_Initializing()
     {
         // Arrange
         var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
-        server.GetType().GetField("_isInitializing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(server, true);
+        server.GetType().GetField("_isInitializing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(server, true);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => server.StartAsync());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => server.StartAsync());
+        Assert.Equal("Server is already initializing", exception.Message);
+    }
+
+    [Fact]
+    public async Task StartAsync_Should_Do_Nothing_If_Already_Initialized()
+    {
+        // Arrange
+        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        server.IsInitialized = true;
+
+        await server.StartAsync();
+
+        // Assert
+        _serverTransport.Verify(t => t.StartListeningAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -106,7 +126,28 @@ public class McpServerTests
     }
 
     [Fact]
-    public async Task RequestSamplingAsync_ClientDoesNotSupportSampling_ShouldThrowMcpServerException()
+    public async Task StartAsync_Sets_Initialized_After_Transport_Responses_Initialized_Notification()
+    {
+        var transport = new TestServerTransport();
+        var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
+
+        await server.StartAsync();
+
+        // Send initialized notification
+        await transport.SendMessageAsync(
+            new JsonRpcNotification
+            {
+                Method = "notifications/initialized"
+            }
+        );
+
+        await Task.Delay(50);
+
+        Assert.True(server.IsInitialized);
+    }
+
+    [Fact]
+    public async Task RequestSamplingAsync_Should_Throw_McpServerException_If_Client_Does_Not_Support_Sampling()
     {
         // Arrange
         var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
@@ -120,7 +161,7 @@ public class McpServerTests
     }
 
     [Fact]
-    public async Task RequestSamplingAsync_ShouldSendRequest()
+    public async Task RequestSamplingAsync_Should_SendRequest()
     {
         // Arrange
         var transport = new TestServerTransport();
@@ -139,14 +180,34 @@ public class McpServerTests
     }
 
     [Fact]
-    public async Task RequestRootsAsync_ClientDoesNotSupportRoots_ShouldThrowMcpServerException()
+    public async Task RequestRootsAsync_Should_Throw_McpServerException_If_Client_Does_Not_Support_Roots()
     {
         // Arrange
         var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities();
 
         // Act & Assert
-        await Assert.ThrowsAsync<McpServerException>(() => server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<McpServerException>(() => server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None));
+        Assert.Equal("Client does not support roots", exception.Message);
+    }
+
+    [Fact]
+    public async Task RequestRootsAsync_Should_SendRequest()
+    {
+        // Arrange
+        var transport = new TestServerTransport();
+        await using var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
+        server.ClientCapabilities = new ClientCapabilities { Roots = new RootsCapability() };
+        await server.StartAsync();
+
+        // Act
+        var result = await server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(transport.SentMessages);
+        Assert.IsType<JsonRpcRequest>(transport.SentMessages[0]);
+        Assert.Equal("roots/list", ((JsonRpcRequest)transport.SentMessages[0]).Method);
     }
 
     [Fact]
@@ -163,21 +224,332 @@ public class McpServerTests
     }
 
     [Fact]
-    public async Task RequestRootsAsync_ShouldSendRequest()
+    public async Task Can_Handle_Ping_Requests()
     {
-        // Arrange
+        await Can_Handle_Requests(null, "ping",
+          configureServer: server => { },
+          assertResult: response =>
+          {
+              Assert.IsType<PingResult>(response);
+          });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Initialize_Requests()
+    {
+        await Can_Handle_Requests(null, "initialize",
+           configureServer: server => { },
+           assertResult: response =>
+           {
+               Assert.IsType<InitializeResult>(response);
+
+               var result = (InitializeResult)response;
+               Assert.Equal("TestServer", result.ServerInfo.Name);
+               Assert.Equal("1.0", result.ServerInfo.Version);
+               Assert.Equal("2024", result.ProtocolVersion);
+           });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Completion_Requests()
+    {
+        await Can_Handle_Requests(null, "completion/complete",
+        configureServer: server => { },
+        assertResult: response =>
+        {
+            Assert.IsType<CompleteResult>(response);
+
+            var result = (CompleteResult)response;
+            Assert.NotNull(result.Completion);
+            Assert.Empty(result.Completion.Values);
+            Assert.Equal(0, result.Completion.Total);
+            Assert.False(result.Completion.HasMore);
+        });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Completion_Requests_With_Handler()
+    {
+        await Can_Handle_Requests(null, "completion/complete",
+          configureServer: server =>
+          {
+              server.GetCompletionHandler = (request, ct) =>
+              {
+                  return Task.FromResult(new CompleteResult
+                  {
+                      Completion = new()
+                      {
+                          Values = ["test"],
+                          Total = 2,
+                          HasMore = true
+                      }
+                  });
+              };
+          },
+         assertResult: response =>
+         {
+             Assert.IsType<CompleteResult>(response);
+
+             var result = (CompleteResult)response;
+             Assert.NotNull(result.Completion);
+             Assert.NotEmpty(result.Completion.Values);
+             Assert.Equal("test", result.Completion.Values[0]);
+             Assert.Equal(2, result.Completion.Total);
+             Assert.True(result.Completion.HasMore);
+         });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Resources_List_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/list",
+          configureServer: server =>
+          {
+              server.ListResourcesHandler = (request, ct) =>
+              {
+                  return Task.FromResult(new ListResourcesResult
+                  {
+                      Resources = new()
+                        {
+                           new() { Uri = "test", Name = "Test Resource" }
+                        }
+                  });
+              };
+
+          },
+         assertResult: response =>
+         {
+             Assert.IsType<ListResourcesResult>(response);
+
+             var result = (ListResourcesResult)response;
+             Assert.NotNull(result.Resources);
+             Assert.NotEmpty(result.Resources);
+             Assert.Equal("test", result.Resources[0].Uri);
+         });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Resources_List_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Resources = new() }, "resources/list", "ListResources handler not configured");
+    }
+
+    [Fact]
+    public async Task Can_Handle_ResourcesRead_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/read",
+           configureServer: server =>
+           {
+               server.ReadResourceHandler = (request, ct) =>
+               {
+                   return Task.FromResult(new ReadResourceResult
+                   {
+                       Contents = new List<ResourceContents> { new ResourceContents { Text = "test" } }
+                   });
+               };
+           },
+          assertResult: response =>
+          {
+              Assert.IsType<ReadResourceResult>(response);
+
+              var result = (ReadResourceResult)response;
+              Assert.NotNull(result.Contents);
+              Assert.NotEmpty(result.Contents);
+              Assert.Equal("test", result.Contents[0].Text);
+          });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Resources_Read_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Resources = new() }, "resources/read", "ReadResource handler not configured");
+    }
+
+    [Fact]
+    public async Task Can_Handle_List_Prompts_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/list",
+            configureServer: server =>
+            {
+                server.ListPromptsHandler = (request, ct) =>
+                {
+                    return Task.FromResult(new ListPromptsResult
+                    {
+                        Prompts = new List<Prompt> { new Prompt { Name = "test" } }
+                    });
+                };
+            },
+           assertResult: response =>
+           {
+               Assert.IsType<ListPromptsResult>(response);
+
+               var result = (ListPromptsResult)response;
+               Assert.NotNull(result.Prompts);
+               Assert.NotEmpty(result.Prompts);
+               Assert.Equal("test", result.Prompts[0].Name);
+           });
+    }
+
+    [Fact]
+    public async Task Can_Handle_List_Prompts_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Prompts = new() }, "prompts/list", "ListPrompts handler not configured");
+    }
+
+    [Fact]
+    public async Task Can_Handle_Get_Prompts_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/get",
+            configureServer: server =>
+            {
+                server.GetPromptHandler = (request, ct) =>
+                {
+                    return Task.FromResult(new GetPromptResult
+                    {
+                        Description = "test"
+                    });
+                };
+            },
+           assertResult: response =>
+           {
+               Assert.IsType<GetPromptResult>(response);
+
+               var result = (GetPromptResult)response;
+               Assert.Equal("test", result.Description);
+           });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Get_Prompts_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Prompts = new() }, "prompts/get", "GetPrompt handler not configured");
+    }
+
+    [Fact]
+    public async Task Can_Handle_List_Tools_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/list",
+            configureServer: server =>
+            {
+                server.ListToolsHandler = (request, ct) =>
+                {
+                    return Task.FromResult(new ListToolsResult
+                    {
+                        Tools = new List<Tool> { new Tool { Name = "test" } }
+                    });
+                };
+            },
+           assertResult: response =>
+           {
+               Assert.IsType<ListToolsResult>(response);
+
+               var result = (ListToolsResult)response;
+               Assert.NotEmpty(result.Tools);
+               Assert.Equal("test", result.Tools[0].Name);
+           });
+    }
+
+    [Fact]
+    public async Task Can_Handle_List_Tools_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Tools = new() }, "tools/list", "ListTools handler not configured");
+    }
+
+    [Fact]
+    public async Task Can_Handle_Call_Tool_Requests()
+    {
+        await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/call",
+            configureServer: server =>
+            {
+                server.CallToolHandler = (request, ct) =>
+                {
+                    return Task.FromResult(new CallToolResponse
+                    {
+                        Content = [new Content { Text = "test" }]
+                    });
+                };
+            },
+           assertResult: response =>
+           {
+               Assert.IsType<CallToolResponse>(response);
+
+               var result = (CallToolResponse)response;
+               Assert.NotEmpty(result.Content);
+               Assert.Equal("test", result.Content[0].Text);
+           });
+    }
+
+    [Fact]
+    public async Task Can_Handle_Call_Tool_Requests_Throws_Exception_If_No_Handler_Assigned()
+    {
+        await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Tools = new() }, "tools/call", "CallTool handler not configured");
+    }
+
+    private async Task Can_Handle_Requests(ServerCapabilities? serverCapabilities, string method, Action<IMcpServer> configureServer, Action<object> assertResult)
+    {
         var transport = new TestServerTransport();
-        await using var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
-        server.ClientCapabilities = new ClientCapabilities { Roots = new RootsCapability() };
+        var options = serverCapabilities == null ? _options : CreateOptions(serverCapabilities);
+
+        var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
+
         await server.StartAsync();
 
-        // Act
-        var result = await server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None);
+        configureServer(server);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(transport.SentMessages);
-        Assert.IsType<JsonRpcRequest>(transport.SentMessages[0]);
-        Assert.Equal("roots/list", ((JsonRpcRequest)transport.SentMessages[0]).Method);
+        var receivedMessage = new TaskCompletionSource<JsonRpcResponse>();
+
+        transport.OnMessageSent = (message) =>
+        {
+            if (message is JsonRpcResponse response && response.Id.AsNumber == 55)
+                receivedMessage.SetResult(response);
+        };
+
+        await transport.SendMessageAsync(
+        new JsonRpcRequest
+        {
+            Method = method,
+            Id = RequestId.FromNumber(55)
+        }
+        );
+
+        var response = await receivedMessage.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.NotNull(response);
+        Assert.NotNull(response.Result);
+
+        assertResult(response.Result);
+    }
+
+    private async Task Throws_Exception_If_No_Handler_Assigned(ServerCapabilities serverCapabilities, string method, string expectedError)
+    {
+        var transport = new TestServerTransport();
+        var options = CreateOptions(serverCapabilities);
+
+        var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
+
+        await server.StartAsync();
+
+        var receivedMessage = new TaskCompletionSource<IJsonRpcMessage>();
+
+        transport.OnMessageSent = (message) =>
+        {
+            if (message is JsonRpcError response && response.Id.AsNumber == 55)
+                receivedMessage.SetResult(response);
+        };
+
+        await transport.SendMessageAsync(
+            new JsonRpcRequest
+            {
+                Method = method,
+                Id = RequestId.FromNumber(55)
+            }
+        );
+
+        var response = await receivedMessage.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.NotNull(response);
+        Assert.IsType<JsonRpcError>(response);
+
+        var result = (JsonRpcError)response;
+        Assert.NotNull(result.Error);
+        Assert.Equal(expectedError, result.Error.Message);
     }
 }
