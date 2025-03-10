@@ -48,30 +48,25 @@ internal static class Program
 
         Log.Logger.Information("Server object created, registering handlers.");
 
-        #region Helped method
-        static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
+        ConfigureTools(server);
+        ConfigureResources(server);
+        ConfigurePrompts(server);
+
+        Log.Logger.Information("Server initialized.");
+
+        await server.StartAsync();
+
+        Log.Logger.Information("Server started.");
+
+        // Run until process is stopped by the client (parent process)
+        while (true) // NOSONAR
         {
-            return new CreateMessageRequestParams()
-            {
-                Messages = [new SamplingMessage()
-                {
-                    Role = Role.User,
-                    Content = new Content()
-                    {
-                        Type = "text",
-                        Text = $"Resource {uri} context: {context}"
-                    }
-                }],
-                SystemPrompt = "You are a helpful test server.",
-                MaxTokens = maxTokens,
-                Temperature = 0.7f,
-                IncludeContext = ContextInclusion.ThisServer
-            };
+            await Task.Delay(1000);
         }
-        #endregion
+    }
 
-        #region Tools
-
+    private static void ConfigureTools(IMcpServer server)
+    {
         server.ListToolsHandler = (request, cancellationToken) =>
         {
             return Task.FromResult(new ListToolsResult()
@@ -143,97 +138,10 @@ internal static class Program
                 throw new McpServerException($"Unknown tool: {request.Params?.Name}");
             }
         };
-        #endregion
+    }
 
-        #region Resources
-        List<Resource> resources = [];
-        List<ResourceContents> resourceContents = [];
-        for (int i = 0; i < 100; ++i)
-        {
-            string uri = $"test://static/resource/{i + 1}";
-            if (i % 2 == 0)
-            {
-                resources.Add(new Resource()
-                {
-                    Uri = uri,
-                    Name = $"Resource {i + 1}",
-                    MimeType = "text/plain"
-                });
-                resourceContents.Add(new ResourceContents()
-                {
-                    Uri = uri,
-                    MimeType = "text/plain",
-                    Text = $"Resource {i + 1}: This is a plaintext resource"
-                });
-            }
-            else
-            {
-                var buffer = Encoding.UTF8.GetBytes($"Resource {i + 1}: This is a base64 blob");
-                resources.Add(new Resource()
-                {
-                    Uri = uri,
-                    Name = $"Resource {i + 1}",
-                    MimeType = "application/octet-stream"
-                });
-                resourceContents.Add(new ResourceContents()
-                {
-                    Uri = uri,
-                    MimeType = "application/octet-stream",
-                    Blob = Convert.ToBase64String(buffer)
-                });
-            }
-        }
-
-        const int pageSize = 10;
-
-        server.ListResourcesHandler = (request, cancellationToken) =>
-        {
-            int startIndex = 0;
-            request ??= new(server, new());
-            if (request.Params?.Cursor is not null)
-            {
-                try
-                {
-                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Params.Cursor));
-                    startIndex = Convert.ToInt32(startIndexAsString);
-                }
-                catch
-                {
-                    throw new McpServerException("Invalid cursor");
-                }
-            }
-
-            int endIndex = Math.Min(startIndex + pageSize, resources.Count);
-            string? nextCursor = null;
-
-            if (endIndex < resources.Count)
-            {
-                nextCursor = Convert.ToBase64String(Encoding.UTF8.GetBytes(endIndex.ToString()));
-            }
-            return Task.FromResult(new ListResourcesResult()
-            {
-                NextCursor = nextCursor,
-                Resources = resources.GetRange(startIndex, endIndex - startIndex)
-            });
-        };
-
-        server.ReadResourceHandler = (request, cancellationToken) =>
-        {
-            if (request.Params?.Uri is null)
-            {
-                throw new McpServerException("Missing required argument 'uri'");
-            }
-            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
-                ?? throw new McpServerException("Resource not found");
-
-            return Task.FromResult(new ReadResourceResult()
-            {
-                Contents = [contents]
-            });
-        };
-        #endregion
-
-        #region Prompts
+    private static void ConfigurePrompts(IMcpServer server)
+    {
         server.ListPromptsHandler = (request, cancellationToken) =>
         {
             return Task.FromResult(new ListPromptsResult()
@@ -326,22 +234,115 @@ internal static class Program
                 Messages = messages
             });
         };
-        #endregion
+    }
 
-        #region Sampling
-        #endregion
-
-        Log.Logger.Information("Server initialized.");
-
-        await server.StartAsync();
-
-        Log.Logger.Information("Server started.");
-
-        // Run until process is stopped by the client (parent process)
-        while (true) // NOSONAR
+    private static void ConfigureResources(IMcpServer server)
+    {
+        List<Resource> resources = [];
+        List<ResourceContents> resourceContents = [];
+        for (int i = 0; i < 100; ++i)
         {
-            await Task.Delay(1000);
+            string uri = $"test://static/resource/{i + 1}";
+            if (i % 2 == 0)
+            {
+                resources.Add(new Resource()
+                {
+                    Uri = uri,
+                    Name = $"Resource {i + 1}",
+                    MimeType = "text/plain"
+                });
+                resourceContents.Add(new ResourceContents()
+                {
+                    Uri = uri,
+                    MimeType = "text/plain",
+                    Text = $"Resource {i + 1}: This is a plaintext resource"
+                });
+            }
+            else
+            {
+                var buffer = Encoding.UTF8.GetBytes($"Resource {i + 1}: This is a base64 blob");
+                resources.Add(new Resource()
+                {
+                    Uri = uri,
+                    Name = $"Resource {i + 1}",
+                    MimeType = "application/octet-stream"
+                });
+                resourceContents.Add(new ResourceContents()
+                {
+                    Uri = uri,
+                    MimeType = "application/octet-stream",
+                    Blob = Convert.ToBase64String(buffer)
+                });
+            }
         }
+
+        const int pageSize = 10;
+
+        server.ListResourcesHandler = (request, cancellationToken) =>
+        {
+            int startIndex = 0;
+            request ??= new(server, new());
+            if (request.Params?.Cursor is not null)
+            {
+                try
+                {
+                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Params.Cursor));
+                    startIndex = Convert.ToInt32(startIndexAsString);
+                }
+                catch
+                {
+                    throw new McpServerException("Invalid cursor");
+                }
+            }
+
+            int endIndex = Math.Min(startIndex + pageSize, resources.Count);
+            string? nextCursor = null;
+
+            if (endIndex < resources.Count)
+            {
+                nextCursor = Convert.ToBase64String(Encoding.UTF8.GetBytes(endIndex.ToString()));
+            }
+            return Task.FromResult(new ListResourcesResult()
+            {
+                NextCursor = nextCursor,
+                Resources = resources.GetRange(startIndex, endIndex - startIndex)
+            });
+        };
+
+        server.ReadResourceHandler = (request, cancellationToken) =>
+        {
+            if (request.Params?.Uri is null)
+            {
+                throw new McpServerException("Missing required argument 'uri'");
+            }
+            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
+                ?? throw new McpServerException("Resource not found");
+
+            return Task.FromResult(new ReadResourceResult()
+            {
+                Contents = [contents]
+            });
+        };
+    }
+
+    static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
+    {
+        return new CreateMessageRequestParams()
+        {
+            Messages = [new SamplingMessage()
+                {
+                    Role = Role.User,
+                    Content = new Content()
+                    {
+                        Type = "text",
+                        Text = $"Resource {uri} context: {context}"
+                    }
+                }],
+            SystemPrompt = "You are a helpful test server.",
+            MaxTokens = maxTokens,
+            Temperature = 0.7f,
+            IncludeContext = ContextInclusion.ThisServer
+        };
     }
 
     const string MCP_TINY_IMAGE =

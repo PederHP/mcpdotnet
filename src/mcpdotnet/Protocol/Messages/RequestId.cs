@@ -40,6 +40,11 @@ public readonly struct RequestId : IEquatable<RequestId>
     public bool IsNumber => _value is long;
 
     /// <summary>
+    /// Checks if the request id is valid (has a value)
+    /// </summary>
+    public bool IsValid => _value != null;
+
+    /// <summary>
     /// Gets the RequestId as a string.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown if the RequestId is not a string</exception>"

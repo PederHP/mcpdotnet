@@ -2,7 +2,7 @@
 using McpDotNet.Server;
 using Moq;
 
-namespace mcpdotnet.Tests.Server;
+namespace McpDotNet.Tests.Server;
 
 public class McpServerDelegatesTests
 {

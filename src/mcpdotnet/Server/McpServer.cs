@@ -30,7 +30,7 @@ internal class McpServer : McpJsonRpcEndpoint, IMcpServer
         : base(transport, loggerFactory)
     {
         _serverTransport = transport;
-        _options = options;
+        _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = loggerFactory.CreateLogger<McpServer>();
         ServerInstructions = options.ServerInstructions;
         ServiceProvider = serviceProvider;

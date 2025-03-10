@@ -33,11 +33,14 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// <param name="loggerFactory">The logger factory.</param>
     protected McpJsonRpcEndpoint(ITransport transport, ILoggerFactory loggerFactory)
     {
-        _transport = transport;
+        _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+
+        if (loggerFactory is null)
+            throw new ArgumentNullException(nameof(loggerFactory));
         _logger = loggerFactory.CreateLogger<McpClient>();
     }
 
@@ -102,74 +105,89 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
         switch (message)
         {
             case JsonRpcRequest request:
-                if (_requestHandlers.TryGetValue(request.Method, out var handler))
-                {
-                    try
-                    {
-                        _logger.RequestHandlerCalled(EndpointName, request.Method);
-                        var result = await handler(request).ConfigureAwait(false);
-                        _logger.RequestHandlerCompleted(EndpointName, request.Method);
-                        await _transport.SendMessageAsync(new JsonRpcResponse
-                        {
-                            Id = request.Id,
-                            JsonRpc = "2.0",
-                            Result = result
-                        }, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.RequestHandlerError(EndpointName, request.Method, ex);
-                        // Send error response
-                        await _transport.SendMessageAsync(new JsonRpcError
-                        {
-                            Id = request.Id,
-                            JsonRpc = "2.0",
-                            Error = new JsonRpcErrorDetail
-                            {
-                                Code = -32000,  // Implementation defined error
-                                Message = ex.Message
-                            }
-                        }, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                else
-                {
-                    _logger.NoHandlerFoundForRequest(EndpointName, request.Method);
-                }
+                await HandleRequest(request, cancellationToken).ConfigureAwait(false);
                 break;
             case IJsonRpcMessageWithId messageWithId:
-                if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
-                {
-                    _logger.ResponseMatchedPendingRequest(EndpointName, messageWithId.Id.ToString());
-                    tcs.TrySetResult(message);
-                }
-                else
-                {
-                    _logger.NoRequestFoundForMessageWithId(EndpointName, messageWithId.Id.ToString());
-                }
+                HandleMessageWithId(message, messageWithId);
                 break;
-
             case JsonRpcNotification notification:
-                if (_notificationHandlers.TryGetValue(notification.Method, out var handlers))
-                {
-                    foreach (var notificationHandler in handlers)
-                    {
-                        try
-                        {
-                            await notificationHandler(notification).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log handler error but continue processing
-                            _logger.NotificationHandlerError(EndpointName, notification.Method, ex);
-                        }
-                    }
-                }
+                await HandleNotification(notification).ConfigureAwait(false);
                 break;
-
             default:
                 _logger.EndpointHandlerUnexpectedMessageType(EndpointName, message.GetType().Name);
                 break;
+        }
+    }
+
+    private async Task HandleNotification(JsonRpcNotification notification)
+    {
+        if (_notificationHandlers.TryGetValue(notification.Method, out var handlers))
+        {
+            foreach (var notificationHandler in handlers)
+            {
+                try
+                {
+                    await notificationHandler(notification).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // Log handler error but continue processing
+                    _logger.NotificationHandlerError(EndpointName, notification.Method, ex);
+                }
+            }
+        }
+    }
+
+    private void HandleMessageWithId(IJsonRpcMessage message, IJsonRpcMessageWithId messageWithId)
+    {
+        if (!messageWithId.Id.IsValid)
+            _logger.RequestHasInvalidId(EndpointName);
+        else if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
+        {
+            _logger.ResponseMatchedPendingRequest(EndpointName, messageWithId.Id.ToString());
+            tcs.TrySetResult(message);
+        }
+        else
+        {
+            _logger.NoRequestFoundForMessageWithId(EndpointName, messageWithId.Id.ToString());
+        }
+    }
+
+    private async Task HandleRequest(JsonRpcRequest request, CancellationToken cancellationToken)
+    {
+        if (_requestHandlers.TryGetValue(request.Method, out var handler))
+        {
+            try
+            {
+                _logger.RequestHandlerCalled(EndpointName, request.Method);
+                var result = await handler(request).ConfigureAwait(false);
+                _logger.RequestHandlerCompleted(EndpointName, request.Method);
+                await _transport.SendMessageAsync(new JsonRpcResponse
+                {
+                    Id = request.Id,
+                    JsonRpc = "2.0",
+                    Result = result
+                }, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.RequestHandlerError(EndpointName, request.Method, ex);
+                // Send error response
+                await _transport.SendMessageAsync(new JsonRpcError
+                {
+                    Id = request.Id,
+                    JsonRpc = "2.0",
+                    Error = new JsonRpcErrorDetail
+                    {
+                        Code = -32000,  // Implementation defined error
+                        Message = ex.Message
+                    }
+                }, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            _logger.NoHandlerFoundForRequest(EndpointName, request.Method);
         }
     }
 
@@ -257,7 +275,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     {
         if (!_transport.IsConnected)
         {
-            // TODO: _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
+            _logger.ClientNotConnected(EndpointName);
             throw new McpClientException("Transport is not connected");
         }
 
@@ -265,13 +283,10 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 
         // Log if enabled
         if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            // TODO: _logger.SendingNotificationPayload(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(notification));
-        }
+            _logger.SendingNotificationPayload(EndpointName, JsonSerializer.Serialize(notification));
 
         // Log basic info
-        // TODO: _logger.SendingNotification(_serverConfig.Id, _serverConfig.Name, method);
-
+        _logger.SendingNotification(EndpointName, method);
         await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
     }
 
@@ -285,21 +300,22 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     {
         if (!_transport.IsConnected)
         {
-            // TODO: _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
+            _logger.ClientNotConnected(EndpointName);
             throw new McpClientException("Transport is not connected");
         }
+
         var notification = new JsonRpcNotification
         {
             Method = method,
             Params = parameters
         };
+
         // Log if enabled
         if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            // TODO: _logger.SendingNotificationPayload(_serverConfig.Id, _serverConfig.Name, JsonSerializer.Serialize(notification));
-        }
+            _logger.SendingNotificationPayload(EndpointName, JsonSerializer.Serialize(notification));
+
         // Log basic info
-        // TODO: _logger.SendingNotification(_serverConfig.Id, _serverConfig.Name, method);
+        _logger.SendingNotification(EndpointName, method);
         await _transport.SendMessageAsync(notification, cancellationToken).ConfigureAwait(false);
     }
 
@@ -312,7 +328,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     {
         if (!_transport.IsConnected)
         {
-            // TODO: _logger.ClientNotConnected(_serverConfig.Id, _serverConfig.Name);
+            _logger.ClientNotConnected(EndpointName);
             throw new McpClientException("Transport is not connected");
         }
 

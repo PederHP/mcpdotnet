@@ -1,5 +1,5 @@
-using McpDotNet.Protocol.Types;
 using System.Text.Json;
+using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Extensions.AI.Tests;
 
