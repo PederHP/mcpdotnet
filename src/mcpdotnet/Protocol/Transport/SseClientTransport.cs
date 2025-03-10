@@ -26,6 +26,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     private readonly McpServerConfig _serverConfig;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly TaskCompletionSource<bool> _connectionEstablished;
+    private readonly bool _ownsHttpClient;
 
     private string EndpointName => $"Client (SSE) for ({_serverConfig.Id}: {_serverConfig.Name})";
 
@@ -37,6 +38,20 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     /// <param name="serverConfig">The configuration object indicating which server to connect to.</param>
     /// <param name="loggerFactory">Logger factory for creating loggers.</param>
     public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, ILoggerFactory? loggerFactory)
+        : this(transportOptions, serverConfig, new HttpClient(), loggerFactory, true)
+    {
+    }
+
+    /// <summary>
+    /// SSE transport for client endpoints. Unlike stdio it does not launch a process, but connects to an existing server.
+    /// The HTTP server can be local or remote, and must support the SSE protocol.
+    /// </summary>
+    /// <param name="transportOptions">Configuration options for the transport.</param>
+    /// <param name="serverConfig">The configuration object indicating which server to connect to.</param>
+    /// <param name="httpClient">The HTTP client instance used for requests.</param>
+    /// <param name="loggerFactory">Logger factory for creating loggers.</param>
+    /// <param name="ownsHttpClient">True to dispose HTTP client on close connection.</param>
+    public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, HttpClient httpClient, ILoggerFactory? loggerFactory, bool ownsHttpClient = false)
         : base(loggerFactory)
     {
         if (transportOptions is null)
@@ -49,14 +64,20 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             throw new ArgumentNullException(nameof(serverConfig));
         }
 
+        if (httpClient is null)
+        {
+            throw new ArgumentNullException(nameof(httpClient));
+        }
+
         _options = transportOptions;
         _serverConfig = serverConfig;
         _sseEndpoint = new Uri(serverConfig.Location!);
-        _httpClient = new HttpClient();
+        _httpClient = httpClient;
         _connectionCts = new CancellationTokenSource();
         _logger = loggerFactory is not null ? loggerFactory.CreateLogger<SseClientTransport>() : NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _connectionEstablished = new TaskCompletionSource<bool>();
+        _ownsHttpClient = ownsHttpClient;
     }
 
     /// <inheritdoc/>
@@ -161,15 +182,26 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         if (_receiveTask != null)
             await _receiveTask.ConfigureAwait(false);
 
-        _httpClient.Dispose();
-        _connectionCts.Dispose();
         SetConnected(false);
     }
 
     /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
-        await CloseAsync().ConfigureAwait(false);
+        try
+        {
+            await CloseAsync().ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Ignore exceptions on close
+        }
+
+        if (_ownsHttpClient)
+            _httpClient?.Dispose();
+
+        _connectionCts?.Dispose();
+
         GC.SuppressFinalize(this);
     }
 

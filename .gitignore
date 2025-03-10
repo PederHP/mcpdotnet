@@ -63,4 +63,14 @@ Desktop.ini
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
+
+# DotCover is a Code Coverage Tool
+*.dotCover
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
 /mcpdotnet.v3.ncrunchsolution
+/.NCrunch_mcpdotnet
+*.ncrunchproject
