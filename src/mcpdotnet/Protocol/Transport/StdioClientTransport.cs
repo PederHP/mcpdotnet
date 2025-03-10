@@ -229,7 +229,6 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         catch (JsonException ex)
         {
             _logger.TransportMessageParseFailed(EndpointName, line, ex);
-            // Continue reading even if we fail to parse a message
         }
     }
 

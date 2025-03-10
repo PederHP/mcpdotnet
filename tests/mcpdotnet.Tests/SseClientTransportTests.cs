@@ -11,7 +11,6 @@ public class SseClientTransportTests
 {
     private readonly McpServerConfig _serverConfig;
     private readonly SseClientTransportOptions _transportOptions;
-    private readonly MockHttpHandler _mockHttpHandler;
 
     public SseClientTransportTests()
     {
@@ -25,7 +24,7 @@ public class SseClientTransportTests
 
         _transportOptions = new SseClientTransportOptions
         {
-            ConnectionTimeout = TimeSpan.FromSeconds(10),
+            ConnectionTimeout = TimeSpan.FromSeconds(2),
             MaxReconnectAttempts = 3,
             ReconnectDelay = TimeSpan.FromMilliseconds(50),
             AdditionalHeaders = new Dictionary<string, string>
@@ -33,8 +32,6 @@ public class SseClientTransportTests
                 ["test"] = "header"
             }
         };
-
-        _mockHttpHandler = new MockHttpHandler();
     }
 
     [Fact]
@@ -45,7 +42,7 @@ public class SseClientTransportTests
 
         // Assert
         Assert.NotNull(transport);
-        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
+        Assert.Equal(TimeSpan.FromSeconds(2), transport.Options.ConnectionTimeout);
         Assert.Equal(3, transport.Options.MaxReconnectAttempts);
         Assert.Equal(TimeSpan.FromMilliseconds(50), transport.Options.ReconnectDelay);
         Assert.NotNull(transport.Options.AdditionalHeaders);
@@ -76,12 +73,13 @@ public class SseClientTransportTests
     [Fact]
     public async Task ConnectAsync_Should_Connect_Successfully()
     {
-        var httpClient = new HttpClient(_mockHttpHandler);
+        var mockHttpHandler = new MockHttpHandler();
+        var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         bool firstCall = true;
 
-        _mockHttpHandler.RequestHandler = async (request) =>
+        mockHttpHandler.RequestHandler = async (request) =>
         {
             if (!firstCall)
             {
@@ -103,11 +101,12 @@ public class SseClientTransportTests
     [Fact]
     public async Task ConnectAsync_Throws_Exception_On_Failure()
     {
-        var httpClient = new HttpClient(_mockHttpHandler);
+        var mockHttpHandler = new MockHttpHandler();
+        var httpClient = new HttpClient(mockHttpHandler);
         await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
         var retries = 0;
-        _mockHttpHandler.RequestHandler = (request) =>
+        mockHttpHandler.RequestHandler = (request) =>
         {
             retries++;
             throw new InvalidOperationException("Test exception");

@@ -140,7 +140,9 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 
     private void HandleMessageWithId(IJsonRpcMessage message, IJsonRpcMessageWithId messageWithId)
     {
-        if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
+        if (!messageWithId.Id.IsValid)
+            _logger.RequestHasInvalidId(EndpointName);
+        else if (_pendingRequests.TryRemove(messageWithId.Id, out var tcs))
         {
             _logger.ResponseMatchedPendingRequest(EndpointName, messageWithId.Id.ToString());
             tcs.TrySetResult(message);
