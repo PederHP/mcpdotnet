@@ -235,8 +235,10 @@ public static partial class McpServerBuilderExtensions
             {
                 if (value is JsonElement element)
                     value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
+                else
+                    value = Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture);
 
-                parameters.Add(Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture));
+                parameters.Add(value);
             }
             else
             {
