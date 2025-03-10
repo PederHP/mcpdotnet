@@ -5,7 +5,7 @@ using McpDotNet.Protocol.Transport;
 using McpDotNet.Tests.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace McpDotNet.Tests.Client;
+namespace McpDotNet.Tests.Transport;
 
 public class SseClientTransportTests
 {
@@ -99,6 +99,17 @@ public class SseClientTransportTests
     }
 
     [Fact]
+    public async Task ConnectAsync_Throws_If_Already_Connected()
+    {
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, NullLoggerFactory.Instance);
+        transport.GetType().BaseType!.GetField("_isConnected", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(transport, true);
+
+        var action = async () => await transport.ConnectAsync();
+        var exception = await Assert.ThrowsAsync<McpTransportException>(action);
+        Assert.Equal("Transport is already connected", exception.Message);
+    }
+
+    [Fact]
     public async Task ConnectAsync_Throws_Exception_On_Failure()
     {
         var mockHttpHandler = new MockHttpHandler();
@@ -130,26 +141,122 @@ public class SseClientTransportTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendMessageAsync(new JsonRpcRequest() { Method = "test" }, CancellationToken.None));
     }
 
-    //[Fact]
-    //public async Task SendMessageAsync_Sends_Message()
-    //{
-    //    var httpClient = new HttpClient(_mockHttpHandler);
-    //    await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
+    [Fact]
+    public async Task SendMessageAsync_Handles_Accepted_Response()
+    {
+        var mockHttpHandler = new MockHttpHandler();
+        var httpClient = new HttpClient(mockHttpHandler);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
 
-    //    _mockHttpHandler.RequestHandler = async (request) =>
-    //    {
+        var firstCall = true;
+        mockHttpHandler.RequestHandler = (request) =>
+        {
+            if (request.Method == HttpMethod.Post && request.RequestUri?.AbsoluteUri == "http://localhost:8080/sseendpoint")
+            {
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("accepted")
+                });
+            }
+            else
+            {
+                if (!firstCall)
+                    throw new IOException("Abort");
+                else
+                    firstCall = false;
 
-    //        return new HttpResponseMessage
-    //        {
-    //            StatusCode = HttpStatusCode.OK,
-    //            Content = new StringContent("event: endpoint\r\ndata: /sseendpoint\r\n\r\n")
-    //        };
-    //    };
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("event: endpoint\r\ndata: /sseendpoint\r\n\r\n")
+                });
+            }
+        };
 
-    //    await transport.ConnectAsync();
+        await transport.ConnectAsync();
 
-    //    await transport.SendMessageAsync(new JsonRpcRequest() { Method = "test" }, CancellationToken.None);
-    //}
+        await transport.SendMessageAsync(new JsonRpcRequest() { Method = "initialize", Id = RequestId.FromNumber(44) }, CancellationToken.None);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_Handles_Accepted_Json_RPC_Response()
+    {
+        var mockHttpHandler = new MockHttpHandler();
+        var httpClient = new HttpClient(mockHttpHandler);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
+
+        var firstCall = true;
+        mockHttpHandler.RequestHandler = (request) =>
+        {
+            if (request.Method == HttpMethod.Post && request.RequestUri?.AbsoluteUri == "http://localhost:8080/sseendpoint")
+            {
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"jsonrpc\":\"2.0\", \"id\": \"44\", \"result\": null}")
+                });
+            }
+            else
+            {
+                if (!firstCall)
+                    throw new IOException("Abort");
+                else
+                    firstCall = false;
+
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("event: endpoint\r\ndata: /sseendpoint\r\n\r\n")
+                });
+            }
+        };
+
+        await transport.ConnectAsync();
+
+        await transport.SendMessageAsync(new JsonRpcRequest() { Method = "initialize", Id = RequestId.FromNumber(44) }, CancellationToken.None);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public async Task ReceiveMessagesAsync_Handles_Messages()
+    {
+        var mockHttpHandler = new MockHttpHandler();
+        var httpClient = new HttpClient(mockHttpHandler);
+        await using var transport = new SseClientTransport(_transportOptions, _serverConfig, httpClient, NullLoggerFactory.Instance);
+
+        var callIndex = 0;
+        mockHttpHandler.RequestHandler = (request) =>
+        {
+            callIndex++;
+
+            if (callIndex == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("event: endpoint\r\ndata: /sseendpoint\r\n\r\n")
+                });
+            }
+            else if (callIndex == 2)
+            {
+                return Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("event: message\r\ndata: {\"jsonrpc\":\"2.0\", \"id\": \"44\", \"method\": \"test\", \"params\": null}\r\n\r\n")
+                });
+            }
+
+            throw new IOException("Abort");
+        };
+
+        await transport.ConnectAsync();
+        Assert.True(transport.MessageReader.TryRead(out var message));
+        Assert.NotNull(message);
+        Assert.IsType<JsonRpcRequest>(message);
+        Assert.Equal("44", ((JsonRpcRequest)message).Id.AsString);
+    }
 
     [Fact]
     public async Task CloseAsync_Should_Dispose_Resources()

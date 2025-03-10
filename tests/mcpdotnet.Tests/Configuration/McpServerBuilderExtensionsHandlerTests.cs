@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace McpDotNet.Tests;
+namespace McpDotNet.Tests.Configuration;
 
 public class McpServerBuilderExtensionsHandlerTests
 {

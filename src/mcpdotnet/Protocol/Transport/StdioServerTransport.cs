@@ -56,7 +56,6 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
         return Task.CompletedTask;
     }
 
-
     /// <inheritdoc/>
     public override async Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default)
     {
