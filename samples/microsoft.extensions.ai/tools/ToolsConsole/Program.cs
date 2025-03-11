@@ -1,10 +1,10 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Extensions.AI;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
-using SimpleToolsConsole;
 
 internal class Program
 {
@@ -81,7 +81,7 @@ internal class Program
 
             // Call the chat client
             Console.WriteLine("Asking GPT-4o-mini to call the Echo Tool...");
-            var response = chatClient.CompleteStreamingAsync(
+            var response = chatClient.GetStreamingResponseAsync(
                     messages,
                     new() { Tools = mappedTools });
 

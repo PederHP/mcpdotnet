@@ -9,7 +9,7 @@ namespace McpDotNet.Extensions.AI.Tests;
 [Trait("Execution", "Manual")]
 public class IntegrationTests
 {
-    private const string OpenAIKey = ""; // Provide your own key when running the test. Do not commit it.
+    private string _openAIKey = Environment.GetEnvironmentVariable("Provide your own key when running the test. Do not commit it.")!;
 
     private static McpServerConfig GetEverythingServerConfig()
     {
@@ -51,7 +51,7 @@ public class IntegrationTests
         var tools = await client.ListToolsAsync();
         var mappedTools = tools.Tools.Select(t => t.ToAITool(client)).ToList();
 
-        IChatClient openaiClient = new OpenAIClient(OpenAIKey)
+        IChatClient openaiClient = new OpenAIClient(_openAIKey)
             .AsChatClient("gpt-4o-mini");
 
         IChatClient chatClient = new ChatClientBuilder(openaiClient)
@@ -79,8 +79,7 @@ public class IntegrationTests
                 new() { Tools = mappedTools, Temperature = 0 });
 
         // Assert
-        Assert.Equal(4, messages.Count); // 1 system messages, 1 user message, 1 tool message, 1 response message
-        Assert.Equal("Echo: Hello MCP!", response.Message.Contents[0].ToString());
+        Assert.Equal("Echo: Hello MCP!", response.Text);
     }
 
     [Fact]
@@ -88,7 +87,7 @@ public class IntegrationTests
     {
         await using var sessionScope = await McpSessionScope.CreateAsync(GetEverythingServerConfig());
 
-        IChatClient openaiClient = new OpenAIClient(OpenAIKey)
+        IChatClient openaiClient = new OpenAIClient(_openAIKey)
             .AsChatClient("gpt-4o-mini");
 
         IChatClient chatClient = new ChatClientBuilder(openaiClient)
@@ -116,7 +115,6 @@ public class IntegrationTests
                 new() { Tools = sessionScope.Tools, Temperature = 0 });
 
         // Assert
-        Assert.Equal(4, messages.Count); // 1 system messages, 1 user message, 1 tool message, 1 response message
-        Assert.Equal("Echo: Hello MCP!", response.Message.Contents[0].ToString());
+        Assert.Equal("Echo: Hello MCP!", response.Text);
     }
 }

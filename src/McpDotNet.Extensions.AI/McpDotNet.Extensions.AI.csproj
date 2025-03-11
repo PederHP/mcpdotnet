@@ -40,12 +40,12 @@
   <ItemGroup>
     <ProjectReference Include="..\mcpdotnet\mcpdotnet.csproj" />
 
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.3.0-preview.1.25114.11" />
-    <PackageReference Include="Microsoft.Extensions.AI" Version="9.3.0-preview.1.25114.11" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.3.0-preview.1.25161.3" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.3.0-preview.1.25161.3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
   </ItemGroup>
 
 </Project>
