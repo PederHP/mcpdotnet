@@ -46,12 +46,18 @@ public sealed class McpSessionScope : IAsyncDisposable
 
         var scope = new McpSessionScope();
         var client = await scope.AddClientAsync(serverConfig, options, loggerFactory).ConfigureAwait(false);
-        var tools = await client.ListToolsAsync().ConfigureAwait(false);
-        scope.Tools = tools.Tools.Select(t => new McpAIFunction(t, client)).ToList<AITool>();
+
+        scope.Tools = [];
+        await foreach (var tool in client.ListToolsAsync().ConfigureAwait(false))
+        {
+            scope.Tools.Add(new McpAIFunction(tool, client));
+        }
+
         if (!string.IsNullOrEmpty(client.ServerInstructions))
         {
             scope.ServerInstructions = [client.ServerInstructions!];
         }
+
         return scope;
     }
 
@@ -72,13 +78,20 @@ public sealed class McpSessionScope : IAsyncDisposable
         }
 
         var scope = new McpSessionScope();
+
         foreach (var config in serverConfigs)
         {
             var client = await scope.AddClientAsync(config, options, loggerFactory).ConfigureAwait(false);
-            var tools = await client.ListToolsAsync().ConfigureAwait(false);
-            scope.Tools = scope.Tools.Concat(tools.Tools.Select(t => new McpAIFunction(t, client))).ToList();
+
+            scope.Tools ??= [];
+            await foreach (var tool in client.ListToolsAsync().ConfigureAwait(false))
+            {
+                scope.Tools.Add(new McpAIFunction(tool, client));
+            }
         }
+
         scope.ServerInstructions = scope._clients.Select(c => c.ServerInstructions).Where(s => !string.IsNullOrEmpty(s)).ToList()!;
+        
         return scope;
     }
 

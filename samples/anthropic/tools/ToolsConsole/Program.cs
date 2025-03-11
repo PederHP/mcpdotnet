@@ -1,6 +1,7 @@
 ﻿using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
+using System.Linq;
 using McpDotNet;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
@@ -46,8 +47,8 @@ internal class Program
             var client = await GetMcpClientAsync();
             Console.WriteLine("MCP 'everything' server initialized");
             Console.WriteLine("Listing tools...");
-            var tools = await client.ListToolsAsync();
-            var anthropicTools = tools.Tools.ToAnthropicTools();
+            var tools = await client.ListToolsAsync().ToListAsync();
+            var anthropicTools = tools.ToAnthropicTools();
             Console.WriteLine("Tools available:");
             foreach (var tool in anthropicTools)
             {

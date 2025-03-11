@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace McpDotNet.Protocol.Types;
 
@@ -37,7 +38,7 @@ public class Reference
     /// <summary>
     /// Validates the reference object.
     /// </summary>
-    public bool Validate(out string validationMessage)
+    public bool Validate([NotNullWhen(false)] out string? validationMessage)
     {
         if (Type == "ref/resource")
         {
@@ -61,7 +62,7 @@ public class Reference
             return false;
         }
 
-        validationMessage = string.Empty;
+        validationMessage = null;
         return true;
     }
 }

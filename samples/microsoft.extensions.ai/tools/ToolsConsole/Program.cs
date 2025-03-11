@@ -45,8 +45,7 @@ internal class Program
             var client = await GetMcpClientAsync();
             Console.WriteLine("MCP 'everything' server initialized");
             Console.WriteLine("Listing tools...");
-            var tools = await client.ListToolsAsync();
-            var mappedTools = tools.Tools.Select(t => t.ToAITool(client)).ToList();
+            var mappedTools = await client.ListToolsAsync().Select(t => t.ToAITool(client)).ToListAsync();
             Console.WriteLine("Tools available:");
             foreach (var tool in mappedTools)
             {

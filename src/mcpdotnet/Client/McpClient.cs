@@ -1,5 +1,4 @@
-﻿
-using System.Text.Json;
+﻿using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
@@ -8,25 +7,22 @@ using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CA1508 // Avoid dead conditional code
+
 namespace McpDotNet.Client;
 
 /// <inheritdoc/>
-internal class McpClient : McpJsonRpcEndpoint, IMcpClient
+internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
 {
     private readonly McpClientOptions _options;
     private readonly McpServerConfig _serverConfig;
     private readonly ILogger<McpClient> _logger;
-    private volatile bool _isInitializing;
     private readonly IClientTransport _clientTransport;
+    
+    private volatile bool _isInitializing;
 
-    /// <inheritdoc/>
-    public ServerCapabilities? ServerCapabilities { get; private set; }
-
-    /// <inheritdoc/>
-    public Implementation? ServerInfo { get; private set; }
-
-    /// <inheritdoc/>
-    public string? ServerInstructions { get; private set; }
+    private Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? _samplingHandler;
+    private Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? _rootsHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpClient"/> class.
@@ -43,53 +39,90 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         _logger = loggerFactory.CreateLogger<McpClient>();
         _clientTransport = transport;
 
-        if (options.Capabilities?.Sampling != null)
-        {
-            SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>("sampling/createMessage",
-                async (request) =>
-                {
-                    if (SamplingHandler == null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.SamplingHandlerNotConfigured(EndpointName);
-                        throw new McpClientException("Sampling handler not configured");
-                    }
+        EndpointName = $"Client ({serverConfig.Id}: {serverConfig.Name})";
 
-                    return await SamplingHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
-        }
-        if (options.Capabilities?.Roots != null)
+        if (options.Capabilities?.Sampling is not null)
         {
-            SetRequestHandler<ListRootsRequestParams, ListRootsResult>("roots/list",
-                async (request) =>
+            SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>(
+                "sampling/createMessage", request => HandleRequest("Sampling", _samplingHandler, request));
+        }
+
+        if (options.Capabilities?.Roots is not null)
+        {
+            SetRequestHandler<ListRootsRequestParams, ListRootsResult>(
+                "roots/list", request => HandleRequest("Roots", _rootsHandler, request));
+        }
+    }
+
+    /// <inheritdoc/>
+    public ServerCapabilities? ServerCapabilities { get; private set; }
+
+    /// <inheritdoc/>
+    public Implementation? ServerInfo { get; private set; }
+
+    /// <inheritdoc/>
+    public string? ServerInstructions { get; private set; }
+
+    /// <inheritdoc/>
+    public override string EndpointName { get; }
+
+    public void SetOperationHandler(string operationName, Delegate handler)
+    {
+        if (operationName is null)
+        {
+            throw new ArgumentNullException(nameof(operationName));
+        }
+
+        if (handler is null)
+        {
+            throw new ArgumentNullException(nameof(handler));
+        }
+
+        if (!TrySetOperationHandler(OperationNames.Sampling, operationName, handler, ref _samplingHandler) &&
+            !TrySetOperationHandler(OperationNames.Roots, operationName, handler, ref _rootsHandler))
+        {
+            throw new ArgumentException($"Unknown operation '{operationName}'", nameof(operationName));
+        }
+     
+        static bool TrySetOperationHandler<TFieldRequest, TFieldResponse>(
+            string targetOperationName,
+            string operationName,
+            Delegate handler,
+            ref Func<TFieldRequest, CancellationToken, Task<TFieldResponse>>? field)
+        {
+            if (operationName == targetOperationName)
+            {
+                if (handler is Func<TFieldRequest, CancellationToken, Task<TFieldResponse>> typed)
                 {
-                    if (RootsHandler == null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.RootsHandlerNotConfigured(EndpointName);
-                        throw new McpClientException("Roots handler not configured");
-                    }
-                    return await RootsHandler(request, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
+                    field = typed;
+                    return true;
+                }
+
+                throw new ArgumentException(
+                    $"Handler must be of type {typeof(Func<TFieldRequest, CancellationToken, Task<TFieldResponse>>)}",
+                    nameof(handler));
+            }
+
+            return false;
         }
     }
 
     /// <inheritdoc/>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        if (_isInitializing)
-        {
-            _logger.ClientAlreadyInitializing(EndpointName);
-            throw new InvalidOperationException("Client is already initializing");
-        }
-        _isInitializing = true;
-
         if (IsInitialized)
         {
             _logger.ClientAlreadyInitialized(EndpointName);
             return;
         }
 
+        if (_isInitializing)
+        {
+            _logger.ClientAlreadyInitializing(EndpointName);
+            throw new InvalidOperationException("Client is already initializing");
+        }
+
+        _isInitializing = true;
         try
         {
             CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -136,8 +169,7 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
                         clientInfo = _options.ClientInfo
                     }
                 },
-                initializationCts.Token
-            ).ConfigureAwait(false);
+                initializationCts.Token).ConfigureAwait(false);
 
             // Store server information
             _logger.ServerCapabilitiesReceived(EndpointName, JsonSerializer.Serialize(initializeResponse.Capabilities), JsonSerializer.Serialize(initializeResponse.ServerInfo));
@@ -153,13 +185,9 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
             }
 
             // Send initialized notification
-            await SendNotificationAsync(
-                new JsonRpcNotification
-                {
-                    Method = "notifications/initialized"
-                },
-                initializationCts.Token
-            ).ConfigureAwait(false);
+            await SendMessageAsync(
+                new JsonRpcNotification { Method = "notifications/initialized" },
+                initializationCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (initializationCts.IsCancellationRequested)
         {
@@ -168,202 +196,18 @@ internal class McpClient : McpJsonRpcEndpoint, IMcpClient
         }
     }
 
-    /// <inheritdoc/>
-    public async Task PingAsync(CancellationToken cancellationToken = default)
+    private async Task<TResponse> HandleRequest<TRequest, TResponse>(
+        string friendlyName,
+        Func<TRequest, CancellationToken, Task<TResponse>>? handler,
+        TRequest args)
     {
-        _logger.PingingServer(EndpointName);
-        await SendRequestAsync<dynamic>(
-            new JsonRpcRequest
-            {
-                Method = "ping"
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<ListToolsResult> ListToolsAsync(string? cursor = null, CancellationToken cancellationToken = default)
-    {
-        _logger.ListingTools(EndpointName, cursor ?? "(null)");
-        return await SendRequestAsync<ListToolsResult>(
-            new JsonRpcRequest
-            {
-                Method = "tools/list",
-                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<ListPromptsResult> ListPromptsAsync(string? cursor = null, CancellationToken cancellationToken = default)
-    {
-        _logger.ListingPrompts(EndpointName, cursor ?? "(null)");
-        return await SendRequestAsync<ListPromptsResult>(
-            new JsonRpcRequest
-            {
-                Method = "prompts/list",
-                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<GetPromptResult> GetPromptAsync(string name, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default)
-    {
-        _logger.GettingPrompt(EndpointName, name, arguments == null ? "{}" : JsonSerializer.Serialize(arguments));
-        return await SendRequestAsync<GetPromptResult>(
-            new JsonRpcRequest
-            {
-                Method = "prompts/get",
-                Params = CreateParametersDictionary(name, arguments)
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<ListResourcesResult> ListResourcesAsync(string? cursor = null, CancellationToken cancellationToken = default)
-    {
-        _logger.ListingResources(EndpointName, cursor ?? "(null)");
-        return await SendRequestAsync<ListResourcesResult>(
-            new JsonRpcRequest
-            {
-                Method = "resources/list",
-                Params = cursor != null ? new Dictionary<string, object?> { ["cursor"] = cursor } : null
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<ReadResourceResult> ReadResourceAsync(string uri, CancellationToken cancellationToken = default)
-    {
-        _logger.ReadingResource(EndpointName, uri);
-        return await SendRequestAsync<ReadResourceResult>(
-            new JsonRpcRequest
-            {
-                Method = "resources/read",
-                Params = new Dictionary<string, object?>
-                {
-                    ["uri"] = uri
-                }
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<CompleteResult> GetCompletionAsync(Reference reference, string argumentName, string argumentValue, CancellationToken cancellationToken = default)
-    {
-        if (!reference.Validate(out string validationMessage))
+        if (handler is not null)
         {
-            _logger.InvalidCompletionReference(EndpointName, reference.ToString(), validationMessage);
-            throw new McpClientException($"Invalid reference: {validationMessage}");
-        }
-        if (string.IsNullOrWhiteSpace(argumentName))
-        {
-            _logger.InvalidCompletionArgumentName(EndpointName, argumentName);
-            throw new McpClientException("Argument name cannot be null or empty");
-        }
-        if (argumentValue is null)
-        {
-            _logger.InvalidCompletionArgumentValue(EndpointName, "null", argumentName);
-            throw new McpClientException("Argument value cannot be null");
+            return await handler(args, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
         }
 
-        _logger.GettingCompletion(EndpointName, reference.ToString(), argumentName, argumentValue);
-        return await SendRequestAsync<CompleteResult>(
-            new JsonRpcRequest
-            {
-                Method = "completion/complete",
-                Params = new Dictionary<string, object?>
-                {
-                    ["ref"] = reference,
-                    ["argument"] = new Argument { Name = argumentName, Value = argumentValue }
-                }
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task SubscribeToResourceAsync(string uri, CancellationToken cancellationToken = default)
-    {
-        _logger.SubscribingToResource(EndpointName, uri);
-        await SendRequestAsync<dynamic>(
-            new JsonRpcRequest
-            {
-                Method = "resources/subscribe",
-                Params = new Dictionary<string, object?>
-                {
-                    ["uri"] = uri
-                }
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task UnsubscribeFromResourceAsync(string uri, CancellationToken cancellationToken = default)
-    {
-        _logger.UnsubscribingFromResource(EndpointName, uri);
-        await SendRequestAsync<dynamic>(
-            new JsonRpcRequest
-            {
-                Method = "resources/unsubscribe",
-                Params = new Dictionary<string, object?>
-                {
-                    ["uri"] = uri
-                }
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<CallToolResponse> CallToolAsync(string toolName, Dictionary<string, object> arguments,
-        CancellationToken cancellationToken = default)
-    {
-        _logger.CallingTool(EndpointName, toolName, JsonSerializer.Serialize(arguments));
-        return await SendRequestAsync<CallToolResponse>(
-            new JsonRpcRequest
-            {
-                Method = "tools/call",
-                Params = CreateParametersDictionary(toolName, arguments ?? [])
-            },
-            cancellationToken
-        ).ConfigureAwait(false);
-    }
-
-    private static Dictionary<string, object?> CreateParametersDictionary(string nameParameter, Dictionary<string, object>? arguments)
-    {
-        var parameters = new Dictionary<string, object?>
-        {
-            ["name"] = nameParameter
-        };
-
-        if (arguments != null)
-        {
-            parameters["arguments"] = arguments;
-        }
-
-        return parameters;
-    }
-
-    /// <inheritdoc/>
-    public Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; set; }
-
-    /// <inheritdoc/>
-    public Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; set; }
-
-    /// <inheritdoc/>
-    public override string EndpointName
-    {
-        get
-        {
-            return $"Client ({_serverConfig.Id}: {_serverConfig.Name})";
-        }
+        // Setting the capability, but not a handler means we have nothing to return to the server
+        _logger.HandlerNotConfigured(friendlyName, EndpointName);
+        throw new McpClientException($"{friendlyName} handler not configured.");
     }
 }

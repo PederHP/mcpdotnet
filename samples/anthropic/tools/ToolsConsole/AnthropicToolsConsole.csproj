@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Anthropic.SDK" Version="4.4.3" />
+    <PackageReference Include="System.Linq.AsyncEnumerable" Version="10.0.0-preview.1.25080.5" />
   </ItemGroup>
 
   <ItemGroup>

@@ -273,7 +273,7 @@ public class McpServerTests
         await Can_Handle_Requests(null, "completion/complete",
           configureServer: server =>
           {
-              server.GetCompletionHandler = (request, ct) =>
+              server.SetGetCompletionHandler((request, ct) =>
               {
                   return Task.FromResult(new CompleteResult
                   {
@@ -284,7 +284,7 @@ public class McpServerTests
                           HasMore = true
                       }
                   });
-              };
+              });
           },
          assertResult: response =>
          {
@@ -305,13 +305,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/list",
           configureServer: server =>
           {
-              server.ListResourcesHandler = (request, ct) =>
+              server.SetListResourcesHandler((request, ct) =>
               {
                   return Task.FromResult(new ListResourcesResult
                   {
                       Resources = [new() { Uri = "test", Name = "Test Resource" }]
                   });
-              };
+              });
 
           },
          assertResult: response =>
@@ -337,13 +337,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/read",
            configureServer: server =>
            {
-               server.ReadResourceHandler = (request, ct) =>
+               server.SetReadResourceHandler((request, ct) =>
                {
                    return Task.FromResult(new ReadResourceResult
                    {
                        Contents = [new() { Text = "test" }]
                    });
-               };
+               });
            },
           assertResult: response =>
           {
@@ -368,13 +368,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/list",
             configureServer: server =>
             {
-                server.ListPromptsHandler = (request, ct) =>
+                server.SetListPromptsHandler((request, ct) =>
                 {
                     return Task.FromResult(new ListPromptsResult
                     {
                         Prompts = [new() { Name = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -399,13 +399,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/get",
             configureServer: server =>
             {
-                server.GetPromptHandler = (request, ct) =>
+                server.SetGetPromptHandler((request, ct) =>
                 {
                     return Task.FromResult(new GetPromptResult
                     {
                         Description = "test"
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -428,13 +428,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/list",
             configureServer: server =>
             {
-                server.ListToolsHandler = (request, ct) =>
+                server.SetListToolsHandler((request, ct) =>
                 {
                     return Task.FromResult(new ListToolsResult
                     {
                         Tools = [new() { Name = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -458,13 +458,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/call",
             configureServer: server =>
             {
-                server.CallToolHandler = (request, ct) =>
+                server.SetCallToolHandler((request, ct) =>
                 {
                     return Task.FromResult(new CallToolResponse
                     {
                         Content = [new Content { Text = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {

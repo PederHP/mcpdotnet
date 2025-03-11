@@ -59,11 +59,10 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         var client = await _fixture.Factory.GetClientAsync(clientId);
-        var tools = await client.ListToolsAsync();
+        var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(tools);
-        Assert.NotEmpty(tools.Tools);
+        Assert.NotEmpty(tools);
         // We could add more specific assertions about expected tools
     }
 
@@ -99,14 +98,13 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         var client = await _fixture.Factory.GetClientAsync(clientId);
-        var prompts = await client.ListPromptsAsync();
+        var prompts = await client.ListPromptsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(prompts);
-        Assert.NotEmpty(prompts.Prompts);
+        Assert.NotEmpty(prompts);
         // We could add specific assertions for the known prompts
-        Assert.Contains(prompts.Prompts, p => p.Name == "simple_prompt");
-        Assert.Contains(prompts.Prompts, p => p.Name == "complex_prompt");
+        Assert.Contains(prompts, p => p.Name == "simple_prompt");
+        Assert.Contains(prompts, p => p.Name == "complex_prompt");
     }
 
     [Theory]
@@ -265,7 +263,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-        client.SamplingHandler = (_, _) =>
+        client.SetSamplingHandler((_, _) =>
         {
             samplingHandlerCalls++;
             return Task.FromResult(new CreateMessageResult
@@ -278,7 +276,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
                     Text = "Test response"
                 }
             });
-        };
+        });
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
@@ -311,14 +309,14 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     //    var client = await _fixture.Factory.GetClientAsync(clientId);
 
     //    // Set up the roots handler
-    //    client.RootsHandler = (request, ct) =>
+    //    client.SetRootsHandler((request, ct) =>
     //    {
     //        rootsHandlerCalls++;
     //        return Task.FromResult(new ListRootsResult
     //        {
     //            Roots = testRoots
     //        });
-    //    };
+    //    });
 
     //    // Connect
     //    await client.ConnectAsync(CancellationToken.None);

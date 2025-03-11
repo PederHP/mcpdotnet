@@ -87,11 +87,10 @@ public class SseIntegrationTests
 
         // Create client and run tests
         var client = await factory.GetClientAsync("everything");
-        var tools = await client.ListToolsAsync();
+        var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(tools);
-        Assert.NotEmpty(tools.Tools);
+        Assert.NotEmpty(tools);
     }
 
     [Fact]
@@ -136,7 +135,7 @@ public class SseIntegrationTests
 
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-        client.SamplingHandler = (_, _) =>
+        client.SetSamplingHandler((_, _) =>
         {
             samplingHandlerCalls++;
             return Task.FromResult(new CreateMessageResult
@@ -149,7 +148,7 @@ public class SseIntegrationTests
                     Text = "Test response"
                 }
             });
-        };
+        });
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
@@ -253,7 +252,7 @@ public class SseIntegrationTests
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
 
         var receivedNotification = new TaskCompletionSource<string?>();
-        client.OnNotification("test/notification", (args) =>
+        client.AddNotificationHandler("test/notification", (args) =>
             {
                 var msg = ((JsonElement?)args.Params)?.GetProperty("message").GetString();
                 receivedNotification.SetResult(msg);

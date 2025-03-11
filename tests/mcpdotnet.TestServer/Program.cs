@@ -68,7 +68,7 @@ internal static class Program
 
     private static void ConfigureTools(IMcpServer server)
     {
-        server.ListToolsHandler = (request, cancellationToken) =>
+        server.SetListToolsHandler((request, cancellationToken) =>
         {
             return Task.FromResult(new ListToolsResult()
             {
@@ -103,9 +103,9 @@ internal static class Program
                     }
                 ]
             });
-        };
+        });
 
-        server.CallToolHandler = async (request, cancellationToken) =>
+        server.SetCallToolHandler(async (request, cancellationToken) =>
         {
             if (request.Params?.Name == "echo")
             {
@@ -138,12 +138,12 @@ internal static class Program
             {
                 throw new McpServerException($"Unknown tool: {request.Params?.Name}");
             }
-        };
+        });
     }
 
     private static void ConfigurePrompts(IMcpServer server)
     {
-        server.ListPromptsHandler = (request, cancellationToken) =>
+        server.SetListPromptsHandler((request, cancellationToken) =>
         {
             return Task.FromResult(new ListPromptsResult()
             {
@@ -175,9 +175,9 @@ internal static class Program
                     }
                 ]
             });
-        };
+        });
 
-        server.GetPromptHandler = (request, cancellationToken) =>
+        server.SetGetPromptHandler((request, cancellationToken) =>
         {
             List<PromptMessage> messages = new();
             if (request.Params?.Name == "simple_prompt")
@@ -234,7 +234,7 @@ internal static class Program
             {
                 Messages = messages
             });
-        };
+        });
     }
 
     private static void ConfigureResources(IMcpServer server)
@@ -279,7 +279,7 @@ internal static class Program
 
         const int pageSize = 10;
 
-        server.ListResourcesHandler = (request, cancellationToken) =>
+        server.SetListResourcesHandler((request, cancellationToken) =>
         {
             int startIndex = 0;
             request ??= new(server, new());
@@ -308,9 +308,9 @@ internal static class Program
                 NextCursor = nextCursor,
                 Resources = resources.GetRange(startIndex, endIndex - startIndex)
             });
-        };
+        });
 
-        server.ReadResourceHandler = (request, cancellationToken) =>
+        server.SetReadResourceHandler((request, cancellationToken) =>
         {
             if (request.Params?.Uri is null)
             {
@@ -323,7 +323,7 @@ internal static class Program
             {
                 Contents = [contents]
             });
-        };
+        });
     }
 
     private static void ConfigureCompletion(IMcpServer server)
@@ -335,32 +335,32 @@ internal static class Program
             {"temperature", ["0", "0.5", "0.7", "1.0"]},
         };
 
-        server.GetCompletionHandler = (request, cancellationToken) =>
+        server.SetGetCompletionHandler((request, cancellationToken) =>
+        {
+            if (request.Params?.Ref?.Type == "ref/resource")
             {
-                if (request.Params?.Ref?.Type == "ref/resource")
-                {
-                    var resourceId = request.Params?.Ref?.Uri?.Split('/').LastOrDefault();
-                    if (string.IsNullOrEmpty(resourceId))
-                        return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
+                var resourceId = request.Params?.Ref?.Uri?.Split('/').LastOrDefault();
+                if (string.IsNullOrEmpty(resourceId))
+                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
 
-                    // Filter resource IDs that start with the input value
-                    var values = sampleResourceIds.Where(id => id.StartsWith(request.Params.Argument.Value)).ToArray();
-                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
+                // Filter resource IDs that start with the input value
+                var values = sampleResourceIds.Where(id => id.StartsWith(request.Params.Argument.Value)).ToArray();
+                return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
 
-                }
+            }
 
-                if (request.Params?.Ref?.Type == "ref/prompt")
-                {
-                    // Handle completion for prompt arguments
-                    if (!exampleCompletions.TryGetValue(request.Params.Argument.Name, out var completions))
-                        return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
+            if (request.Params?.Ref?.Type == "ref/prompt")
+            {
+                // Handle completion for prompt arguments
+                if (!exampleCompletions.TryGetValue(request.Params.Argument.Name, out var completions))
+                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
 
-                    var values = completions.Where(value => value.StartsWith(request.Params.Argument.Value)).ToArray();
-                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
-                }
+                var values = completions.Where(value => value.StartsWith(request.Params.Argument.Value)).ToArray();
+                return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
+            }
 
-                throw new McpServerException($"Unknown reference type: {request.Params?.Ref.Type}");
-            };
+            throw new McpServerException($"Unknown reference type: {request.Params?.Ref.Type}");
+        });
     }
 
     static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)

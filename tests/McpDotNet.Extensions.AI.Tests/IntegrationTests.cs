@@ -48,8 +48,7 @@ public class IntegrationTests
     public async Task IntegrateWithMeai_UsingEverythingServer_ToolsAreProperlyCalled()
     {
         var client = await GetMcpClientAsync();
-        var tools = await client.ListToolsAsync();
-        var mappedTools = tools.Tools.Select(t => t.ToAITool(client)).ToList();
+        var mappedTools = await client.ListToolsAsync().Select(t => t.ToAITool(client)).ToListAsync();
 
         IChatClient openaiClient = new OpenAIClient(_openAIKey)
             .AsChatClient("gpt-4o-mini");

@@ -41,11 +41,8 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Debug, Message = "Initializing stdio commands")]
     internal static partial void InitializingStdioCommands(this ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Sampling handler not configured for server {endpointName}, always set a handler when using this capability")]
-    internal static partial void SamplingHandlerNotConfigured(this ILogger logger, string endpointName);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Roots handler not configured for server {endpointName}, always set a handler when using this capability")]
-    internal static partial void RootsHandlerNotConfigured(this ILogger logger, string endpointName);
+    [LoggerMessage(Level = LogLevel.Error, Message = "{handlerName} handler not configured for server {endpointName}, always set a handler when using this capability")]
+    internal static partial void HandlerNotConfigured(this ILogger logger, string handlerName, string endpointName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "List tools handler not configured for server {endpointName}, always set a handler when using this capability")]
     internal static partial void ListToolsHandlerNotConfigured(this ILogger logger, string endpointName);
@@ -266,8 +263,8 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "Transport cleaned up for {endpointName}")]
     internal static partial void TransportCleanedUp(this ILogger logger, string endpointName);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Sending notification payload for {endpointName}: {payload}")]
-    internal static partial void SendingNotificationPayload(this ILogger logger, string endpointName, string payload);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Sending message to {endpointName}: {message}")]
+    internal static partial void SendingMessage(this ILogger logger, string endpointName, string message);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sending notification for {endpointName}: {method}")]
     internal static partial void SendingNotification(this ILogger logger, string endpointName, string method);
