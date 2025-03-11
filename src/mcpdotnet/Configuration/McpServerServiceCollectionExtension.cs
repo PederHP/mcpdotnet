@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using McpDotNet.Configuration;
 using McpDotNet.Hosting;
+using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,7 @@ public static class McpServerServiceCollectionExtension
         services.AddSingleton<IMcpServerFactory, McpServerFactory>();
         services.AddHostedService<McpServerHostedService>();
         services.AddOptions();
+        services.AddSingleton(InputOutputStreams.Default);
 
         services.AddSingleton<IMcpServer>(sp => sp.GetRequiredService<IMcpServerFactory>().CreateServer());
 

@@ -209,7 +209,7 @@ public class McpClientFactory : IDisposable
     {
         foreach (var client in _clients.Values)
         {
-            client.DisposeAsync().AsTask().Wait();
+            client?.DisposeAsync().AsTask().Wait();
         }
 
         _clients.Clear();

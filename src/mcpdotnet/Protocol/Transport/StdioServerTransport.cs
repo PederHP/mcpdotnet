@@ -18,6 +18,8 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     private readonly JsonSerializerOptions _jsonOptions;
     private Task? _readTask;
     private CancellationTokenSource? _shutdownCts;
+    private readonly TextReader _input;
+    private readonly TextWriter _output;
 
     private string EndpointName => $"Server (stdio) ({_serverName})";
 
@@ -26,8 +28,14 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// </summary>
     /// <param name="serverOptions">The server options.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory)
-        : this(serverOptions is not null ? serverOptions.ServerInfo.Name : throw new ArgumentNullException(nameof(serverOptions)), loggerFactory)
+    /// <param name="inputOutputStreams">Container for the input and output streams</param>
+    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory, InputOutputStreams inputOutputStreams)
+        : this(
+              serverOptions is not null ? serverOptions.ServerInfo.Name : throw new ArgumentNullException(nameof(serverOptions)),
+              loggerFactory,
+              inputOutputStreams is not null ? inputOutputStreams.Output : throw new ArgumentNullException(nameof(inputOutputStreams)),
+              inputOutputStreams.Input
+              )
     {
     }
 
@@ -37,11 +45,26 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// <param name="serverName">The name of the server.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
     public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory)
+        : this(serverName, loggerFactory, Console.Out, Console.In)
+    {
+
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the StdioServerTransport class.
+    /// </summary>
+    /// <param name="serverName">The name of the server.</param>
+    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
+    /// <param name="output">The output stream writer</param>
+    /// <param name="input">The input stream reader</param>
+    public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory, TextWriter output, TextReader input)
         : base(loggerFactory)
     {
         _serverName = serverName;
         _logger = loggerFactory is not null ? loggerFactory.CreateLogger<StdioClientTransport>() : NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+        _input = input ?? throw new ArgumentNullException(nameof(input));
+        _output = output ?? throw new ArgumentNullException(nameof(output));
     }
 
     /// <inheritdoc/>
@@ -76,8 +99,8 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             var json = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.TransportSendingMessage(EndpointName, id, json);
 
-            await Console.Out.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
-            await Console.Out.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await _output.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await _output.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -105,7 +128,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             {
                 _logger.TransportWaitingForMessage(EndpointName);
 
-                var reader = Console.In;
+                var reader = _input;
                 var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 if (line == null)
                 {

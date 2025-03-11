@@ -17,7 +17,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
     public static IEnumerable<object[]> GetClients()
     {
-        // yield return ["everything"];
+        yield return ["everything"];
         yield return ["test_server"];
     }
 
