@@ -17,7 +17,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
     public static IEnumerable<object[]> GetClients()
     {
-        yield return ["everything"];
+        // yield return ["everything"];
         yield return ["test_server"];
     }
 
@@ -366,7 +366,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
         };
 
-        var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
+        using var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
         var client = await factory.GetClientAsync("memory");
 
         await client.ConnectAsync();

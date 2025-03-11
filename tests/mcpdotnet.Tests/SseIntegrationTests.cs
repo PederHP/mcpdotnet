@@ -37,7 +37,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -80,7 +80,7 @@ public class SseIntegrationTests
             Location = "http://localhost:3001/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -128,7 +128,7 @@ public class SseIntegrationTests
             Location = "http://localhost:3001/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -198,7 +198,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -243,7 +243,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -298,7 +298,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory

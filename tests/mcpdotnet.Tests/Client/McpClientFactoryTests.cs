@@ -46,7 +46,7 @@ public class McpClientFactoryTests
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
         // Inject the mock transport into the factory
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance,
@@ -87,7 +87,7 @@ public class McpClientFactoryTests
             .Returns(Task.CompletedTask);
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
-        var factory = new McpClientFactory([config],
+        using var factory = new McpClientFactory([config],
             _defaultOptions,
             NullLoggerFactory.Instance,
             transportFactoryMethod: _ => mockTransport.Object,
@@ -105,7 +105,7 @@ public class McpClientFactoryTests
     public async Task GetClientAsync_WithInvalidServerId_ThrowsArgumentException()
     {
         // Arrange
-        var factory = new McpClientFactory(Array.Empty<McpServerConfig>(),
+        using var factory = new McpClientFactory([],
             _defaultOptions,
             NullLoggerFactory.Instance);
 
@@ -127,7 +127,7 @@ public class McpClientFactoryTests
             Location = "/path/to/server"
         };
 
-        var factory = new McpClientFactory([config], _defaultOptions,
+        using var factory = new McpClientFactory([config], _defaultOptions,
             NullLoggerFactory.Instance);
 
         // Act & Assert
@@ -161,7 +161,7 @@ public class McpClientFactoryTests
             .Returns(Task.CompletedTask);
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
-        var factory = new McpClientFactory([config],
+        using var factory = new McpClientFactory([config],
             _defaultOptions,
             NullLoggerFactory.Instance,
             transportFactoryMethod: _ => mockTransport.Object,
@@ -215,7 +215,7 @@ public class McpClientFactoryTests
         mockClient.Setup(c => c.IsInitialized).Returns(true);
 
         // Inject the mock transport into the factory
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance,
@@ -250,7 +250,7 @@ public class McpClientFactoryTests
         };
 
         // Act
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance
@@ -282,7 +282,7 @@ public class McpClientFactoryTests
         var defaultOptions = new SseClientTransportOptions();
 
         // Act
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance
@@ -318,7 +318,7 @@ public class McpClientFactoryTests
         var defaultOptions = new SseClientTransportOptions();
 
         // Act
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance
@@ -355,7 +355,7 @@ public class McpClientFactoryTests
         };
 
         // Act
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [config],
             _defaultOptions,
             NullLoggerFactory.Instance

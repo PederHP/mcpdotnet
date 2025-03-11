@@ -61,6 +61,7 @@ public class ClientIntegrationTestFixture : IDisposable
 
     public void Dispose()
     {
+        Factory?.Dispose();
         LoggerFactory?.Dispose();
         GC.SuppressFinalize(this);
     }

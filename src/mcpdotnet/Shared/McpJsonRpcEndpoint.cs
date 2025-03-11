@@ -25,6 +25,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     private int _nextRequestId;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<McpClient> _logger;
+    private bool _isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpJsonRpcEndpoint"/> class.
@@ -398,6 +399,11 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// <returns></returns>
     protected async Task CleanupAsync()
     {
+        if (_isDisposed)
+            return;
+
+        _isDisposed = true;
+
         _logger.CleaningUpEndpoint(EndpointName);
 
         if (CancellationTokenSource != null)

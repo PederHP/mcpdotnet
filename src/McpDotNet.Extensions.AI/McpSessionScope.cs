@@ -86,9 +86,10 @@ public sealed class McpSessionScope : IAsyncDisposable
         McpClientOptions? options,
         ILoggerFactory? loggerFactory = null)
     {
-        var factory = new McpClientFactory([config],
+        using var factory = new McpClientFactory([config],
             options ?? new() { ClientInfo = new() { Name = "AnonymousClient", Version = "1.0.0.0" } },
             loggerFactory ?? NullLoggerFactory.Instance);
+        factory.DisposeClientsOnDispose = false;
         var client = await factory.GetClientAsync(config.Id).ConfigureAwait(false);
         _clients.Add(client);
         return client;
