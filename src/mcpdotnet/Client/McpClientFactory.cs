@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
@@ -109,7 +110,8 @@ public class McpClientFactory
                 WorkingDirectory = config.TransportOptions?.GetValueOrDefault("workingDirectory"),
                 EnvironmentVariables = config.TransportOptions?
                     .Where(kv => kv.Key.StartsWith("env:", StringComparison.Ordinal))
-                    .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
+                    .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value),
+                ShutdownTimeout = TimeSpan.TryParse(config.TransportOptions?.GetValueOrDefault("shutdownTimeout"), CultureInfo.InvariantCulture, out var timespan) ? timespan : StdioClientTransportOptions.DefaultShutdownTimeout
             }, config, _loggerFactory);
         }
 

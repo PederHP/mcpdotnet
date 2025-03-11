@@ -105,11 +105,10 @@ public class StdioServerTransportTests
         using var sr = new StringReader(json);
         Console.SetIn(sr);
 
-        _ = transport.StartListeningAsync();
+        var canRead = await transport.MessageReader.WaitToReadAsync();
 
-        await transport.MessageReader.WaitToReadAsync();
-
-        Assert.True(transport.MessageReader.TryRead(out var readMessage));
+        Assert.True(canRead, "Nothing to read here from transport message reader");
+        Assert.True(transport.MessageReader.TryPeek(out var readMessage));
         Assert.NotNull(readMessage);
         Assert.IsType<JsonRpcRequest>(readMessage);
         Assert.Equal(44, ((JsonRpcRequest)readMessage).Id.AsNumber);

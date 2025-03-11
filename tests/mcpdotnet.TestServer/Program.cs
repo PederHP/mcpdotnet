@@ -51,6 +51,7 @@ internal static class Program
         ConfigureTools(server);
         ConfigureResources(server);
         ConfigurePrompts(server);
+        ConfigureCompletion(server);
 
         Log.Logger.Information("Server initialized.");
 
@@ -323,6 +324,43 @@ internal static class Program
                 Contents = [contents]
             });
         };
+    }
+
+    private static void ConfigureCompletion(IMcpServer server)
+    {
+        List<string> sampleResourceIds = ["1", "2", "3", "4", "5"];
+        Dictionary<string, List<string>> exampleCompletions = new()
+        {
+            {"style", ["casual", "formal", "technical", "friendly"]},
+            {"temperature", ["0", "0.5", "0.7", "1.0"]},
+        };
+
+        server.GetCompletionHandler = (request, cancellationToken) =>
+            {
+                if (request.Params?.Ref?.Type == "ref/resource")
+                {
+                    var resourceId = request.Params?.Ref?.Uri?.Split('/').LastOrDefault();
+                    if (string.IsNullOrEmpty(resourceId))
+                        return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
+
+                    // Filter resource IDs that start with the input value
+                    var values = sampleResourceIds.Where(id => id.StartsWith(request.Params.Argument.Value)).ToArray();
+                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
+
+                }
+
+                if (request.Params?.Ref?.Type == "ref/prompt")
+                {
+                    // Handle completion for prompt arguments
+                    if (!exampleCompletions.TryGetValue(request.Params.Argument.Name, out var completions))
+                        return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
+
+                    var values = completions.Where(value => value.StartsWith(request.Params.Argument.Value)).ToArray();
+                    return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
+                }
+
+                throw new McpServerException($"Unknown reference type: {request.Params?.Ref.Type}");
+            };
     }
 
     static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)
