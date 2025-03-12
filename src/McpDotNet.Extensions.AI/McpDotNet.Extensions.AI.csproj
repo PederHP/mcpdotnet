@@ -12,7 +12,7 @@
   <PropertyGroup>
     <!-- license and package properties -->
     <PackageId>McpDotNet.Extensions.AI</PackageId>
-    <Version>1.0.1.3</Version>
+    <Version>1.1.0.1</Version>
     <Authors>PederHP</Authors>
     <Description>Microsoft.Extensions.AI integration for the Model Context Protocol (MCP). Enables seamless use of MCP tools as AI functions in any IChatClient implementation.</Description>
     <PackageProjectUrl>https://github.com/PederHP/mcpdotnet/tree/main/src/McpDotNet.Extensions.AI</PackageProjectUrl>
