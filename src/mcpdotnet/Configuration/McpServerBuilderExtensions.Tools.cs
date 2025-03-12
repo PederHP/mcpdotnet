@@ -53,15 +53,19 @@ public static partial class McpServerBuilderExtensions
 
         foreach (var type in toolTypes)
         {
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
             foreach (var method in methods)
             {
                 var attribute = method.GetCustomAttribute<McpToolAttribute>();
                 if (attribute != null)
                 {
                     var tool = CreateTool(method, attribute);
-                    tools.Add(tool);
 
+
+                    if (callbacks.ContainsKey(tool.Name))
+                        throw new McpServerException($"Duplicate tool name: {tool.Name}");
+
+                    tools.Add(tool);
                     callbacks.Add(tool.Name, async (request, cancellationToken) => await CallTool(request, method, cancellationToken).ConfigureAwait(false));
 
                     // register type because method is not static and so we need an instance
@@ -95,7 +99,7 @@ public static partial class McpServerBuilderExtensions
 
         List<Type> toolTypes = [];
 
-        foreach (var type in assembly.GetTypes())
+        foreach (var type in assembly.ExportedTypes)
         {
             bool hasToolTypeAttribute = type.GetCustomAttribute<McpToolTypeAttribute>() != null;
             if (!hasToolTypeAttribute)
@@ -231,8 +235,10 @@ public static partial class McpServerBuilderExtensions
             {
                 if (value is JsonElement element)
                     value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
+                else
+                    value = Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture);
 
-                parameters.Add(Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture));
+                parameters.Add(value);
             }
             else
             {

@@ -81,6 +81,23 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
+    public async Task Can_Call_Registered_Tool_With_Different_Parameter_Type()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo", Arguments = new() { { "message", 5 } } }), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Content);
+        Assert.NotEmpty(result.Content);
+
+        Assert.Equal("hello 5", result.Content[0].Text);
+        Assert.Equal("text", result.Content[0].Type);
+    }
+
+    [Fact]
     public async Task Can_Call_Registered_Tool_With_Array_Result()
     {
         McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
@@ -302,6 +319,21 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
+    public async Task Register_Tools_From_Current_Assembly_Without_Internal_Types()
+    {
+        McpServerBuilderExtensions.WithTools(_builder.Object);
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+
+        var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Tools);
+
+        Assert.False(result.Tools.Exists(t => t.Name == "EchoInternal"));
+    }
+
+    [Fact]
     public void Throws_Exception_When_No_Tools_Are_Found_In_Given_Assembly()
     {
         var action = () => McpServerBuilderExtensions.WithToolsFromAssembly(_builder.Object, typeof(Mock).Assembly);
@@ -350,6 +382,14 @@ public class McpServerBuilderExtensionsToolsTests
 
         Assert.Contains("complexObject", tool.InputSchema.Properties);
         Assert.Equal("object", tool.InputSchema.Properties["complexObject"].Type);
+    }
+
+    [Fact]
+    public void Throws_Exception_If_Tool_Name_Already_Exists()
+    {
+        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool), typeof(EchoTool));
+        var exception = Assert.Throws<McpServerException>(action);
+        Assert.Equal("Duplicate tool name: Echo", exception.Message);
     }
 
     [McpToolType]
@@ -413,6 +453,16 @@ public class McpServerBuilderExtensionsToolsTests
         public static string EchoComplex(ComplexObject complex)
         {
             return complex.Name!;
+        }
+    }
+
+    [McpToolType]
+    internal static class InternalTool
+    {
+        [McpTool]
+        public static string EchoInternal(string message)
+        {
+            return "hello " + message;
         }
     }
 
