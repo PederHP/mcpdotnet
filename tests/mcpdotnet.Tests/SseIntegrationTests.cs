@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Tests;
 
-[Trait("Execution", "Manual")]
 public class SseIntegrationTests
 {
     [Fact]
@@ -137,11 +136,10 @@ public class SseIntegrationTests
 
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_, _) =>
+        client.SamplingHandler = (_, _) =>
         {
             samplingHandlerCalls++;
-            return new CreateMessageResult
+            return Task.FromResult(new CreateMessageResult
             {
                 Model = "test-model",
                 Role = "assistant",
@@ -150,9 +148,8 @@ public class SseIntegrationTests
                     Type = "text",
                     Text = "Test response"
                 }
-            };
+            });
         };
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(

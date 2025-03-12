@@ -328,7 +328,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                 if (hostUrl.EndsWith("/sse", StringComparison.Ordinal))
                     hostUrl = hostUrl[..^4];
 
-                var endpointUri = hostUrl + data.TrimStart('/');
+                var endpointUri = $"{hostUrl.TrimEnd('/')}/{data.TrimStart('/')}";
 
                 _messageEndpoint = new Uri(endpointUri);
             }
