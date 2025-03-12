@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace McpDotNet.Utils.Json;
@@ -21,7 +20,7 @@ internal static class JsonSerializerOptionsExtensions
 
         // Add custom converters
         options.Converters.Add(new JsonRpcMessageConverter());
-        options.Converters.Add(new JsonStringEnumConverter());
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
         // Configure general options
         options.PropertyNameCaseInsensitive = true;
