@@ -4,6 +4,7 @@ using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Client;
 /// <summary>
@@ -43,10 +44,22 @@ public class McpClientFactory : IDisposable
     public McpClientFactory(
         IEnumerable<McpServerConfig> serverConfigs,
         McpClientOptions clientOptions,
-        ILoggerFactory loggerFactory,
+        ILoggerFactory? loggerFactory = null,
         Func<McpServerConfig, IClientTransport>? transportFactoryMethod = null,
         Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient>? clientFactoryMethod = null)
     {
+        if (serverConfigs is null)
+        {
+            throw new ArgumentNullException(nameof(serverConfigs));
+        }
+
+        if (clientOptions is null)
+        {
+            throw new ArgumentNullException(nameof(clientOptions));
+        }
+
+        loggerFactory ??= NullLoggerFactory.Instance;
+
         _serverConfigs = serverConfigs.ToDictionary(c => c.Id);
         _clientOptions = clientOptions;
         _loggerFactory = loggerFactory;

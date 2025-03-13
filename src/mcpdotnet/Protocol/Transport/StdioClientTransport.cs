@@ -8,6 +8,7 @@ using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -18,7 +19,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
 {
     private readonly StdioClientTransportOptions _options;
     private readonly McpServerConfig _serverConfig;
-    private readonly ILogger<StdioClientTransport> _logger;
+    private readonly ILogger _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private Process? _process;
     private Task? _readTask;
@@ -33,12 +34,22 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     /// <param name="options">Configuration options for the transport.</param>
     /// <param name="serverConfig">The server configuration for the transport.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public StdioClientTransport(StdioClientTransportOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+    public StdioClientTransport(StdioClientTransportOptions options, McpServerConfig serverConfig, ILoggerFactory? loggerFactory = null)
         : base(loggerFactory)
     {
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        if (serverConfig is null)
+        {
+            throw new ArgumentNullException(nameof(serverConfig));
+        }
+
         _options = options;
         _serverConfig = serverConfig;
-        _logger = loggerFactory.CreateLogger<StdioClientTransport>();
+        _logger = (ILogger?)loggerFactory?.CreateLogger<StdioClientTransport>() ?? NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
