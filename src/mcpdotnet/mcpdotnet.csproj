@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="McpDotNet.Tests" />
+    <InternalsVisibleTo Include="AspNetCoreSseServer" />
   </ItemGroup>
   
   <ItemGroup>

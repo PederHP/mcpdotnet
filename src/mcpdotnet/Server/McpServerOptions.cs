@@ -9,32 +9,32 @@ namespace McpDotNet.Server;
 /// protocol version.
 /// <see href="https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle/">See the protocol specification for details on capability negotiation</see>
 /// </summary>
-public record McpServerOptions
+public class McpServerOptions
 {
     /// <summary>
     /// Information about this server implementation.
     /// </summary>
-    public required Implementation ServerInfo { get; init; }
+    public required Implementation ServerInfo { get; set; }
 
     /// <summary>
     /// Server capabilities to advertise to the server.
     /// </summary>
-    public ServerCapabilities? Capabilities { get; init; }
+    public ServerCapabilities? Capabilities { get; set; }
 
     /// <summary>
     /// Protocol version to request from the server.
     /// </summary>
-    public string ProtocolVersion { get; init; } = "2024-11-05";
+    public string ProtocolVersion { get; set; } = "2024-11-05";
 
     /// <summary>
     /// Timeout for initialization sequence.
     /// </summary>
-    public TimeSpan InitializationTimeout { get; init; } = TimeSpan.FromSeconds(60);
+    public TimeSpan InitializationTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Optional server instructions to send to clients
     /// </summary>
-    public string ServerInstructions { get; init; } = string.Empty;
+    public string ServerInstructions { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the handler for get completion requests.

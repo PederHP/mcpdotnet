@@ -235,10 +235,10 @@ internal class HttpListenerServerProvider : IDisposable
             response.StatusCode = 202;
             // Write "accepted" response
             // TODO: Use WriteAsync, add cancellation token and netstandard2.0 support (polyfill?)
-#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
             byte[] buffer = Encoding.UTF8.GetBytes("Accepted");
-            response.OutputStream.Write(buffer, 0, buffer.Length);
-#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods
+#pragma warning disable CA1835 // Prefer the 'Memory'-based overloads for 'ReadAsync' and 'WriteAsync'
+            await response.OutputStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CA1835 // Prefer the 'Memory'-based overloads for 'ReadAsync' and 'WriteAsync'
         }
         else
         {

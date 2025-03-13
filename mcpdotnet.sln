@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2A77AF5C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mcpdotnet.TestSseServer", "tests\mcpdotnet.TestSseServer\mcpdotnet.TestSseServer.csproj", "{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCoreSseServer", "samples\AspNetCoreSseServer\AspNetCoreSseServer.csproj", "{B6F42305-423F-56FF-090F-B7263547F924}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +63,10 @@ Global
 		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79B94BF9-E557-33DB-3F19-B2C7D9BF8C56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6F42305-423F-56FF-090F-B7263547F924}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6F42305-423F-56FF-090F-B7263547F924}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6F42305-423F-56FF-090F-B7263547F924}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6F42305-423F-56FF-090F-B7263547F924}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,6 +77,7 @@ Global
 		{CA0BB450-1903-2F92-A68D-1285976551D6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{7C229573-A085-4ECC-8131-958CDA2BE731} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{6499876E-2F76-44A8-B6EB-5B889C6E9B7F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{B6F42305-423F-56FF-090F-B7263547F924} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {384A3888-751F-4D75-9AE5-587330582D89}

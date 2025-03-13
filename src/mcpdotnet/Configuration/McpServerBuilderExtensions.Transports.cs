@@ -1,4 +1,5 @@
 ﻿using McpDotNet.Configuration;
+using McpDotNet.Hosting;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ public static partial class McpServerBuilderExtensions
         Throw.IfNull(builder);
 
         builder.Services.AddSingleton<IServerTransport, StdioServerTransport>();
+        builder.Services.AddHostedService<McpServerHostedService>();
         return builder;
     }
 
@@ -34,6 +36,7 @@ public static partial class McpServerBuilderExtensions
         }
 
         builder.Services.AddSingleton<IServerTransport, HttpListenerSseServerTransport>();
+        builder.Services.AddHostedService<McpServerHostedService>();
         return builder;
     }
 }

@@ -6,6 +6,7 @@ using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
 #pragma warning disable CA2213 // Disposable fields should be disposed
@@ -44,6 +45,24 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// </remarks>
     public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory = null)
         : this(GetServerName(serverOptions), loggerFactory)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class, using
+    /// <see cref="Console.In"/> and <see cref="Console.Out"/> for input and output streams.
+    /// </summary>
+    /// <param name="serverOptions">The server options.</param>
+    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serverOptions"/> is <see langword="null"/> or contains a null name.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
+    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
+    /// </para>
+    /// </remarks>
+    public StdioServerTransport(IOptions<McpServerOptions> serverOptions, ILoggerFactory? loggerFactory = null)
+        : this(GetServerName(serverOptions.Value), loggerFactory)
     {
     }
 
