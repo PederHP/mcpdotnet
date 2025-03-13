@@ -39,7 +39,6 @@ public static class McpServerServiceCollectionExtension
         services.AddSingleton<IMcpServerFactory, McpServerFactory>();
         services.AddHostedService<McpServerHostedService>();
         services.AddOptions();
-        services.AddSingleton(InputOutputStreams.Default);
 
         services.AddSingleton<IMcpServer>(sp => sp.GetRequiredService<IMcpServerFactory>().CreateServer());
 

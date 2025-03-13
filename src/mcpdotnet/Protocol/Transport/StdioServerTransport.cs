@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Server;
@@ -6,10 +7,12 @@ using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
+
 namespace McpDotNet.Protocol.Transport;
 
 /// <summary>
-/// Implements the MCP transport protocol over standard input/output streams.
+/// Provides an implementation of the MCP transport protocol over standard input/output streams.
 /// </summary>
 public sealed class StdioServerTransport : TransportBase, IServerTransport
 {
@@ -24,47 +27,90 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     private string EndpointName => $"Server (stdio) ({_serverName})";
 
     /// <summary>
-    /// Initializes a new instance of the StdioServerTransport class.
+    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class, using
+    /// <see cref="Console.In"/> and <see cref="Console.Out"/> for input and output streams.
     /// </summary>
     /// <param name="serverOptions">The server options.</param>
-    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    /// <param name="inputOutputStreams">Container for the input and output streams</param>
-    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory, InputOutputStreams inputOutputStreams)
-        : this(
-              serverOptions is not null ? serverOptions.ServerInfo.Name : throw new ArgumentNullException(nameof(serverOptions)),
-              loggerFactory,
-              inputOutputStreams is not null ? inputOutputStreams.Output : throw new ArgumentNullException(nameof(inputOutputStreams)),
-              inputOutputStreams.Input
-              )
+    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serverOptions"/> is <see langword="null"/> or contains a null name.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
+    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
+    /// </para>
+    /// </remarks>
+    public StdioServerTransport(McpServerOptions serverOptions, ILoggerFactory? loggerFactory = null)
+        : this(GetServerName(serverOptions), loggerFactory)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the StdioServerTransport class.
+    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class, using
+    /// <see cref="Console.In"/> and <see cref="Console.Out"/> for input and output streams.
     /// </summary>
     /// <param name="serverName">The name of the server.</param>
-    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory)
-        : this(serverName, loggerFactory, Console.Out, Console.In)
+    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serverName"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
+    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
+    /// </para>
+    /// </remarks>
+    public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory = null)
+        : this(serverName ?? throw new ArgumentNullException(nameof(serverName)), Console.In, Console.Out, loggerFactory)
     {
-
     }
 
     /// <summary>
-    /// Initializes a new instance of the StdioServerTransport class.
+    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class using the specified
+    /// <paramref name="input"/> and <paramref name="output"/> streams.
+    /// </summary>
+    /// <param name="serverOptions">The server options.</param>
+    /// <param name="input">The reader, from which all input is read.</param>
+    /// <param name="output">The writer, to which all output is written.</param>
+    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serverOptions"/> is <see langword="null"/> or contains a null name.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="output"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
+    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
+    /// </para>
+    /// </remarks>
+    public StdioServerTransport(McpServerOptions serverOptions, TextReader input, TextWriter output, ILoggerFactory? loggerFactory = null)
+        : this(GetServerName(serverOptions), input, output, loggerFactory)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class using the specified
+    /// <paramref name="input"/> and <paramref name="output"/> streams.
     /// </summary>
     /// <param name="serverName">The name of the server.</param>
-    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    /// <param name="output">The output stream writer</param>
-    /// <param name="input">The input stream reader</param>
-    public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory, TextWriter output, TextReader input)
+    /// <param name="input">The reader, from which all input is read.</param>
+    /// <param name="output">The writer, to which all output is written.</param>
+    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serverName"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="output"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
+    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
+    /// </para>
+    /// </remarks>
+    public StdioServerTransport(string serverName, TextReader input, TextWriter output, ILoggerFactory? loggerFactory = null)
         : base(loggerFactory)
     {
-        _serverName = serverName;
-        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<StdioClientTransport>() : NullLogger.Instance;
-        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+        _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
         _input = input ?? throw new ArgumentNullException(nameof(input));
         _output = output ?? throw new ArgumentNullException(nameof(output));
+
+        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<StdioClientTransport>() : NullLogger.Instance;
+
+        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
@@ -223,5 +269,21 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
 
         SetConnected(false);
         _logger.TransportCleanedUp(EndpointName);
+    }
+
+    /// <summary>Validates the <paramref name="serverOptions"/> and extracts from it the server name to use.</summary>
+    private static string GetServerName(McpServerOptions serverOptions)
+    {
+        if (serverOptions is null)
+        {
+            throw new ArgumentNullException(nameof(serverOptions));
+        }
+
+        if (serverOptions.ServerInfo is null)
+        {
+            throw new ArgumentNullException($"{nameof(serverOptions)}.{nameof(serverOptions.ServerInfo)}");
+        }
+
+        return serverOptions.ServerInfo.Name;
     }
 }

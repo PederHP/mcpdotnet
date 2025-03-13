@@ -31,7 +31,7 @@ public class StdioServerTransportTests
     public async Task Constructor_Should_Initialize_With_Valid_Parameters()
     {
         // Act
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, InputOutputStreams.Default);
+        await using var transport = new StdioServerTransport(_serverOptions);
 
         // Assert
         Assert.NotNull(transport);
@@ -40,21 +40,27 @@ public class StdioServerTransportTests
     [Fact]
     public void Constructor_Throws_For_Null_Options()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => new StdioServerTransport(serverOptions: null!, NullLoggerFactory.Instance, InputOutputStreams.Default));
-        Assert.Equal("serverOptions", exception.ParamName);
+        Assert.Throws<ArgumentNullException>("serverName", () => new StdioServerTransport((string)null!));
+
+        Assert.Throws<ArgumentNullException>("serverOptions", () => new StdioServerTransport((McpServerOptions)null!));
+        Assert.Throws<ArgumentNullException>("serverOptions.ServerInfo", () => new StdioServerTransport(new McpServerOptions() { ServerInfo = null! }));
+        Assert.Throws<ArgumentNullException>("serverName", () => new StdioServerTransport(new McpServerOptions() { ServerInfo = new() { Name = null!, Version = "" } }));
     }
 
     [Fact]
     public void Constructor_Throws_For_Null_Streams()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, null!));
-        Assert.Equal("inputOutputStreams", exception.ParamName);
+        Assert.Throws<ArgumentNullException>("input", () => new StdioServerTransport(_serverOptions, null!, Console.Out));
+        Assert.Throws<ArgumentNullException>("input", () => new StdioServerTransport("name", null!, Console.Out));
+
+        Assert.Throws<ArgumentNullException>("output", () => new StdioServerTransport("name", Console.In, null!));
+        Assert.Throws<ArgumentNullException>("output", () => new StdioServerTransport(_serverOptions, Console.In, null!));
     }
 
     [Fact]
     public async Task StartListeningAsync_Should_Set_Connected_State()
     {
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, InputOutputStreams.Default);
+        await using var transport = new StdioServerTransport(_serverOptions);
 
         await transport.StartListeningAsync();
 
@@ -64,8 +70,10 @@ public class StdioServerTransportTests
     [Fact]
     public async Task SendMessageAsync_Should_Send_Message()
     {
-        var streams = new InputOutputStreams { Output = new StringWriter(), Input = new StringReader("") };
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, streams);
+        var input = new StringReader("");
+        var output = new StringWriter();
+
+        await using var transport = new StdioServerTransport(_serverOptions, input, output, NullLoggerFactory.Instance);
         await transport.StartListeningAsync();
 
         var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
@@ -73,7 +81,7 @@ public class StdioServerTransportTests
 
         await transport.SendMessageAsync(message);
 
-        var result = streams.Output.ToString()?.Trim();
+        var result = output.ToString()?.Trim();
         var expected = JsonSerializer.Serialize(message, JsonSerializerOptionsExtensions.DefaultOptions);
 
         Assert.Equal(expected, result);
@@ -82,7 +90,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task SendMessageAsync_Throws_Exception_If_Not_Connected()
     {
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, InputOutputStreams.Default);
+        await using var transport = new StdioServerTransport(_serverOptions);
 
         var message = new JsonRpcRequest { Method = "test" };
 
@@ -92,7 +100,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task DisposeAsync_Should_Dispose_Resources()
     {
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, InputOutputStreams.Default);
+        await using var transport = new StdioServerTransport(_serverOptions);
 
         await transport.DisposeAsync();
 
@@ -105,10 +113,10 @@ public class StdioServerTransportTests
         var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
         var json = JsonSerializer.Serialize(message, JsonSerializerOptionsExtensions.DefaultOptions);
 
-        using var sr = new StringReader(json);
+        var input = new StringReader(json);
+        var output = new StringWriter();
 
-        var streams = new InputOutputStreams { Output = new StringWriter(), Input = new StringReader(json) };
-        await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, streams);
+        await using var transport = new StdioServerTransport(_serverOptions, input, output);
         await transport.StartListeningAsync();
 
         var canRead = await transport.MessageReader.WaitToReadAsync();
@@ -123,7 +131,7 @@ public class StdioServerTransportTests
     [Fact]
     public async Task CleanupAsync_Should_Cleanup_Resources()
     {
-        var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance, InputOutputStreams.Default);
+        var transport = new StdioServerTransport(_serverOptions);
         await transport.StartListeningAsync();
 
         await transport.DisposeAsync();
