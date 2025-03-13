@@ -78,7 +78,7 @@ public class SseIntegrationTests
             Name = "Everything",
             TransportType = TransportTypes.Sse,
             TransportOptions = [],
-            Location = "http://localhost:{port}/sse"
+            Location = $"http://localhost:{port}/sse"
         };
 
         using var factory = new McpClientFactory(
