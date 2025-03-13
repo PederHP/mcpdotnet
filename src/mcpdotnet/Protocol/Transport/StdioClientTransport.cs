@@ -209,7 +209,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     private async Task ProcessMessageAsync(string line, CancellationToken cancellationToken)
     {
         try
-        {
+        {                    
+            line=line.Trim();//Fixes an error when the service prefixes nonprintable characters
             var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
             if (message != null)
             {
