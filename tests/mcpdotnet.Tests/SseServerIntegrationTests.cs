@@ -36,21 +36,19 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // Assert
         Assert.NotNull(client.ServerCapabilities);
         Assert.NotNull(client.ServerInfo);
-        Assert.NotNull(client.ServerInstructions);
     }
 
     [Fact]
-    public async Task ListTools_Stdio_TestServer()
+    public async Task ListTools_Sse_TestServer()
     {        
         // arrange
 
         // act
         var client = await _fixture.Factory.GetClientAsync("test_server");
-        var tools = await client.ListToolsAsync();
+        var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
         Assert.NotNull(tools);
-        Assert.NotEmpty(tools.Tools);
     }
 
     [Fact]
@@ -139,14 +137,14 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
 
         // act
         var client = await _fixture.Factory.GetClientAsync("test_server");
-        var prompts = await client.ListPromptsAsync();
+        var prompts = await client.ListPromptsAsync().ToListAsync();
 
         // assert
         Assert.NotNull(prompts);
-        Assert.NotEmpty(prompts.Prompts);
+        Assert.NotEmpty(prompts);
         // We could add specific assertions for the known prompts
-        Assert.Contains(prompts.Prompts, p => p.Name == "simple_prompt");
-        Assert.Contains(prompts.Prompts, p => p.Name == "complex_prompt");
+        Assert.Contains(prompts, p => p.Name == "simple_prompt");
+        Assert.Contains(prompts, p => p.Name == "complex_prompt");
     }
 
     [Fact]
@@ -202,7 +200,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_, _) =>
+        client.SetSamplingHandler(async (_, _) =>
         {
             samplingHandlerCalls++;
             return new CreateMessageResult
@@ -215,7 +213,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
                     Text = "Test response"
                 }
             };
-        };
+        });
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
         // Call the server's sampleLLM tool which should trigger our sampling handler

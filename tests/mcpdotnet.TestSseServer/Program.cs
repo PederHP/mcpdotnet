@@ -73,7 +73,7 @@ internal class Program
         #endregion
 
         #region Tools
-        server.ListToolsHandler = (request, cancellationToken) =>
+        server.SetListToolsHandler((request, cancellationToken) =>
         {
             return Task.FromResult(new ListToolsResult()
             {
@@ -108,9 +108,9 @@ internal class Program
                     }
                 ]
             });
-        };
+        });
 
-        server.CallToolHandler = async (request, cancellationToken) =>
+        server.SetCallToolHandler(async (request, cancellationToken) =>
         {
             if (request.Params is null)
             {
@@ -147,7 +147,7 @@ internal class Program
             {
                 throw new McpServerException($"Unknown tool: {request.Params.Name}");
             }
-        };
+        });
         #endregion
 
         #region Resources
@@ -191,7 +191,7 @@ internal class Program
 
         const int pageSize = 10;
 
-        server.ListResourcesHandler = (request, cancellationToken) =>
+        server.SetListResourcesHandler((request, cancellationToken) =>
         {
             int startIndex = 0;
             var requestParams = request.Params ?? new();
@@ -220,9 +220,9 @@ internal class Program
                 NextCursor = nextCursor,
                 Resources = resources.GetRange(startIndex, endIndex - startIndex)
             });
-        };
+        });
 
-        server.ReadResourceHandler = (request, cancellationToken) =>
+        server.SetReadResourceHandler((request, cancellationToken) =>
         {
             if (request.Params?.Uri is null)
             {
@@ -237,11 +237,11 @@ internal class Program
             {
                 Contents = [contents]
             });
-        };
+        });
         #endregion
 
         #region Prompts
-        server.ListPromptsHandler = (request, cancellationToken) =>
+        server.SetListPromptsHandler((request, cancellationToken) =>
         {
             return Task.FromResult(new ListPromptsResult()
             {
@@ -273,9 +273,9 @@ internal class Program
                     }
                 ]
             });
-        };
+        });
 
-        server.GetPromptHandler = (request, cancellationToken) =>
+        server.SetGetPromptHandler((request, cancellationToken) =>
         {
             if (request.Params is null)
             {
@@ -336,7 +336,7 @@ internal class Program
             {
                 Messages = messages
             });
-        };
+        });
         #endregion
 
         #region Sampling
