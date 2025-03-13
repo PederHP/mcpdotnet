@@ -8,7 +8,7 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// HTTP server provider using HttpListener.
 /// </summary>
-public class HttpListenerServerProvider : IHttpServerProvider, IDisposable
+internal class HttpListenerServerProvider : IDisposable
 {
     private readonly int _port;
     private readonly string _sseEndpoint = "/sse";
@@ -29,26 +29,17 @@ public class HttpListenerServerProvider : IHttpServerProvider, IDisposable
         _port = port;
     }
 
-    /// <inheritdoc/>
     public Task<string> GetSseEndpointUri()
     {
         return Task.FromResult($"http://localhost:{_port}{_sseEndpoint}");
     }
 
-    /// <inheritdoc/>
     public Task InitializeMessageHandler(Func<string, CancellationToken, bool> messageHandler)
     {
         _messageHandler = messageHandler;
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc/>
-    public Task InitializeSseEvents()
-    {
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
     public Task SendEvent(string data, string eventId)
     {
         foreach (var client in _sseClients)
@@ -217,8 +208,6 @@ public class HttpListenerServerProvider : IHttpServerProvider, IDisposable
             await writer.WriteLineAsync().ConfigureAwait(false); // blank line to end an SSE message
             await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-            // Keep the connection open
-            //await Task.Delay(-1, cancellationToken);
             // Keep the connection open by "pinging" or just waiting
             // until the client disconnects or the server is canceled.
             while (!cancellationToken.IsCancellationRequested && response.OutputStream.CanWrite)

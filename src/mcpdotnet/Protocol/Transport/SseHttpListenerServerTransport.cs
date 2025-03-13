@@ -3,37 +3,47 @@ using Microsoft.Extensions.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Utils.Json;
 using McpDotNet.Logging;
-using System.Collections.Concurrent;
-using McpDotNet.Protocol.Types;
+using McpDotNet.Server;
 
 namespace McpDotNet.Protocol.Transport;
 
 /// <summary>
 /// Implements the MCP transport protocol over standard input/output streams.
 /// </summary>
-public sealed class SseServerTransport : TransportBase, IServerTransport
+public sealed class SseHttpListenerServerTransport : TransportBase, IServerTransport
 {
     private readonly string _serverName;
-    private readonly IHttpServerProvider _httpServerProvider;
-    private readonly ILogger<SseServerTransport> _logger;
+    private readonly HttpListenerServerProvider _httpServerProvider;
+    private readonly ILogger<SseHttpListenerServerTransport> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private CancellationTokenSource? _shutdownCts;
-
+    
     private string EndpointName => $"Server (SSE) ({_serverName})";
 
     /// <summary>
     /// Initializes a new instance of the SseServerTransport class.
     /// </summary>
-    /// <param name="serverName">The name of the server.</param>
-    /// <param name="httpServerProvider">An HTTP server provider for handling HTTP requests and SSE.</param>
+    /// <param name="serverOptions">The server options.</param>
+    /// <param name="port">The port to listen on.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public SseServerTransport(string serverName, IHttpServerProvider httpServerProvider, ILoggerFactory loggerFactory)
+    public SseHttpListenerServerTransport(McpServerOptions serverOptions, int port, ILoggerFactory loggerFactory)
+        : this(GetServerName(serverOptions), port, loggerFactory)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the SseServerTransport class.
+    /// </summary>
+    /// <param name="serverName">The name of the server.</param>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="loggerFactory">A logger factory for creating loggers.</param>
+    public SseHttpListenerServerTransport(string serverName, int port, ILoggerFactory loggerFactory)
         : base(loggerFactory)
     {
         _serverName = serverName;
-        _httpServerProvider = httpServerProvider ?? throw new ArgumentNullException(nameof(httpServerProvider));
-        _logger = loggerFactory.CreateLogger<SseServerTransport>();
+        _logger = loggerFactory.CreateLogger<SseHttpListenerServerTransport>();
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+        _httpServerProvider = new HttpListenerServerProvider(port);
     }
 
     /// <inheritdoc/>
@@ -99,7 +109,7 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
             _shutdownCts = null;
         }
 
-        // TODO: Cleanup SSE server transport
+        _httpServerProvider.Dispose();
 
         SetConnected(false);
         _logger.TransportCleanedUp(EndpointName);
@@ -145,5 +155,21 @@ public sealed class SseServerTransport : TransportBase, IServerTransport
             _logger.TransportMessageParseFailed(EndpointName, request, ex);
             return false;
         }
+    }
+
+    /// <summary>Validates the <paramref name="serverOptions"/> and extracts from it the server name to use.</summary>
+    private static string GetServerName(McpServerOptions serverOptions)
+    {
+        if (serverOptions is null)
+        {
+            throw new ArgumentNullException(nameof(serverOptions));
+        }
+
+        if (serverOptions.ServerInfo is null)
+        {
+            throw new ArgumentNullException($"{nameof(serverOptions)}.{nameof(serverOptions.ServerInfo)}");
+        }
+
+        return serverOptions.ServerInfo.Name;
     }
 }
