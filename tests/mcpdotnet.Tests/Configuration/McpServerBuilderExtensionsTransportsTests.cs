@@ -3,7 +3,7 @@ using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
-namespace McpDotNet.Tests;
+namespace McpDotNet.Tests.Configuration;
 
 public class McpServerBuilderExtensionsTransportsTests
 {

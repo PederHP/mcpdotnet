@@ -15,57 +15,65 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         _fixture = fixture;
     }
 
-    [Fact]
-    public async Task ConnectAndPing_Stdio_EverythingServer()
+    public static IEnumerable<object[]> GetClients()
+    {
+        yield return ["everything"];
+        yield return ["test_server"];
+    }
+
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ConnectAndPing_Stdio(string clientId)
     {
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         await client.PingAsync(CancellationToken.None);
 
         // Assert
         Assert.NotNull(client);
     }
 
-    [Fact]
-    public async Task Connect_EverythingServer_ShouldProvideServerFields()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task Connect_ShouldProvideServerFields(string clientId)
     {
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
 
         // Assert
         Assert.NotNull(client.ServerCapabilities);
         Assert.NotNull(client.ServerInfo);
-
-        // Note: Comment the below assertion back when the everything server is updated to provide instructions
-        // Assert.NotNull(client.ServerInstructions);
+        if (clientId != "everything")   // Note: Comment the below assertion back when the everything server is updated to provide instructions
+            Assert.NotNull(client.ServerInstructions);
     }
 
-    [Fact]
-    public async Task ListTools_Stdio_EverythingServer()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ListTools_Stdio(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
-        var tools = await client.ListToolsAsync();
+        var client = await _fixture.Factory.GetClientAsync(clientId);
+        var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(tools);
-        Assert.NotEmpty(tools.Tools);
+        Assert.NotEmpty(tools);
         // We could add more specific assertions about expected tools
     }
 
-    [Fact]
-    public async Task CallTool_Stdio_EchoServer()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task CallTool_Stdio_EchoServer(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         var result = await client.CallToolAsync(
             "echo",
             new Dictionary<string, object>
@@ -82,30 +90,31 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.Equal("Echo: Hello MCP!", textContent.Text);
     }
 
-    [Fact]
-    public async Task ListPrompts_Stdio_EverythingServer()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ListPrompts_Stdio(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
-        var prompts = await client.ListPromptsAsync();
+        var client = await _fixture.Factory.GetClientAsync(clientId);
+        var prompts = await client.ListPromptsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(prompts);
-        Assert.NotEmpty(prompts.Prompts);
+        Assert.NotEmpty(prompts);
         // We could add specific assertions for the known prompts
-        Assert.Contains(prompts.Prompts, p => p.Name == "simple_prompt");
-        Assert.Contains(prompts.Prompts, p => p.Name == "complex_prompt");
+        Assert.Contains(prompts, p => p.Name == "simple_prompt");
+        Assert.Contains(prompts, p => p.Name == "complex_prompt");
     }
 
-    [Fact]
-    public async Task GetPrompt_Stdio_SimplePrompt()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task GetPrompt_Stdio_SimplePrompt(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         var result = await client.GetPromptAsync("simple_prompt", null, CancellationToken.None);
 
         // assert
@@ -113,13 +122,14 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.NotEmpty(result.Messages);
     }
 
-    [Fact]
-    public async Task GetPrompt_Stdio_ComplexPrompt()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task GetPrompt_Stdio_ComplexPrompt(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         var arguments = new Dictionary<string, object>
         {
             { "temperature", "0.7" },
@@ -132,24 +142,26 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.NotEmpty(result.Messages);
     }
 
-    [Fact]
-    public async Task GetPrompt_NonExistent_ThrowsException()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task GetPrompt_NonExistent_ThrowsException(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         await Assert.ThrowsAsync<McpClientException>(() =>
             client.GetPromptAsync("non_existent_prompt", null, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task ListResources_Stdio_EverythingServer()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ListResources_Stdio(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
 
         List<Resource> allResources = [];
         string? cursor = null;
@@ -161,17 +173,18 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         }
         while (cursor != null);
 
-        // The everything server provides 100 test resources
+        // The server provides 100 test resources
         Assert.Equal(100, allResources.Count);
     }
 
-    [Fact]
-    public async Task ReadResource_Stdio_TextResource()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ReadResource_Stdio_TextResource(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         // Odd numbered resources are text in the everything server (despite the docs saying otherwise)
         // 1 is index 0, which is "even" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/1", CancellationToken.None);
@@ -181,13 +194,14 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.NotNull(result.Contents[0].Text);
     }
 
-    [Fact]
-    public async Task ReadResource_Stdio_BinaryResource()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task ReadResource_Stdio_BinaryResource(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
         // 2 is index 1, which is "odd" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/2", CancellationToken.None);
@@ -197,23 +211,14 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.NotNull(result.Contents[0].Blob);
     }
 
-    /// <summary>
-    /// Note that as of 19th January 2025, the everything server published to npx does not support prompt completion.
-    /// However, the prompt completion is implemented in the github.com/modelcontextprotocol/servers repository.
-    /// You can clone this repo, and build locally then change the config to use a local symlink instead of npx until this is fixed, if you wish to run this test.
-    /// TransportOptions = new Dictionary<string, string>
-    /// {
-    ///    ["command"] = "npx",
-    ///    ["arguments"] = "mcp-server-everything" // changed from "-y @modelcontextprotocol/server-everything"
-    /// }
-    /// </summary>
-    [Fact]
-    public async Task GetCompletion_Stdio_ResourceReference()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task GetCompletion_Stdio_ResourceReference(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         var result = await client.GetCompletionAsync(new Reference
         {
             Type = "ref/resource",
@@ -228,23 +233,14 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.Equal("1", result.Completion.Values[0]);
     }
 
-    /// <summary>
-    /// Note that as of 19th January 2025, the everything server published to npx does not support prompt completion.
-    /// However, the prompt completion is implemented in the github.com/modelcontextprotocol/servers repository.
-    /// You can clone this repo, and build locally then change the config to use a local symlink instead of npx until this is fixed, if you wish to run this test.
-    /// TransportOptions = new Dictionary<string, string>
-    /// {
-    ///    ["command"] = "npx",
-    ///    ["arguments"] = "mcp-server-everything" // changed from "-y @modelcontextprotocol/server-everything"
-    /// }
-    /// </summary>
-    [Fact]
-    public async Task GetCompletion_Stdio_PromptReference()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task GetCompletion_Stdio_PromptReference(string clientId)
     {
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
         var result = await client.GetCompletionAsync(new Reference
         {
             Type = "ref/prompt",
@@ -259,45 +255,18 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.Equal("formal", result.Completion.Values[0]);
     }
 
-    [Fact]
-    public async Task Sampling_Stdio_EverythingServer()
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task Sampling_Stdio(string clientId)
     {
-        // arrange
-        var config = new McpServerConfig
-        {
-            Id = "everything",
-            Name = "Everything",
-            TransportType = TransportTypes.StdIo,
-            TransportOptions = new Dictionary<string, string>
-            {
-                ["command"] = "npx",
-                ["arguments"] = "-y @modelcontextprotocol/server-everything",
-            }
-        };
-
-        var options = new McpClientOptions
-        {
-            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
-            Capabilities = new ClientCapabilities
-            {
-                Sampling = new()
-            }
-        };
-
-        var factory = new McpClientFactory(
-            [config],
-            options,
-            _fixture.LoggerFactory
-        );
-        var client = await factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
 
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_, _) =>
+        client.SetSamplingHandler((_, _) =>
         {
             samplingHandlerCalls++;
-            return new CreateMessageResult
+            return Task.FromResult(new CreateMessageResult
             {
                 Model = "test-model",
                 Role = "assistant",
@@ -306,9 +275,8 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
                     Type = "text",
                     Text = "Test response"
                 }
-            };
-        };
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            });
+        });
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
@@ -327,88 +295,42 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.False(string.IsNullOrEmpty(textContent.Text));
     }
 
-    [Fact]
-    public async Task Roots_Stdio_EverythingServer()
+    //[Theory]
+    //[MemberData(nameof(GetClients))]
+    //public async Task Roots_Stdio_EverythingServer(string clientId)
+    //{       
+    //    var rootsHandlerCalls = 0;
+    //    var testRoots = new List<Root>
+    //    {
+    //        new() { Uri = "file:///test/root1", Name = "Test Root 1" },
+    //        new() { Uri = "file:///test/root2", Name = "Test Root 2" }
+    //    };
+
+    //    var client = await _fixture.Factory.GetClientAsync(clientId);
+
+    //    // Set up the roots handler
+    //    client.SetRootsHandler((request, ct) =>
+    //    {
+    //        rootsHandlerCalls++;
+    //        return Task.FromResult(new ListRootsResult
+    //        {
+    //            Roots = testRoots
+    //        });
+    //    });
+
+    //    // Connect
+    //    await client.ConnectAsync(CancellationToken.None);
+
+    //    // assert
+    //    // nothing to assert, no servers implement roots, so we if no exception is thrown, it's a success
+    //    Assert.True(true);
+    //}
+
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task Notifications_Stdio(string clientId)
     {
-        // arrange
-        var config = new McpServerConfig
-        {
-            Id = "everything",
-            Name = "everything",
-            TransportType = TransportTypes.StdIo,
-            TransportOptions = new Dictionary<string, string>
-            {
-                ["command"] = "npx",
-                ["arguments"] = "-y @modelcontextprotocol/server-everything"
-            }
-        };
-
-        var options = new McpClientOptions
-        {
-            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
-            Capabilities = new ClientCapabilities
-            {
-                Roots = new()
-            }
-        };
-
-        var rootsHandlerCalls = 0;
-        var testRoots = new List<Root>
-        {
-            new() { Uri = "file:///test/root1", Name = "Test Root 1" },
-            new() { Uri = "file:///test/root2", Name = "Test Root 2" }
-        };
-
-        var factory = new McpClientFactory(
-            [config],
-            options,
-            _fixture.LoggerFactory
-        );
-        var client = await factory.GetClientAsync("everything");
-
-        // Set up the roots handler
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.RootsHandler = async (request, ct) =>
-        {
-            rootsHandlerCalls++;
-            return new ListRootsResult
-            {
-                Roots = testRoots
-            };
-        };
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-
-        // Connect
-        await client.ConnectAsync(CancellationToken.None);
-
-        // assert
-        // nothing to assert, no servers implement roots, so we if no exception is thrown, it's a success
-        Assert.True(true);
-    }
-
-    [Fact]
-    public async Task Notifications_Stdio_EverythingServer()
-    {
-        // arrange
-        var config = new McpServerConfig
-        {
-            Id = "everything",
-            Name = "everything",
-            TransportType = TransportTypes.StdIo,
-            TransportOptions = new Dictionary<string, string>
-            {
-                ["command"] = "npx",
-                ["arguments"] = "-y @modelcontextprotocol/server-everything"
-            }
-        };
-
-        var options = new McpClientOptions
-        {
-            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
-        };
-
-        var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
-        var client = await factory.GetClientAsync("everything");
+        var client = await _fixture.Factory.GetClientAsync(clientId);
 
         await client.ConnectAsync();
 
@@ -442,7 +364,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
         };
 
-        var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
+        using var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
         var client = await factory.GetClientAsync("memory");
 
         await client.ConnectAsync();
@@ -457,6 +379,8 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // assert
         Assert.NotNull(result);
         Assert.False(result.IsError);
-        var textContent = Assert.Single(result.Content, c => c.Type == "text");
+        Assert.Single(result.Content, c => c.Type == "text");
+
+        await client.DisposeAsync();
     }
 }

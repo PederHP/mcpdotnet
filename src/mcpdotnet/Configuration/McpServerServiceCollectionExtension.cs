@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using McpDotNet.Configuration;
 using McpDotNet.Hosting;
+using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;

@@ -28,66 +28,40 @@ public interface IMcpServer : IAsyncDisposable
     /// </summary>
     IServiceProvider? ServiceProvider { get; }
 
+    /// <summary>Sets a handler for the named operation.</summary>
+    /// <param name="operationName">The name of the operation.</param>
+    /// <param name="handler">The handler. Each operation requires a specific delegate signature.</param>
+    /// <remarks>
+    /// <para>
+    /// Each operation may have only a single handler. Setting a handler for an operation that already has one
+    /// will replace the existing handler.
+    /// </para>
+    /// <para>
+    /// <see cref="OperationNames"> provides constants for common operations.</see>
+    /// </para>
+    /// </remarks>
+    void SetOperationHandler(string operationName, Delegate handler);
+
+    /// <summary>
+    /// Adds a handler for client notifications of a specific method.
+    /// </summary>
+    /// <param name="method">The notification method to handle.</param>
+    /// <param name="handler">The async handler function to process notifications.</param>
+    /// <remarks>
+    /// <para>
+    /// Each method may have multiple handlers. Adding a handler for a method that already has one
+    /// will not replace the existing handler.
+    /// </para>
+    /// <para>
+    /// <see cref="NotificationMethods"> provides constants for common notification methods.</see>
+    /// </para>
+    /// </remarks>
+    void AddNotificationHandler(string method, Func<JsonRpcNotification, Task> handler);
+
     /// <summary>
     /// Starts the server and begins listening for client requests.
     /// </summary>
     Task StartAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets or sets the handler for list tools requests.
-    /// </summary>
-    Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for call tool requests.
-    /// </summary>
-    Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for list prompts requests.
-    /// </summary>
-    Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for get prompt requests.
-    /// </summary>
-    Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for list resources requests.
-    /// </summary>
-    Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for read resources requests.
-    /// </summary>
-    Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for get resources requests.
-    /// </summary>
-    Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for subscribe to resources messages.
-    /// </summary>
-    Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
-
-    /// <summary>
-    /// Gets or sets the handler for subscribe to resources messages.
-    /// </summary>
-    Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
-
-
-    /// <summary>
-    /// Requests the client to create a new message.
-    /// </summary>
-    Task<CreateMessageResult> RequestSamplingAsync(CreateMessageRequestParams request, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Requests the client to list the roots it exposes.
-    /// </summary>
-    Task<ListRootsResult> RequestRootsAsync(ListRootsRequestParams request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Sends a generic JSON-RPC request to the client.
@@ -101,26 +75,9 @@ public interface IMcpServer : IAsyncDisposable
     Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class;
 
     /// <summary>
-    /// Registers a handler for notifications of a specific method.
-    /// 
-    /// <see cref="NotificationMethods">Constants for common notification methods</see>
+    /// Sends a message to the server.
     /// </summary>
-    /// <param name="method">The notification method to handle.</param>
-    /// <param name="handler">The async handler function to process notifications.</param>
-    void OnNotification(string method, Func<JsonRpcNotification, Task> handler);
-
-    /// <summary>
-    /// Sends a notification to the client.
-    /// </summary>
-    /// <param name="method">The notification method name.</param>
+    /// <param name="message">The message.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task SendNotificationAsync(string method, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Sends a notification to the client with parameters.
-    /// </summary>
-    /// <param name="method">The notification method name.</param>
-    /// <param name="parameters">The parameters to send with the notification.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task SendNotificationAsync<T>(string method, T parameters, CancellationToken cancellationToken = default);
+    Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default);
 }

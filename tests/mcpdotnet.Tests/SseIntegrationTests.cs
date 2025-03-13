@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace McpDotNet.Tests;
 
-[Trait("Execution", "Manual")]
 public class SseIntegrationTests
 {
     [Fact]
@@ -37,7 +36,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -80,7 +79,7 @@ public class SseIntegrationTests
             Location = "http://localhost:3001/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -88,11 +87,10 @@ public class SseIntegrationTests
 
         // Create client and run tests
         var client = await factory.GetClientAsync("everything");
-        var tools = await client.ListToolsAsync();
+        var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
-        Assert.NotNull(tools);
-        Assert.NotEmpty(tools.Tools);
+        Assert.NotEmpty(tools);
     }
 
     [Fact]
@@ -128,7 +126,7 @@ public class SseIntegrationTests
             Location = "http://localhost:3001/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -137,11 +135,10 @@ public class SseIntegrationTests
 
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SamplingHandler = async (_, _) =>
+        client.SetSamplingHandler((_, _) =>
         {
             samplingHandlerCalls++;
-            return new CreateMessageResult
+            return Task.FromResult(new CreateMessageResult
             {
                 Model = "test-model",
                 Role = "assistant",
@@ -150,9 +147,8 @@ public class SseIntegrationTests
                     Type = "text",
                     Text = "Test response"
                 }
-            };
-        };
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            });
+        });
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
@@ -198,7 +194,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -243,7 +239,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory
@@ -256,7 +252,7 @@ public class SseIntegrationTests
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
 
         var receivedNotification = new TaskCompletionSource<string?>();
-        client.OnNotification("test/notification", (args) =>
+        client.AddNotificationHandler("test/notification", (args) =>
             {
                 var msg = ((JsonElement?)args.Params)?.GetProperty("message").GetString();
                 receivedNotification.SetResult(msg);
@@ -298,7 +294,7 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        var factory = new McpClientFactory(
+        using var factory = new McpClientFactory(
             [defaultConfig],
             defaultOptions,
             loggerFactory

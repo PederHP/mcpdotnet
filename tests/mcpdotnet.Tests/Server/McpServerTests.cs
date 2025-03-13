@@ -39,10 +39,10 @@ public class McpServerTests
     }
 
     [Fact]
-    public void Constructor_Should_Initialize_With_Valid_Parameters()
+    public async Task Constructor_Should_Initialize_With_Valid_Parameters()
     {
         // Arrange & Act
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
 
         // Assert
         Assert.NotNull(server);
@@ -70,19 +70,19 @@ public class McpServerTests
     }
 
     [Fact]
-    public void Constructor_Does_Not_Throw_For_Null_ServiceProvider()
+    public async Task Constructor_Does_Not_Throw_For_Null_ServiceProvider()
     {
         // Arrange & Act
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, null);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, null);
 
         // Assert
         Assert.NotNull(server);
     }
 
     [Fact]
-    public void Property_EndpointName_Return_Infos()
+    public async Task Property_EndpointName_Return_Infos()
     {
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientInfo = new Implementation { Name = "TestClient", Version = "1.1" };
         Assert.Equal("Server (TestServer 1.0), Client (TestClient 1.1)", server.EndpointName);
     }
@@ -91,7 +91,7 @@ public class McpServerTests
     public async Task StartAsync_Should_Throw_InvalidOperationException_If_Already_Initializing()
     {
         // Arrange
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.GetType().GetField("_isInitializing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(server, true);
 
         // Act & Assert
@@ -103,7 +103,7 @@ public class McpServerTests
     public async Task StartAsync_Should_Do_Nothing_If_Already_Initialized()
     {
         // Arrange
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.IsInitialized = true;
 
         await server.StartAsync();
@@ -116,7 +116,7 @@ public class McpServerTests
     public async Task StartAsync_ShouldStartListening()
     {
         // Arrange
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
 
         // Act
         await server.StartAsync();
@@ -128,8 +128,8 @@ public class McpServerTests
     [Fact]
     public async Task StartAsync_Sets_Initialized_After_Transport_Responses_Initialized_Notification()
     {
-        var transport = new TestServerTransport();
-        var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
+        await using var transport = new TestServerTransport();
+        await using var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
 
         await server.StartAsync();
 
@@ -150,7 +150,7 @@ public class McpServerTests
     public async Task RequestSamplingAsync_Should_Throw_McpServerException_If_Client_Does_Not_Support_Sampling()
     {
         // Arrange
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities();
 
         var action = () => server.RequestSamplingAsync(new CreateMessageRequestParams { Messages = [] }, CancellationToken.None);
@@ -164,7 +164,7 @@ public class McpServerTests
     public async Task RequestSamplingAsync_Should_SendRequest()
     {
         // Arrange
-        var transport = new TestServerTransport();
+        await using var transport = new TestServerTransport();
         await using var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities { Sampling = new SamplingCapability() };
 
@@ -183,7 +183,7 @@ public class McpServerTests
     public async Task RequestRootsAsync_Should_Throw_McpServerException_If_Client_Does_Not_Support_Roots()
     {
         // Arrange
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities();
 
         // Act & Assert
@@ -195,7 +195,7 @@ public class McpServerTests
     public async Task RequestRootsAsync_Should_SendRequest()
     {
         // Arrange
-        var transport = new TestServerTransport();
+        await using var transport = new TestServerTransport();
         await using var server = new McpServer(transport, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities { Roots = new RootsCapability() };
         await server.StartAsync();
@@ -213,7 +213,7 @@ public class McpServerTests
     [Fact]
     public async Task Throws_Exception_If_Not_Connected()
     {
-        var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(_serverTransport.Object, _options, _loggerFactory.Object, _serviceProvider);
         server.ClientCapabilities = new ClientCapabilities { Roots = new RootsCapability() };
         _serverTransport.SetupGet(t => t.IsConnected).Returns(false);
 
@@ -273,7 +273,7 @@ public class McpServerTests
         await Can_Handle_Requests(null, "completion/complete",
           configureServer: server =>
           {
-              server.GetCompletionHandler = (request, ct) =>
+              server.SetGetCompletionHandler((request, ct) =>
               {
                   return Task.FromResult(new CompleteResult
                   {
@@ -284,7 +284,7 @@ public class McpServerTests
                           HasMore = true
                       }
                   });
-              };
+              });
           },
          assertResult: response =>
          {
@@ -305,16 +305,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/list",
           configureServer: server =>
           {
-              server.ListResourcesHandler = (request, ct) =>
+              server.SetListResourcesHandler((request, ct) =>
               {
                   return Task.FromResult(new ListResourcesResult
                   {
-                      Resources = new()
-                        {
-                           new() { Uri = "test", Name = "Test Resource" }
-                        }
+                      Resources = [new() { Uri = "test", Name = "Test Resource" }]
                   });
-              };
+              });
 
           },
          assertResult: response =>
@@ -340,13 +337,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/read",
            configureServer: server =>
            {
-               server.ReadResourceHandler = (request, ct) =>
+               server.SetReadResourceHandler((request, ct) =>
                {
                    return Task.FromResult(new ReadResourceResult
                    {
-                       Contents = new List<ResourceContents> { new ResourceContents { Text = "test" } }
+                       Contents = [new() { Text = "test" }]
                    });
-               };
+               });
            },
           assertResult: response =>
           {
@@ -371,13 +368,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/list",
             configureServer: server =>
             {
-                server.ListPromptsHandler = (request, ct) =>
+                server.SetListPromptsHandler((request, ct) =>
                 {
                     return Task.FromResult(new ListPromptsResult
                     {
-                        Prompts = new List<Prompt> { new Prompt { Name = "test" } }
+                        Prompts = [new() { Name = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -402,13 +399,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/get",
             configureServer: server =>
             {
-                server.GetPromptHandler = (request, ct) =>
+                server.SetGetPromptHandler((request, ct) =>
                 {
                     return Task.FromResult(new GetPromptResult
                     {
                         Description = "test"
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -431,13 +428,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/list",
             configureServer: server =>
             {
-                server.ListToolsHandler = (request, ct) =>
+                server.SetListToolsHandler((request, ct) =>
                 {
                     return Task.FromResult(new ListToolsResult
                     {
-                        Tools = new List<Tool> { new Tool { Name = "test" } }
+                        Tools = [new() { Name = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -461,13 +458,13 @@ public class McpServerTests
         await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/call",
             configureServer: server =>
             {
-                server.CallToolHandler = (request, ct) =>
+                server.SetCallToolHandler((request, ct) =>
                 {
                     return Task.FromResult(new CallToolResponse
                     {
                         Content = [new Content { Text = "test" }]
                     });
-                };
+                });
             },
            assertResult: response =>
            {
@@ -487,10 +484,10 @@ public class McpServerTests
 
     private async Task Can_Handle_Requests(ServerCapabilities? serverCapabilities, string method, Action<IMcpServer> configureServer, Action<object> assertResult)
     {
-        var transport = new TestServerTransport();
+        await using var transport = new TestServerTransport();
         var options = serverCapabilities == null ? _options : CreateOptions(serverCapabilities);
 
-        var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
 
         await server.StartAsync();
 
@@ -521,10 +518,10 @@ public class McpServerTests
 
     private async Task Throws_Exception_If_No_Handler_Assigned(ServerCapabilities serverCapabilities, string method, string expectedError)
     {
-        var transport = new TestServerTransport();
+        await using var transport = new TestServerTransport();
         var options = CreateOptions(serverCapabilities);
 
-        var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
+        await using var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
 
         await server.StartAsync();
 

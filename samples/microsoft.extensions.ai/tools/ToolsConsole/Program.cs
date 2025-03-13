@@ -1,10 +1,10 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
+using McpDotNet.Extensions.AI;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
-using SimpleToolsConsole;
 
 internal class Program
 {
@@ -45,8 +45,7 @@ internal class Program
             var client = await GetMcpClientAsync();
             Console.WriteLine("MCP 'everything' server initialized");
             Console.WriteLine("Listing tools...");
-            var tools = await client.ListToolsAsync();
-            var mappedTools = tools.Tools.Select(t => t.ToAITool(client)).ToList();
+            var mappedTools = await client.ListToolsAsync().Select(t => t.ToAITool(client)).ToListAsync();
             Console.WriteLine("Tools available:");
             foreach (var tool in mappedTools)
             {
@@ -81,7 +80,7 @@ internal class Program
 
             // Call the chat client
             Console.WriteLine("Asking GPT-4o-mini to call the Echo Tool...");
-            var response = chatClient.CompleteStreamingAsync(
+            var response = chatClient.GetStreamingResponseAsync(
                     messages,
                     new() { Tools = mappedTools });
 

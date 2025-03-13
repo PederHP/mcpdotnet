@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
@@ -11,7 +12,7 @@ namespace McpDotNet.Client;
 /// All server configurations must be passed in the constructor. 
 /// Capabilities (as defined in client options) are shared across all clients, as the client host can always decide not to use certain capabilities.
 /// </summary>
-public class McpClientFactory
+public class McpClientFactory : IDisposable
 {
     private const string ARGUMENTS_OPTIONS_KEY = "arguments";
     private const string COMMAND_OPTIONS_KEY = "command";
@@ -22,6 +23,12 @@ public class McpClientFactory
     private readonly Func<IClientTransport, McpServerConfig, McpClientOptions, IMcpClient> _clientFactoryMethod;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpClientFactory> _logger;
+    private bool _isDisposed;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether clients should be disposed when the factory is disposed.
+    /// </summary>
+    public bool DisposeClientsOnDispose { get; set; } = true;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpClientFactory"/> class.
@@ -109,7 +116,8 @@ public class McpClientFactory
                 WorkingDirectory = config.TransportOptions?.GetValueOrDefault("workingDirectory"),
                 EnvironmentVariables = config.TransportOptions?
                     .Where(kv => kv.Key.StartsWith("env:", StringComparison.Ordinal))
-                    .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value)
+                    .ToDictionary(kv => kv.Key.Substring(4), kv => kv.Value),
+                ShutdownTimeout = TimeSpan.TryParse(config.TransportOptions?.GetValueOrDefault("shutdownTimeout"), CultureInfo.InvariantCulture, out var timespan) ? timespan : StdioClientTransportOptions.DefaultShutdownTimeout
             }, config, _loggerFactory);
         }
 
@@ -180,5 +188,38 @@ public class McpClientFactory
         config.TransportOptions![ARGUMENTS_OPTIONS_KEY] = config.TransportOptions.TryGetValue(ARGUMENTS_OPTIONS_KEY, out var args)
             ? $"/c {command} {args}"
             : $"/c {command}";
+    }
+
+    /// <summary>
+    /// Disposes all clients created by the factory.
+    /// </summary>
+    /// <param name="disposing"></param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_isDisposed)
+        {
+            if (disposing && DisposeClientsOnDispose)
+                DisposeClients();
+
+            _isDisposed = true;
+        }
+    }
+
+    private void DisposeClients()
+    {
+        foreach (var client in _clients.Values)
+        {
+            client?.DisposeAsync().AsTask().Wait();
+        }
+
+        _clients.Clear();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

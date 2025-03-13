@@ -54,44 +54,41 @@ dotnet add package mcpdotnet
 
 Then create a client and start using tools, or other capabilities, from the servers you configure:
 ```csharp
-var options = new McpClientOptions() 
-    { ClientInfo = new() { Name = "TestClient", Version = "1.0.0" } };
+McpClientOptions options = new()
+{
+    ClientInfo = new() { Name = "TestClient", Version = "1.0.0" }
+};
 	
-var config = new McpServerConfig
-        {
-            Id = "everything",
-            Name = "Everything",
-            TransportType = TransportTypes.StdIo,
-            TransportOptions = new Dictionary<string, string>
-            {
-                ["command"] = "npx",
-                ["arguments"] = "-y @modelcontextprotocol/server-everything",
-            }
-        };
+McpServerConfig config = new()
+{
+    Id = "everything",
+    Name = "Everything",
+    TransportType = TransportTypes.StdIo,
+    TransportOptions = new()
+    {
+        ["command"] = "npx",
+        ["arguments"] = "-y @modelcontextprotocol/server-everything",
+    }
+};
 		
-var factory = new McpClientFactory(
-            [config],
-            options,
-            NullLoggerFactory.Instance
-        );
+var factory = new McpClientFactory([config], options, NullLoggerFactory.Instance);
 
 var client = await factory.GetClientAsync("everything");
 
-// Get the list of tools, for passing to an LLM
-var tools = await client.ListToolsAsync();
+// Print the list of tools available from the server.
+await foreach (var tool in client.ListToolsAsync())
+{
+    Console.WriteLine($"{tool.Name} ({tool.Description})");
+}
 
-// Execute a tool, in practice this would normally be driven by LLM tool invocations
+// Execute a tool (this would normally be driven by LLM tool invocations).
 var result = await client.CallToolAsync(
-            "echo",
-            new Dictionary<string, object>
-            {
-                ["message"] = "Hello MCP!"
-            },
-            CancellationToken.None
-        );
+    "echo",
+    new() { ["message"] = "Hello MCP!" },
+    CancellationToken.None);
 
 // echo always returns one and only one text content object
-Console.WriteLine(result.Content.FirstOrDefault(c => c.Type == "text").Text);
+Console.WriteLine(result.Content.First(c => c.Type == "text").Text);
 ```
 
 Note that you should pass CancellationToken objects suitable for your use case, to enable proper error handling, timeouts, etc. This example also does not paginate the tools list, which may be necessary for large tool sets. See the IntegrationTests project for an example of pagination, as well as examples of how to handle Prompts and Resources.
@@ -107,52 +104,54 @@ Remember you can connect to any MCP server, not just ones created using mcpdotne
 ## Getting Started (Server)
 
 Here is an example of how to create an MCP server and register all tools from the current application.
+It includes a simple echo tool as an example (this is included in the same file here for easy of copy and paste, but it needn't be in the same file...
+the employed overload of `WithTools` examines the current assembly for classes with the `McpToolType` attribute, and registers all methods with the
+`McpTool` attribute as tools.)
 
 ```csharp
-var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddMcpServer()
+using McpDotNet;
+using McpDotNet.Server;
+using Microsoft.Extensions.Hosting;
+using System.ComponentModel;
+
+var builder = Host.CreateEmptyApplicationBuilder(settings: null);
+builder.Services
+    .AddMcpServer()
     .WithStdioServerTransport()
-    .WithTools()
+    .WithTools();
+await builder.Build().RunAsync();
 
-var app = builder.Build();
-
-await app.RunAsync();
-```
-
-The `EchoTool` class is a simple example of a tool implementation:
-```csharp
 [McpToolType]
 public static class EchoTool
 {
-    [McpTool(Description = "Echoes the input back to the client.")]
-    public static string Echo([McpParameter(true)] string message)
-    {
-        return "hello " + message;
-    }
+    [McpTool, Description("Echoes the message back to the client.")]
+    public static string Echo(string message) => $"hello {message}";
 }
 ```
 
-Here is an example of how to create an MCP server manually with a single tool. You can also refer to the TestServer in the tests folder, which implements a wider range of capabilities.
-
+More control is also available, with fine-grained control over configuring the server and how it should handle client requests. For example:
 ```csharp
-McpServerOptions options = new McpServerOptions()
+using McpDotNet.Protocol.Transport;
+using McpDotNet.Protocol.Types;
+using McpDotNet.Server;
+using Microsoft.Extensions.Logging.Abstractions;
+
+var loggerFactory = NullLoggerFactory.Instance;
+McpServerOptions options = new()
 {
-    ServerInfo = new Implementation() { Name = "MyServer", Version = "1.0.0" },
-    Capabilities = new ServerCapabilities()
-    {
-        Tools = new()
-    }
+    ServerInfo = new() { Name = "MyServer", Version = "1.0.0" },
+    Capabilities = new() { Tools = new() },
 };
-McpServerFactory factory = new McpServerFactory(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
+McpServerFactory factory = new(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
 IMcpServer server = factory.CreateServer();
 
-server.ListToolsHandler = (request, cancellationToken) =>
+server.SetListToolsHandler(async (request, cancellationToken) =>
 {
-    return Task.FromResult(new ListToolsResult()
+    return new ListToolsResult()
     {
-        Tools = 
+        Tools =
         [
-            new Tool()                
+            new Tool()
             {
                 Name = "echo",
                 Description = "Echoes the input back to the client.",
@@ -166,35 +165,31 @@ server.ListToolsHandler = (request, cancellationToken) =>
                 },
             }
         ]
-    });
-};
+    };
+});
 
-server.CallToolHandler = async (request, cancellationToken) =>
+server.SetCallToolHandler(async (request, cancellationToken) =>
 {
-    if (request.Name == "echo")
+    if (request.Params?.Name == "echo")
     {
-        if (request.Arguments is null || !request.Arguments.TryGetValue("message", out var message))
+        if (request.Params.Arguments?.TryGetValue("message", out var message) is not true)
         {
             throw new McpServerException("Missing required argument 'message'");
         }
+
         return new CallToolResponse()
         {
-            Content = [new Content() { Text = "Echo: " + message.ToString(), Type = "text" }]
+            Content = [new Content() { Text = $"Echo: {message}", Type = "text" }]
         };
     }
-    else
-    {
-        throw new McpServerException($"Unknown tool: {request.Name}");
-    }
-};
+
+    throw new McpServerException($"Unknown tool: '{request.Params?.Name}'");
+});
 
 await server.StartAsync();
 
 // Run until process is stopped by the client (parent process)
-while (true)
-{
-    await Task.Delay(1000);
-}
+await Task.Delay(Timeout.Infinite);
 ```
 
 

@@ -348,7 +348,7 @@ public sealed class InMemoryTestSseServer : IAsyncDisposable
         {
             try
             {
-                await _serverTask;
+                await Task.WhenAny(_serverTask, Task.Delay(2000));
             }
             catch (TaskCanceledException)
             {

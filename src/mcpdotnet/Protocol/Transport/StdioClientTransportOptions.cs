@@ -7,6 +7,11 @@ namespace McpDotNet.Protocol.Transport;
 public record StdioClientTransportOptions
 {
     /// <summary>
+    /// The default timeout to wait for the server to shut down gracefully.
+    /// </summary>
+    public static readonly TimeSpan DefaultShutdownTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// The command to execute to start the server process.
     /// </summary>
     public required string Command { get; set; }
@@ -29,5 +34,5 @@ public record StdioClientTransportOptions
     /// <summary>
     /// The timeout to wait for the server to shut down gracefully.
     /// </summary>
-    public TimeSpan ShutdownTimeout { get; init; } = TimeSpan.FromSeconds(5);
+    public TimeSpan ShutdownTimeout { get; init; } = DefaultShutdownTimeout;
 }

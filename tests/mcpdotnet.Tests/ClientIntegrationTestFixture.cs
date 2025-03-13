@@ -10,7 +10,6 @@ public class ClientIntegrationTestFixture : IDisposable
     public ILoggerFactory LoggerFactory { get; }
     public McpClientFactory Factory { get; }
     public McpClientOptions DefaultOptions { get; }
-    public McpServerConfig DefaultConfig { get; }
 
     public ClientIntegrationTestFixture()
     {
@@ -20,10 +19,11 @@ public class ClientIntegrationTestFixture : IDisposable
 
         DefaultOptions = new()
         {
-            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
+            ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
+            Capabilities = new() { Sampling = new(), Roots = new() }
         };
 
-        DefaultConfig = new McpServerConfig
+        var everythingServerConfig = new McpServerConfig
         {
             Id = "everything",
             Name = "Everything",
@@ -32,13 +32,28 @@ public class ClientIntegrationTestFixture : IDisposable
             {
                 ["command"] = "npx",
                 // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
-                ["arguments"] = "-y @modelcontextprotocol/server-everything",
+                ["arguments"] = "-y --verbose @modelcontextprotocol/server-everything"
             }
         };
 
+        var testServerConfig = new McpServerConfig
+        {
+            Id = "test_server",
+            Name = "TestServer",
+            TransportType = TransportTypes.StdIo,
+            TransportOptions = new Dictionary<string, string>
+            {
+                ["command"] = OperatingSystem.IsWindows() ? "TestServer.exe" : "dotnet",
+                // Change to ["arguments"] = "mcp-server-everything" if you want to run the server locally after creating a symlink
+            }
+        };
+
+        if (!OperatingSystem.IsWindows())
+            testServerConfig.TransportOptions["arguments"] = "TestServer.dll";
+
         // Inject the mock transport into the factory
         Factory = new McpClientFactory(
-            [DefaultConfig],
+            [everythingServerConfig, testServerConfig],
             DefaultOptions,
             LoggerFactory
         );
@@ -46,6 +61,7 @@ public class ClientIntegrationTestFixture : IDisposable
 
     public void Dispose()
     {
+        Factory?.Dispose();
         LoggerFactory?.Dispose();
         GC.SuppressFinalize(this);
     }

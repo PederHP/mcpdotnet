@@ -119,7 +119,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         if (_messageEndpoint == null)
             throw new InvalidOperationException("Transport not connected");
 
-        var content = new StringContent(
+        using var content = new StringContent(
             JsonSerializer.Serialize(message, _jsonOptions),
             Encoding.UTF8,
             "application/json"
@@ -222,7 +222,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
         {
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, _sseEndpoint);
+                using var request = new HttpRequestMessage(HttpMethod.Get, _sseEndpoint);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
                 using var response = await _httpClient.SendAsync(
@@ -333,7 +333,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
                 if (hostUrl.EndsWith("/sse", StringComparison.Ordinal))
                     hostUrl = hostUrl[..^4];
 
-                var endpointUri = hostUrl + data;
+                var endpointUri = $"{hostUrl.TrimEnd('/')}/{data.TrimStart('/')}";
 
                 _messageEndpoint = new Uri(endpointUri);
             }

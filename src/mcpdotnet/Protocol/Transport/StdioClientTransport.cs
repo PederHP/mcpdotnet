@@ -5,6 +5,7 @@ using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
+using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 
@@ -208,7 +209,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     private async Task ProcessMessageAsync(string line, CancellationToken cancellationToken)
     {
         try
-        {
+        {                    
+            line=line.Trim();//Fixes an error when the service prefixes nonprintable characters
             var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
             if (message != null)
             {
@@ -245,12 +247,10 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
 
                 // Wait for the process to exit
                 _logger.TransportWaitingForShutdown(EndpointName);
-                if (!_process.WaitForExit((int)_options.ShutdownTimeout.TotalMilliseconds))
-                {
-                    // If it doesn't exit gracefully, terminate it
-                    _logger.TransportKillingProcess(EndpointName);
-                    _process.Kill(true);
-                }
+
+                // Kill the while process tree because the process may spawn child processes
+                // and Node.js does not kill its children when it exits properly
+                _process.KillTree(_options.ShutdownTimeout);
             }
             catch (Exception ex)
             {
@@ -262,9 +262,11 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         }
 
         if (_shutdownCts != null)
+        {
             await _shutdownCts.CancelAsync().ConfigureAwait(false);
-        _shutdownCts?.Dispose();
-        _shutdownCts = null;
+            _shutdownCts.Dispose();
+            _shutdownCts = null;
+        }
 
         if (_readTask != null)
         {

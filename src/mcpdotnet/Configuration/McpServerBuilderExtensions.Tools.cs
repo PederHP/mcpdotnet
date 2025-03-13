@@ -116,7 +116,7 @@ public static partial class McpServerBuilderExtensions
         if (toolTypes.Count == 0)
             throw new ArgumentException("No types with marked methods found in the assembly.", nameof(assembly));
 
-        return WithTools(builder, toolTypes.ToArray());
+        return WithTools(builder, [.. toolTypes]);
     }
 
     private static Tool CreateTool(MethodInfo method, McpToolAttribute mcpAttribute)
@@ -187,7 +187,7 @@ public static partial class McpServerBuilderExtensions
                 BindingFlags.DoNotWrapExceptions |
 #endif
                 BindingFlags.Default;
-            result = method.Invoke(objectInstance, InvokeFlags, binder: null, parameters.ToArray(), culture: null);
+            result = method.Invoke(objectInstance, InvokeFlags, binder: null, [.. parameters], culture: null);
         }
         catch (TargetInvocationException e) when (e.InnerException is not null)
         {
@@ -206,7 +206,7 @@ public static partial class McpServerBuilderExtensions
             return new CallToolResponse { Content = [new Content() { Text = resultString, Type = "text" }] };
 
         if (result is string[] resultStringArray)
-            return new CallToolResponse { Content = resultStringArray.Select(s => new Content() { Text = s, Type = "text" }).ToList() };
+            return new CallToolResponse { Content = [.. resultStringArray.Select(s => new Content() { Text = s, Type = "text" })] };
 
         if (result is null)
             return new CallToolResponse { Content = [new Content() { Text = "null" }] };

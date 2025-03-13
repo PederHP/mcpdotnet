@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace McpDotNet.Tests;
+namespace McpDotNet.Tests.Configuration;
 
 public class McpServerBuilderExtensionsToolsTests
 {
@@ -23,7 +23,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public void Adds_Tools_To_Server()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -35,7 +35,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_List_Registered_Tool()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -66,7 +66,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -83,7 +83,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_With_Array_Result()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -100,7 +100,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_With_Null_Result()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -117,7 +117,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_With_Json_Result()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -134,7 +134,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_With_Int_Result()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -151,7 +151,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_And_Pass_Cancellation_Token()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -170,7 +170,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_And_Returns_Cancelled_Response()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -187,7 +187,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Can_Call_Registered_Tool_And_Pass_ComplexType()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -204,7 +204,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Throws_Exception_When_Tool_Fails()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -219,13 +219,13 @@ public class McpServerBuilderExtensionsToolsTests
     public async Task Can_Call_Registered_Tool_With_Dependency_Injection()
     {
         bool dependencyInjectionCalled = false;
-        _services.AddTransient<IDependendService>(sp =>
+        _services.AddTransient(sp =>
         {
             dependencyInjectionCalled = true;
             return Mock.Of<IDependendService>();
         });
 
-        McpServerBuilderExtensions.WithTool<EchoToolWithDi>(_builder.Object);
+        _builder.Object.WithTool<EchoToolWithDi>();
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -246,7 +246,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Throws_Exception_On_Unknown_Tool()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -258,7 +258,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Throws_Exception_Missing_Parameter()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -270,7 +270,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public void Throws_Exception_For_Null_Types()
     {
-        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, toolTypes: null!);
+        var action = () => _builder.Object.WithTools(toolTypes: null!);
 
         var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
@@ -279,7 +279,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public void Throws_Exception_For_Empty_Types()
     {
-        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, toolTypes: []);
+        var action = () => _builder.Object.WithTools(toolTypes: []);
 
         var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
@@ -288,7 +288,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Register_Tools_From_Current_Assembly()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object);
+        _builder.Object.WithTools();
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
@@ -304,7 +304,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public void Throws_Exception_When_No_Tools_Are_Found_In_Given_Assembly()
     {
-        var action = () => McpServerBuilderExtensions.WithToolsFromAssembly(_builder.Object, typeof(Mock).Assembly);
+        var action = () => _builder.Object.WithToolsFromAssembly(typeof(Mock).Assembly);
 
         var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal("No types with marked methods found in the assembly. (Parameter 'assembly')", exception.Message);
@@ -313,7 +313,7 @@ public class McpServerBuilderExtensionsToolsTests
     [Fact]
     public async Task Recognizes_Parameter_Types()
     {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
+        _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;

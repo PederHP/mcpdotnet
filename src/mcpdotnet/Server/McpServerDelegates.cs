@@ -64,30 +64,30 @@ public class McpServerDelegates
         }
 
         if (ListToolsHandler != null)
-            server.ListToolsHandler = ListToolsHandler;
+            server.SetListToolsHandler(ListToolsHandler);
 
         if (CallToolHandler != null)
-            server.CallToolHandler = CallToolHandler;
+            server.SetCallToolHandler(CallToolHandler);
 
         if (ListPromptsHandler != null)
-            server.ListPromptsHandler = ListPromptsHandler;
+            server.SetListPromptsHandler(ListPromptsHandler);
 
         if (GetPromptHandler != null)
-            server.GetPromptHandler = GetPromptHandler;
+            server.SetGetPromptHandler(GetPromptHandler);
 
         if (ListResourcesHandler != null)
-            server.ListResourcesHandler = ListResourcesHandler;
+            server.SetListResourcesHandler(ListResourcesHandler);
 
         if (ReadResourceHandler != null)
-            server.ReadResourceHandler = ReadResourceHandler;
+            server.SetReadResourceHandler(ReadResourceHandler);
 
         if (GetCompletionHandler != null)
-            server.GetCompletionHandler = GetCompletionHandler;
+            server.SetGetCompletionHandler(GetCompletionHandler);
 
         if (SubscribeToResourcesHandler != null)
-            server.SubscribeToResourcesHandler = SubscribeToResourcesHandler;
+            server.SetSubscribeToResourcesHandler(SubscribeToResourcesHandler);
 
         if (UnsubscribeFromResourcesHandler != null)
-            server.UnsubscribeFromResourcesHandler = UnsubscribeFromResourcesHandler;
+            server.SetUnsubscribeFromResourcesHandler(UnsubscribeFromResourcesHandler);
     }
 }
