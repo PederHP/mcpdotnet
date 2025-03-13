@@ -1,4 +1,5 @@
 ﻿using McpDotNet.Configuration;
+using McpDotNet.Hosting;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,7 @@ public static partial class McpServerBuilderExtensions
         }
 
         builder.Services.AddSingleton<IServerTransport, StdioServerTransport>();
+        builder.Services.AddHostedService<McpServerHostedService>();
         return builder;
     }
 }
