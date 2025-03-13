@@ -7,11 +7,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Tests.Utils;
 
-public sealed class TestSseServer : IAsyncDisposable
+public sealed class InMemoryTestSseServer : IAsyncDisposable
 {
     private readonly HttpListener _listener;
     private readonly CancellationTokenSource _cts;
-    private readonly ILogger<TestSseServer> _logger;
+    private readonly ILogger<InMemoryTestSseServer> _logger;
     private Task? _serverTask;
     private readonly TaskCompletionSource _connectionEstablished = new();
 
@@ -23,12 +23,12 @@ public sealed class TestSseServer : IAsyncDisposable
     // Keep track of all open SSE connections (StreamWriters).
     private readonly ConcurrentBag<StreamWriter> _sseClients = [];
 
-    public TestSseServer(int port = 5000, ILogger<TestSseServer>? logger = null)
+    public InMemoryTestSseServer(int port = 5000, ILogger<InMemoryTestSseServer>? logger = null)
     {
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://localhost:{port}/");
         _cts = new CancellationTokenSource();
-        _logger = logger ?? NullLogger<TestSseServer>.Instance;
+        _logger = logger ?? NullLogger<InMemoryTestSseServer>.Instance;
 
         _endpointPath = "/sse";
         _messagePath = "/message";
