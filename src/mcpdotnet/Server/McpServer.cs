@@ -120,11 +120,6 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_serverTransport is null)
-        {
-            return;
-        }
-
         if (_isInitializing)
         {
             _logger.ServerAlreadyInitializing(EndpointName);
@@ -142,8 +137,11 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
         {
             CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            // Start listening for messages
-            await _serverTransport.StartListeningAsync(CancellationTokenSource.Token).ConfigureAwait(false);
+            if (_serverTransport is not null)
+            {
+                // Start listening for messages
+                await _serverTransport.StartListeningAsync(CancellationTokenSource.Token).ConfigureAwait(false);
+            }
 
             // Start processing messages
             MessageProcessingTask = ProcessMessagesAsync(CancellationTokenSource.Token);

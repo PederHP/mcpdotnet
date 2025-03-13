@@ -83,10 +83,6 @@ public class McpServerFactory : IMcpServerFactory
         {
             throw new ArgumentNullException(nameof(transport));
         }
-        if (transport is not IServerTransport && !transport.IsConnected)
-        {
-            throw new ArgumentException($"The transport must be connected", nameof(transport));
-        }
 
         var server = new McpServer(transport, _options, _loggerFactory, _serviceProvider);
         _serverDelegates?.Apply(server);
