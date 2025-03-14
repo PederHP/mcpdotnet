@@ -178,7 +178,7 @@ public static partial class McpServerBuilderExtensions
         List<object?> parameters = ResolveParameters(request, methodParameters, cancellationToken);
 
         using var scope = request.Server.ServiceProvider?.CreateScope();
-        var objectInstance = CreateObjectInstance(method, scope?.ServiceProvider);
+        var objectInstance = CreateObjectInstance(method, request.Server, scope?.ServiceProvider);
         object? result;
         try
         {
@@ -246,14 +246,14 @@ public static partial class McpServerBuilderExtensions
         return parameters;
     }
 
-    private static object? CreateObjectInstance(MethodInfo method, IServiceProvider? serviceProvider)
+    private static object? CreateObjectInstance(MethodInfo method, IMcpServer server, IServiceProvider? serviceProvider)
     {
         if (method.IsStatic)
             return null;
 
         if (serviceProvider != null)
-            return ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!);
+            return ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!, server);
 
-        return Activator.CreateInstance(method.DeclaringType!);
+        return Activator.CreateInstance(method.DeclaringType!, server);
     }
 }

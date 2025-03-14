@@ -1,10 +1,7 @@
-﻿using System.Reflection;
-using McpDotNet.Configuration;
-using McpDotNet.Hosting;
-using McpDotNet.Protocol.Transport;
-using McpDotNet.Protocol.Types;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace McpDotNet;
 
@@ -21,44 +18,16 @@ public static class McpServerServiceCollectionExtension
     /// <returns></returns>
     public static IMcpServerBuilder AddMcpServer(this IServiceCollection services, Action<McpServerOptions>? configureOptions = null)
     {
-        var options = CreateDefaultServerOptions();
-        configureOptions?.Invoke(options);
-
-        return AddMcpServer(services, options);
-    }
-
-    /// <summary>
-    /// Adds the MCP server to the service collection with the provided options.
-    /// </summary>
-    /// <param name="services"></param>
-    /// <param name="serverOptions"></param>
-    /// <returns></returns>
-    public static IMcpServerBuilder AddMcpServer(this IServiceCollection services, McpServerOptions serverOptions)
-    {
-        services.AddSingleton(serverOptions);
         services.AddSingleton<IMcpServerFactory, McpServerFactory>();
-        services.AddHostedService<McpServerHostedService>();
-        services.AddOptions();
-
         services.AddSingleton<IMcpServer>(sp => sp.GetRequiredService<IMcpServerFactory>().CreateServer());
 
-        return new DefaultMcpServerBuilder(services);
-    }
-
-    private static McpServerOptions CreateDefaultServerOptions()
-    {
-        var assemblyName = Assembly.GetEntryAssembly()?.GetName();
-
-        return new McpServerOptions()
+        services.AddOptions();
+        services.AddTransient<IConfigureOptions<McpServerOptions>, McpServerOptionsSetup>();
+        if (configureOptions is not null)
         {
-            ServerInfo = new Implementation() { Name = assemblyName?.Name ?? "McpServer", Version = assemblyName?.Version?.ToString() ?? "1.0.0" },
-            Capabilities = new ServerCapabilities()
-            {
-                Tools = new(),
-                Resources = new(),
-                Prompts = new(),
-            },
-            ProtocolVersion = "2024-11-05"
-        };
+            services.Configure(configureOptions);
+        }
+
+        return new DefaultMcpServerBuilder(services);
     }
 }

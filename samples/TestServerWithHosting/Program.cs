@@ -8,7 +8,7 @@ Log.Logger = new LoggerConfiguration()
                rollingInterval: RollingInterval.Day,
                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
            .WriteTo.Debug()
-           .WriteTo.Console()
+           .WriteTo.Console(standardErrorFromLevel: Serilog.Events.LogEventLevel.Verbose)
            .CreateLogger();
 
 try
@@ -17,10 +17,16 @@ try
 
     var builder = Host.CreateApplicationBuilder(args);
     builder.Services.AddSerilog();
-    builder.Services.AddMcpServer()
-        .WithStdioServerTransport()
-        .WithTools()
-        .WithCallToolHandler((r, ct) => Task.FromResult(new McpDotNet.Protocol.Types.CallToolResponse()));
+    builder.Services.AddMcpServer(options =>
+    {
+        options.Capabilities = new()
+        {
+            Tools = new()
+        };
+    })
+    .WithStdioServerTransport()
+    .WithTools();
+    //.WithCallToolHandler((r, ct) => Task.FromResult(new McpDotNet.Protocol.Types.CallToolResponse()));
 
     var app = builder.Build();
 

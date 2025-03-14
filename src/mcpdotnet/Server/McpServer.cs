@@ -12,7 +12,7 @@ namespace McpDotNet.Server;
 /// <inheritdoc />
 internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
 {
-    private readonly IServerTransport _serverTransport;
+    private readonly IServerTransport? _serverTransport;
     private readonly McpServerOptions _options;
     private volatile bool _isInitializing;
     private readonly ILogger<McpServer> _logger;
@@ -36,10 +36,10 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// <param name="loggerFactory">Logger factory to use for logging</param>
     /// <param name="serviceProvider">Optional service provider to use for dependency injection</param>
     /// <exception cref="McpServerException"></exception>
-    public McpServer(IServerTransport transport, McpServerOptions options, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider)
+    public McpServer(ITransport transport, McpServerOptions options, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider)
         : base(transport, loggerFactory)
     {
-        _serverTransport = transport;
+        _serverTransport = transport as IServerTransport;
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = loggerFactory.CreateLogger<McpServer>();
         ServerInstructions = options.ServerInstructions;
@@ -137,8 +137,11 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
         {
             CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            // Start listening for messages
-            await _serverTransport.StartListeningAsync(CancellationTokenSource.Token).ConfigureAwait(false);
+            if (_serverTransport is not null)
+            {
+                // Start listening for messages
+                await _serverTransport.StartListeningAsync(CancellationTokenSource.Token).ConfigureAwait(false);
+            }
 
             // Start processing messages
             MessageProcessingTask = ProcessMessagesAsync(CancellationTokenSource.Token);
