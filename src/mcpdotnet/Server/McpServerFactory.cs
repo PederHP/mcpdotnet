@@ -31,10 +31,9 @@ public class McpServerFactory : IMcpServerFactory
     /// <param name="serviceProvider">Optional service provider to create new instances.</param>
     /// <param name="loggerFactory">Logger factory to use for logging</param>
     /// <param name="serverDelegates"></param>
-    public McpServerFactory(IServerTransport serverTransport, McpServerOptions options, ILoggerFactory loggerFactory, IOptions<McpServerDelegates>? serverDelegates = null, IServiceProvider? serviceProvider = null)
-        : this(Options.Create(options), serverDelegates ?? Options.Create<McpServerDelegates>(new()), loggerFactory, serviceProvider)
+    public McpServerFactory(IServerTransport? serverTransport, McpServerOptions options, ILoggerFactory loggerFactory, IOptions<McpServerDelegates>? serverDelegates = null, IServiceProvider? serviceProvider = null)
+        : this(Options.Create(options), serverDelegates ?? Options.Create<McpServerDelegates>(new()), loggerFactory, serverTransport, serviceProvider)
     {
-        _serverTransport = serverTransport ?? throw new ArgumentNullException(nameof(serverTransport));
     }
 
     /// <summary>
@@ -42,15 +41,17 @@ public class McpServerFactory : IMcpServerFactory
     /// </summary>
     /// <param name="options">Configuration options for this server, including capabilities. 
     /// Make sure to accurately reflect exactly what capabilities the server supports and does not support.</param>
-    /// <param name="serviceProvider">Optional service provider to create new instances.</param>
-    /// <param name="loggerFactory">Logger factory to use for logging</param>
     /// <param name="serverDelegates"></param>
-    public McpServerFactory(IOptions<McpServerOptions> options, IOptions<McpServerDelegates> serverDelegates, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider = null)
+    /// <param name="loggerFactory">Logger factory to use for logging</param>
+    /// <param name="serverTransport">Transport to use for the server</param>
+    /// <param name="serviceProvider">Optional service provider to create new instances.</param>
+    public McpServerFactory(IOptions<McpServerOptions> options, IOptions<McpServerDelegates> serverDelegates, ILoggerFactory loggerFactory, IServerTransport? serverTransport = null, IServiceProvider? serviceProvider = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _serverDelegates = serverDelegates?.Value;
 
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        _serverTransport = serverTransport;
         _serviceProvider = serviceProvider;
     }
 
