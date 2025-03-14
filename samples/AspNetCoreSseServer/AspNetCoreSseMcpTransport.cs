@@ -10,6 +10,9 @@ namespace AspNetCoreSseServer;
 
 public class AspNetCoreSseMcpTransport(Stream sseResponseStream, ILogger<AspNetCoreSseMcpTransport> logger) : ITransport
 {
+    [ThreadStatic]
+    private static Utf8JsonWriter? _jsonWriter;
+
     private readonly Channel<IJsonRpcMessage> _incomingChannel = CreateSingleItemChannel<IJsonRpcMessage>();
     private readonly Channel<SseItem<IJsonRpcMessage?>> _outgoingSseChannel = CreateSingleItemChannel<SseItem<IJsonRpcMessage?>>();
 
@@ -27,8 +30,7 @@ public class AspNetCoreSseMcpTransport(Stream sseResponseStream, ILogger<AspNetC
                 return;
             }
 
-            var json = JsonSerializer.SerializeToUtf8Bytes(item.Data, JsonSerializerOptionsExtensions.DefaultOptions);
-            writer.Write(json);
+            JsonSerializer.Serialize(GetUtf8JsonWriter(writer), item.Data, JsonSerializerOptionsExtensions.DefaultOptions);
         }
 
         // The very first SSE event isn't really an IJsonRpcMessage, but there's no API to write a single item of a different type,
@@ -67,4 +69,18 @@ public class AspNetCoreSseMcpTransport(Stream sseResponseStream, ILogger<AspNetC
             SingleReader = true,
             SingleWriter = false,
         });
+
+    private static Utf8JsonWriter GetUtf8JsonWriter(IBufferWriter<byte> writer)
+    {
+        if (_jsonWriter is null)
+        {
+            _jsonWriter = new Utf8JsonWriter(writer);
+        }
+        else
+        {
+            _jsonWriter.Reset(writer);
+        }
+
+        return _jsonWriter;
+    }
 }
