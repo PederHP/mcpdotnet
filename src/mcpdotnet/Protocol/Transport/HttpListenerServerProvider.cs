@@ -1,5 +1,5 @@
 ﻿using McpDotNet.Server;
-using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 
@@ -8,6 +8,7 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// HTTP server provider using HttpListener.
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal class HttpListenerServerProvider : IDisposable
 {
     private readonly int _port;
@@ -16,9 +17,8 @@ internal class HttpListenerServerProvider : IDisposable
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
     private Func<string, CancellationToken, bool>? _messageHandler;
-    private ConcurrentDictionary<string, StreamWriter> _sseClients = new();
+    private StreamWriter? _streamWriter;
     private bool _isRunning;
-    private readonly object _lock = new();
 
     /// <summary>
     /// Creates a new instance of the HTTP server provider.
@@ -40,73 +40,51 @@ internal class HttpListenerServerProvider : IDisposable
         return Task.CompletedTask;
     }
 
-    public Task SendEvent(string data, string eventId)
+    public async Task SendEvent(string data, string eventId)
     {
-        foreach (var client in _sseClients)
+        if (_streamWriter == null)
         {
-            try
-            {
-                if (eventId != null)
-                {
-                    client.Value.WriteLine($"id: {eventId}");
-                }
-                client.Value.WriteLine($"data: {data}");
-                client.Value.WriteLine(); // Empty line to finish the event
-                client.Value.Flush();
-            }
-            catch (Exception)
-            {
-                // Client disconnected, remove it
-                _sseClients.TryRemove(client.Key, out _);
-            }
+            throw new McpServerException("Stream writer not initialized");
         }
-        return Task.CompletedTask;
+        if (eventId != null)
+        {
+            await _streamWriter.WriteLineAsync($"id: {eventId}").ConfigureAwait(false);
+        }
+        await _streamWriter.WriteLineAsync($"data: {data}").ConfigureAwait(false);
+        await _streamWriter.WriteLineAsync().ConfigureAwait(false); // Empty line to finish the event
+        await _streamWriter.FlushAsync().ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        lock (_lock)
-        {
-            if (_isRunning)
-                return Task.CompletedTask;
-
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://localhost:{_port}/");
-            _listener.Start();
-            _isRunning = true;
-
-            // Start listening for connections
-            Task.Run(() => ListenForConnectionsAsync(_cts.Token), cancellationToken).ConfigureAwait(false);
+        if (_isRunning)
             return Task.CompletedTask;
-        }
+
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _listener = new HttpListener();
+        _listener.Prefixes.Add($"http://localhost:{_port}/");
+        _listener.Start();
+        _isRunning = true;
+
+        // Start listening for connections
+        _ = Task.Run(() => ListenForConnectionsAsync(_cts.Token), cancellationToken).ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        lock (_lock)
-        {
-            if (!_isRunning)
-                return Task.CompletedTask;
-
-            _cts?.Cancel();
-            _listener?.Stop();
-
-            foreach (var client in _sseClients)
-            {
-                try
-                {
-                    client.Value.Close();
-                }
-                catch { /* Ignore errors during shutdown */ }
-            }
-            _sseClients.Clear();
-
-            _isRunning = false;
+        if (!_isRunning)
             return Task.CompletedTask;
-        }
+
+        _cts?.Cancel();
+        _listener?.Stop();
+
+        _streamWriter?.Close();
+
+        _isRunning = false;
+        return Task.CompletedTask;
     }
 
     private async Task ListenForConnectionsAsync(CancellationToken cancellationToken)
@@ -194,27 +172,24 @@ internal class HttpListenerServerProvider : IDisposable
 
         // Get the output stream and create a StreamWriter
         var outputStream = response.OutputStream;
-        var writer = new StreamWriter(outputStream, Encoding.UTF8) { AutoFlush = true };
-
-        // Add to active clients
-        _sseClients.TryAdd(clientId, writer);
+        _streamWriter = new StreamWriter(outputStream, Encoding.UTF8) { AutoFlush = true };
 
         // Keep the connection open until cancelled
         try
         {
             // Immediately send the "endpoint" event with the POST URL
-            await writer.WriteLineAsync("event: endpoint").ConfigureAwait(false);
-            await writer.WriteLineAsync($"data: {_messageEndpoint}").ConfigureAwait(false);
-            await writer.WriteLineAsync().ConfigureAwait(false); // blank line to end an SSE message
-            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await _streamWriter.WriteLineAsync("event: endpoint").ConfigureAwait(false);
+            await _streamWriter.WriteLineAsync($"data: {_messageEndpoint}").ConfigureAwait(false);
+            await _streamWriter.WriteLineAsync().ConfigureAwait(false); // blank line to end an SSE message
+            await _streamWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             // Keep the connection open by "pinging" or just waiting
             // until the client disconnects or the server is canceled.
             while (!cancellationToken.IsCancellationRequested && response.OutputStream.CanWrite)
             {
-                // Optionally do a periodic no-op to keep connection alive:
-                await writer.WriteLineAsync(": keep-alive").ConfigureAwait(false);
-                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                // Do a periodic no-op to keep connection alive:
+                await _streamWriter.WriteLineAsync(": keep-alive").ConfigureAwait(false);
+                await _streamWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
         }
@@ -229,10 +204,9 @@ internal class HttpListenerServerProvider : IDisposable
         finally
         {
             // Remove client on disconnect
-            _sseClients.TryRemove(clientId, out _);
             try
             {
-                writer.Close();
+                _streamWriter.Close();
                 response.Close();
             }
             catch { /* Ignore errors during cleanup */ }
