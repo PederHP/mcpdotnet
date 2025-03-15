@@ -1,5 +1,6 @@
 ﻿using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace McpDotNet.Server;
@@ -31,11 +32,16 @@ public class McpServerFactory : IMcpServerFactory
     /// <param name="serviceProvider">Optional service provider to create new instances.</param>
     /// <param name="loggerFactory">Logger factory to use for logging</param>
     /// <param name="serverDelegates"></param>
-    public McpServerFactory(IServerTransport serverTransport, McpServerOptions options, ILoggerFactory loggerFactory, IOptions<McpServerDelegates>? serverDelegates = null, IServiceProvider? serviceProvider = null)
+    public McpServerFactory(
+        IServerTransport serverTransport,
+        McpServerOptions options,
+        ILoggerFactory? loggerFactory = null,
+        IOptions<McpServerDelegates>? serverDelegates = null,
+        IServiceProvider? serviceProvider = null)
     {
         _serverTransport = serverTransport ?? throw new ArgumentNullException(nameof(serverTransport));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _serverDelegates = serverDelegates?.Value;
         _serviceProvider = serviceProvider;
     }

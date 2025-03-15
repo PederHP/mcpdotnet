@@ -54,13 +54,6 @@ public class McpServerFactoryTests
     }
 
     [Fact]
-    public void Constructor_Throws_For_Null_Logger()
-    {
-        // Arrange, Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new McpServerFactory(_serverTransport.Object, _options, null!, _serverDelegates.Object, _serviceProvider));
-    }
-
-    [Fact]
     public void Constructor_Does_Not_Throw_For_Null_ServerDelegates()
     {
         var factory = new McpServerFactory(_serverTransport.Object, _options, _loggerFactory.Object, null, _serviceProvider);
