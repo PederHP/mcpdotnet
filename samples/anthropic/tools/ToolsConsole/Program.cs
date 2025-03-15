@@ -62,7 +62,7 @@ internal class Program
 
             var messages = new List<Message>
             {
-                new Message(RoleType.User, "Please call the echo tool with the string 'Hello MCP!' and give me the response as-is.")
+                new Message(RoleType.User, "Please call the echo tool with the string 'Hello MCP!' and show me the echoed response.")
             };
 
             var parameters = new MessageParameters()
@@ -71,9 +71,9 @@ internal class Program
                 MaxTokens = 2048,
                 Model = AnthropicModels.Claude35Haiku,
                 Stream = false,
-                Temperature = 1.0m,
+                Temperature = 0.5m,
                 Tools = anthropicTools,
-                System = [new SystemMessage("You will be helping the user test MCP server tool call functionality.")]
+                System = [new SystemMessage("You will be helping the user test MCP server tool call functionality. Remember that the user cannot see your tool calls or tool results.")]
             };
 
             // If the server provides instructions, add them as the system prompt
