@@ -56,6 +56,7 @@ public class SseIntegrationTests
     }
 
     [Fact]
+    [Trait("Execution", "Manual")]
     public async Task ConnectAndReceiveMessage_EverythingServerWithSse()
     {
         using var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
@@ -96,6 +97,7 @@ public class SseIntegrationTests
     }
 
     [Fact]
+    [Trait("Execution", "Manual")]
     public async Task Sampling_Sse_EverythingServer()
     {
         // arrange
