@@ -43,7 +43,7 @@ internal class Program
         };
         var loggerFactory = CreateLoggerFactory();
 
-        McpServerFactory factory = new McpServerFactory(new SseHttpListenerServerTransport("TestServer", 3001, loggerFactory), options, loggerFactory);
+        McpServerFactory factory = new McpServerFactory(new HttpListenerSseServerTransport("TestServer", 3001, loggerFactory), options, loggerFactory);
         IMcpServer server = factory.CreateServer();
 
         Console.WriteLine("Server object created, registering handlers.");

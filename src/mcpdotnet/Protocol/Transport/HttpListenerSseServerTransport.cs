@@ -10,11 +10,11 @@ namespace McpDotNet.Protocol.Transport;
 /// <summary>
 /// Implements the MCP transport protocol over standard input/output streams.
 /// </summary>
-public sealed class SseHttpListenerServerTransport : TransportBase, IServerTransport
+public sealed class HttpListenerSseServerTransport : TransportBase, IServerTransport
 {
     private readonly string _serverName;
     private readonly HttpListenerServerProvider _httpServerProvider;
-    private readonly ILogger<SseHttpListenerServerTransport> _logger;
+    private readonly ILogger<HttpListenerSseServerTransport> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private CancellationTokenSource? _shutdownCts;
     
@@ -26,7 +26,7 @@ public sealed class SseHttpListenerServerTransport : TransportBase, IServerTrans
     /// <param name="serverOptions">The server options.</param>
     /// <param name="port">The port to listen on.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public SseHttpListenerServerTransport(McpServerOptions serverOptions, int port, ILoggerFactory loggerFactory)
+    public HttpListenerSseServerTransport(McpServerOptions serverOptions, int port, ILoggerFactory loggerFactory)
         : this(GetServerName(serverOptions), port, loggerFactory)
     {
     }
@@ -37,11 +37,11 @@ public sealed class SseHttpListenerServerTransport : TransportBase, IServerTrans
     /// <param name="serverName">The name of the server.</param>
     /// <param name="port">The port to listen on.</param>
     /// <param name="loggerFactory">A logger factory for creating loggers.</param>
-    public SseHttpListenerServerTransport(string serverName, int port, ILoggerFactory loggerFactory)
+    public HttpListenerSseServerTransport(string serverName, int port, ILoggerFactory loggerFactory)
         : base(loggerFactory)
     {
         _serverName = serverName;
-        _logger = loggerFactory.CreateLogger<SseHttpListenerServerTransport>();
+        _logger = loggerFactory.CreateLogger<HttpListenerSseServerTransport>();
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _httpServerProvider = new HttpListenerServerProvider(port);
     }

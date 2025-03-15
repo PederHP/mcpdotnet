@@ -23,4 +23,19 @@ public static partial class McpServerBuilderExtensions
         builder.Services.AddSingleton<IServerTransport, StdioServerTransport>();
         return builder;
     }
+
+    /// <summary>
+    /// Adds a server transport that uses SSE via a HttpListener for communication.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    public static IMcpServerBuilder WithHttpListenerSseServerTransport(this IMcpServerBuilder builder)
+    {
+        if (builder is null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
+        builder.Services.AddSingleton<IServerTransport, HttpListenerSseServerTransport>();
+        return builder;
+    }
 }
