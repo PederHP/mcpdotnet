@@ -211,7 +211,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.NotNull(result.Contents[0].Blob);
     }
 
-    // Not support by "everything" server version on npx
+    // Not supported by "everything" server version on npx
     [Fact]
     public async Task SubscribeResource_Stdio()
     {
@@ -237,7 +237,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.True(counter > 0);
     }
 
-    // Not support by "everything" server version on npx
+    // Not supported by "everything" server version on npx
     [Fact]
     public async Task UnsubscribeResource_Stdio()
     {
