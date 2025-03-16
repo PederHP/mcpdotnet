@@ -58,7 +58,15 @@ internal static class Program
         while (true)
         {
             await Task.Delay(5000);
-            foreach (var resource in _subscribedResources)
+
+            // Snapshot the subscribed resources, rather than locking while sending notifications
+            List<string> resources;
+            lock (_subscribedResourcesLock)
+            {
+                resources = _subscribedResources.ToList();
+            }
+            
+            foreach (var resource in resources)
             {
                 SubscribeToResourceRequestParams responseParams = new() { Uri = resource };
                 await server.SendMessageAsync(new JsonRpcNotification()
@@ -248,6 +256,7 @@ internal static class Program
     }
 
     private static HashSet<string> _subscribedResources = new();
+    private static readonly object _subscribedResourcesLock = new();
 
     private static ResourcesCapability ConfigureResources()
     {
@@ -349,7 +358,10 @@ internal static class Program
                     throw new McpServerException("Invalid resource URI");
                 }
 
-                _subscribedResources.Add(request.Params.Uri);
+                lock (_subscribedResourcesLock)
+                {
+                    _subscribedResources.Add(request.Params.Uri);
+                }
 
                 return Task.FromResult(new EmptyResult());
             },
@@ -365,7 +377,10 @@ internal static class Program
                     throw new McpServerException("Invalid resource URI");
                 }
 
-                _subscribedResources.Remove(request.Params.Uri);
+                lock (_subscribedResourcesLock)
+                {
+                    _subscribedResources.Remove(request.Params.Uri);
+                }
 
                 return Task.FromResult(new EmptyResult());
             },
