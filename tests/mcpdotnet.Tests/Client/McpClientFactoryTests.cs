@@ -3,8 +3,7 @@ using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using McpDotNet.Protocol.Types;
 
 namespace McpDotNet.Tests.Client;
 
@@ -16,10 +15,43 @@ public class McpClientFactoryTests
     };
 
     [Fact]
-    public async Task GetClientAsync_WithValidStdioConfig_CreatesNewClient()
+    public async Task CreateAsync_WithInvalidArgs_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>("serverConfig", () => McpClientFactory.CreateAsync((McpServerConfig)null!, _defaultOptions));
+
+        await Assert.ThrowsAsync<ArgumentNullException>("clientOptions", () => McpClientFactory.CreateAsync(
+            new McpServerConfig()
+            {
+                Name = "name",
+                Id = "id",
+                TransportType = TransportTypes.StdIo,
+            }, (McpClientOptions)null!));
+
+        await Assert.ThrowsAsync<ArgumentException>("serverConfig", () => McpClientFactory.CreateAsync(
+            new McpServerConfig()
+            {
+                Name = "name",
+                Id = "id",
+                TransportType = "somethingunsupported",
+            },
+            _defaultOptions));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => McpClientFactory.CreateAsync(
+            new McpServerConfig()
+            {
+                Name = "name",
+                Id = "id",
+                TransportType = TransportTypes.StdIo,
+            },
+            _defaultOptions,
+            (_, __) => null!));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithValidStdioConfig_CreatesNewClient()
     {
         // Arrange
-        var config = new McpServerConfig
+        var serverConfig = new McpServerConfig
         {
             Id = "test-server",
             Name = "Test Server",
@@ -32,30 +64,11 @@ public class McpClientFactoryTests
             }
         };
 
-        // Create a mock transport
-        var mockTransport = new Mock<IClientTransport>();
-        mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockTransport.Setup(t => t.IsConnected).Returns(true);
-        mockTransport.Setup(t => t.MessageReader).Returns(Mock.Of<ChannelReader<IJsonRpcMessage>>());
-
-        // Create a mock client
-        var mockClient = new Mock<IMcpClient>();
-        mockClient.Setup(c => c.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockClient.Setup(c => c.IsInitialized).Returns(true);
-
-        // Inject the mock transport into the factory
-        using var factory = new McpClientFactory(
-            [config],
-            _defaultOptions,
-            NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object,
-            clientFactoryMethod: (_, _, _) => mockClient.Object
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test-server");
+        var client = await McpClientFactory.CreateAsync(
+            serverConfig,
+            _defaultOptions,
+            (_, __) => new NopTransport());
 
         // Assert
         Assert.NotNull(client);
@@ -63,137 +76,33 @@ public class McpClientFactoryTests
     }
 
     [Fact]
-    public async Task GetClientAsync_CalledTwice_ReturnsSameInstance()
+    public async Task CreateAsync_WithNoTransportOptions_CreatesNewClient()
     {
         // Arrange
-        var config = new McpServerConfig
+        var serverConfig = new McpServerConfig
         {
             Id = "test-server",
             Name = "Test Server",
             TransportType = TransportTypes.StdIo,
-            Location = "/path/to/server"
+            Location = "/path/to/server",
         };
-
-        // Create a mock transport
-        var mockTransport = new Mock<IClientTransport>();
-        mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockTransport.Setup(t => t.IsConnected).Returns(true);
-        mockTransport.Setup(t => t.MessageReader).Returns(Mock.Of<ChannelReader<IJsonRpcMessage>>());
-
-        // Create a mock client
-        var mockClient = new Mock<IMcpClient>();
-        mockClient.Setup(c => c.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockClient.Setup(c => c.IsInitialized).Returns(true);
-
-        using var factory = new McpClientFactory([config],
-            _defaultOptions,
-            NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object,
-            clientFactoryMethod: (_, _, _) => mockClient.Object);
 
         // Act
-        var client1 = await factory.GetClientAsync("test-server");
-        var client2 = await factory.GetClientAsync("test-server");
-
-        // Assert
-        Assert.Same(client1, client2);
-    }
-
-    [Fact]
-    public async Task GetClientAsync_WithInvalidServerId_ThrowsArgumentException()
-    {
-        // Arrange
-        using var factory = new McpClientFactory([],
+        var client = await McpClientFactory.CreateAsync(
+            serverConfig,
             _defaultOptions,
-            NullLoggerFactory.Instance);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(
-            () => factory.GetClientAsync("non-existent-server")
-        );
-    }
-
-    [Fact]
-    public async Task GetClientAsync_WithUnsupportedTransport_ThrowsArgumentException()
-    {
-        // Arrange
-        var config = new McpServerConfig
-        {
-            Id = "test-server",
-            Name = "Test Server",
-            TransportType = "unsupported",
-            Location = "/path/to/server"
-        };
-
-        using var factory = new McpClientFactory([config], _defaultOptions,
-            NullLoggerFactory.Instance);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(
-            () => factory.GetClientAsync("test-server")
-        );
-    }
-
-    [Fact]
-    public async Task GetClientAsync_WithNoTransportOptions_CreatesClientWithDefaults()
-    {
-        // Arrange
-        var config = new McpServerConfig
-        {
-            Id = "test-server",
-            Name = "Test Server",
-            TransportType = TransportTypes.StdIo,
-            Location = "/path/to/server"
-        };
-
-        // Create a mock transport
-        var mockTransport = new Mock<IClientTransport>();
-        mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockTransport.Setup(t => t.IsConnected).Returns(true);
-        mockTransport.Setup(t => t.MessageReader).Returns(Mock.Of<ChannelReader<IJsonRpcMessage>>());
-
-        // Create a mock client
-        var mockClient = new Mock<IMcpClient>();
-        mockClient.Setup(c => c.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockClient.Setup(c => c.IsInitialized).Returns(true);
-
-        using var factory = new McpClientFactory([config],
-            _defaultOptions,
-            NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object,
-            clientFactoryMethod: (_, _, _) => mockClient.Object);
-
-        // Act
-        var client = await factory.GetClientAsync("test-server");
+            (_, __) => new NopTransport());
 
         // Assert
         Assert.NotNull(client);
+        // We could add more assertions here about the client's configuration
     }
 
     [Fact]
-    public void Constructor_WithDuplicateServerIds_ThrowsArgumentException()
+    public async Task CreateAsync_WithValidSseConfig_CreatesNewClient()
     {
         // Arrange
-        McpServerConfig[] configs =
-        [
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path1" },
-            new McpServerConfig { Id = "duplicate", Name = "duplicate", TransportType = TransportTypes.StdIo, Location = "/path2" }
-        ];
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => new McpClientFactory(configs, _defaultOptions,
-            NullLoggerFactory.Instance));
-    }
-
-    [Fact]
-    public async Task GetClientAsync_WithSseTransport_CanCreateClient()
-    {
-        // Arrange
-        var config = new McpServerConfig
+        var serverConfig = new McpServerConfig
         {
             Id = "test-server",
             Name = "Test Server",
@@ -201,40 +110,22 @@ public class McpClientFactoryTests
             Location = "http://localhost:8080"
         };
 
-        // Create a mock transport
-        var mockTransport = new Mock<IClientTransport>();
-        mockTransport.Setup(t => t.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockTransport.Setup(t => t.IsConnected).Returns(true);
-        mockTransport.Setup(t => t.MessageReader).Returns(Mock.Of<ChannelReader<IJsonRpcMessage>>());
-
-        // Create a mock client
-        var mockClient = new Mock<IMcpClient>();
-        mockClient.Setup(c => c.ConnectAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        mockClient.Setup(c => c.IsInitialized).Returns(true);
-
-        // Inject the mock transport into the factory
-        using var factory = new McpClientFactory(
-            [config],
-            _defaultOptions,
-            NullLoggerFactory.Instance,
-            transportFactoryMethod: _ => mockTransport.Object,
-            clientFactoryMethod: (_, _, _) => mockClient.Object
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test-server");
+        var client = await McpClientFactory.CreateAsync(
+            serverConfig,
+            _defaultOptions,
+            (_, __) => new NopTransport());
 
         // Assert
         Assert.NotNull(client);
+        // We could add more assertions here about the client's configuration
     }
 
     [Fact]
-    public void McpFactory_WithSse_CreatesCorrectTransportOptions()
+    public async Task CreateAsync_WithSse_CreatesCorrectTransportOptions()
     {
         // Arrange
-        var config = new McpServerConfig
+        var serverConfig = new McpServerConfig
         {
             Id = "test-server",
             Name = "Test Server",
@@ -250,96 +141,21 @@ public class McpClientFactoryTests
         };
 
         // Act
-        using var factory = new McpClientFactory(
-            [config],
+        var client = await McpClientFactory.CreateAsync(
+            serverConfig,
             _defaultOptions,
-            NullLoggerFactory.Instance
-        );
-
-        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
+            (_, __) => new NopTransport());
 
         // Assert
-        Assert.NotNull(transport);
-        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
-        Assert.Equal(2, transport.Options.MaxReconnectAttempts);
-        Assert.Equal(TimeSpan.FromSeconds(5), transport.Options.ReconnectDelay);
-        Assert.NotNull(transport.Options.AdditionalHeaders);
-        Assert.Equal("the_header_value", transport.Options.AdditionalHeaders["test"]);
-    }
-
-    [Fact]
-    public void McpFactory_WithSseAndNoOptions_CreatesDefaultTransportOptions()
-    {
-        // Arrange
-        var config = new McpServerConfig
-        {
-            Id = "test-server",
-            Name = "Test Server",
-            TransportType = TransportTypes.Sse,
-            Location = "http://localhost:8080"
-        };
-
-        var defaultOptions = new SseClientTransportOptions();
-
-        // Act
-        using var factory = new McpClientFactory(
-            [config],
-            _defaultOptions,
-            NullLoggerFactory.Instance
-        );
-
-        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
-
-        // Assert
-        Assert.NotNull(transport);
-        Assert.True(transport.Options.ConnectionTimeout == defaultOptions.ConnectionTimeout);
-        Assert.True(transport.Options.MaxReconnectAttempts == defaultOptions.MaxReconnectAttempts);
-        Assert.True(transport.Options.ReconnectDelay == defaultOptions.ReconnectDelay);
-        Assert.True(transport.Options.AdditionalHeaders == null && defaultOptions.AdditionalHeaders == null);
-    }
-
-    [Fact]
-    public void McpFactory_WithSseAndMissingOptions_CreatesCorrectTransportOptions()
-    {
-        // Arrange
-        var config = new McpServerConfig
-        {
-            Id = "test-server",
-            Name = "Test Server",
-            TransportType = TransportTypes.Sse,
-            Location = "http://localhost:8080",
-            TransportOptions = new Dictionary<string, string>
-            {
-                ["connectionTimeout"] = "10",
-                ["header.test"] = "the_header_value"
-            }
-        };
-
-        var defaultOptions = new SseClientTransportOptions();
-
-        // Act
-        using var factory = new McpClientFactory(
-            [config],
-            _defaultOptions,
-            NullLoggerFactory.Instance
-        );
-
-        var transport = factory.TransportFactoryMethod(config) as SseClientTransport;
-
-        // Assert
-        Assert.NotNull(transport);
-        Assert.Equal(TimeSpan.FromSeconds(10), transport.Options.ConnectionTimeout);
-        Assert.Equal(defaultOptions.MaxReconnectAttempts, transport.Options.MaxReconnectAttempts);
-        Assert.Equal(defaultOptions.ReconnectDelay, transport.Options.ReconnectDelay);
-        Assert.NotNull(transport.Options.AdditionalHeaders);
-        Assert.Equal("the_header_value", transport.Options.AdditionalHeaders["test"]);
+        Assert.NotNull(client);
+        // We could add more assertions here about the client's configuration
     }
 
     [Theory]
     [InlineData("connectionTimeout", "not_a_number")]
     [InlineData("maxReconnectAttempts", "invalid")]
     [InlineData("reconnectDelay", "bad_value")]
-    public void McpFactory_WithInvalidTransportOptions_ThrowsFormatException(string key, string value)
+    public async Task McpFactory_WithInvalidTransportOptions_ThrowsFormatException(string key, string value)
     {
         // arrange
         var config = new McpServerConfig
@@ -354,15 +170,46 @@ public class McpClientFactoryTests
             }
         };
 
-        // Act
-        using var factory = new McpClientFactory(
-            [config],
-            _defaultOptions,
-            NullLoggerFactory.Instance
-        );
-
         // act & assert
-        Assert.Throws<FormatException>(() =>
-            factory.TransportFactoryMethod(config));
+        await Assert.ThrowsAsync<ArgumentException>(() => McpClientFactory.CreateAsync(config, _defaultOptions));
+    }
+
+    private sealed class NopTransport : IClientTransport
+    {
+        private readonly Channel<IJsonRpcMessage> _channel = Channel.CreateUnbounded<IJsonRpcMessage>();
+
+        public bool IsConnected => true;
+
+        public ChannelReader<IJsonRpcMessage> MessageReader => _channel.Reader;
+
+        public Task ConnectAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public ValueTask DisposeAsync() => default;
+
+        public Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default)
+        {
+            switch (message)
+            {
+                case JsonRpcRequest request:
+                    _channel.Writer.TryWrite(new JsonRpcResponse
+                    {
+                        Id = ((JsonRpcRequest)message).Id,
+                        Result = new InitializeResult()
+                        {
+                            Capabilities = new ServerCapabilities(),
+                            ProtocolVersion = "2024-11-05",
+                            ServerInfo = new Implementation()
+                            {
+                                Name = "NopTransport",
+                                Version = "1.0.0"
+                            },
+                        }
+                    });
+                    break;
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

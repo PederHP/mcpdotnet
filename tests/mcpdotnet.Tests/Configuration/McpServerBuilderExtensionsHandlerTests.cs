@@ -27,7 +27,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithListToolsHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.ListToolsHandler);
     }
@@ -40,7 +40,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithCallToolHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.CallToolHandler);
     }
@@ -53,7 +53,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithListPromptsHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.ListPromptsHandler);
     }
@@ -66,7 +66,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithGetPromptHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.GetPromptHandler);
     }
@@ -79,7 +79,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithListResourcesHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.ListResourcesHandler);
     }
@@ -92,7 +92,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithReadResourceHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.ReadResourceHandler);
     }
@@ -105,7 +105,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithGetCompletionHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.GetCompletionHandler);
     }
@@ -118,7 +118,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithSubscribeToResourcesHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.SubscribeToResourcesHandler);
     }
@@ -131,7 +131,7 @@ public class McpServerBuilderExtensionsHandlerTests
         _builder.Object.WithUnsubscribeFromResourcesHandler(handler);
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.Equal(handler, options.UnsubscribeFromResourcesHandler);
     }

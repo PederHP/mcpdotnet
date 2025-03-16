@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
@@ -9,6 +7,8 @@ using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+#pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -37,15 +37,8 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
     public StdioClientTransport(StdioClientTransportOptions options, McpServerConfig serverConfig, ILoggerFactory? loggerFactory = null)
         : base(loggerFactory)
     {
-        if (options is null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
-
-        if (serverConfig is null)
-        {
-            throw new ArgumentNullException(nameof(serverConfig));
-        }
+        Throw.IfNull(options);
+        Throw.IfNull(serverConfig);
 
         _options = options;
         _serverConfig = serverConfig;
@@ -71,23 +64,17 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             var startInfo = new ProcessStartInfo
             {
                 FileName = _options.Command,
-                UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
+                UseShellExecute = false,
+                CreateNoWindow = true,
                 WorkingDirectory = _options.WorkingDirectory ?? Environment.CurrentDirectory,
             };
 
-            if (_options.Arguments is { Length: > 0 })
+            if (!string.IsNullOrWhiteSpace(_options.Arguments))
             {
-                StringBuilder argsBuilder = new();
-                foreach (var arg in _options.Arguments)
-                {
-                    PasteArguments.AppendArgument(argsBuilder, arg);
-                }
-
-                startInfo.Arguments = argsBuilder.ToString();
+                startInfo.Arguments = _options.Arguments;
             }
 
             if (_options.EnvironmentVariables != null)
@@ -105,10 +92,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process = new Process { StartInfo = startInfo };
 
             // Set up error logging
-            _process.ErrorDataReceived += (sender, args) =>
-            {
-                _logger.TransportError(EndpointName, args.Data ?? "(no data)");
-            };
+            _process.ErrorDataReceived += (sender, args) => _logger.TransportError(EndpointName, args.Data ?? "(no data)");
 
             if (!_process.Start())
             {
@@ -120,7 +104,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process.BeginErrorReadLine();
 
             // Start reading messages in the background
-            _readTask = Task.Run(async () => await ReadMessagesAsync(_shutdownCts.Token).ConfigureAwait(false), CancellationToken.None);
+            _readTask = Task.Run(() => ReadMessagesAsync(_shutdownCts.Token), CancellationToken.None);
             _logger.TransportReadingMessages(EndpointName);
 
             SetConnected(true);
@@ -272,10 +256,10 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
             _process = null;
         }
 
-        if (_shutdownCts != null)
+        if (_shutdownCts is { } shutdownCts)
         {
-            await _shutdownCts.CancelAsync().ConfigureAwait(false);
-            _shutdownCts.Dispose();
+            await shutdownCts.CancelAsync().ConfigureAwait(false);
+            shutdownCts.Dispose();
             _shutdownCts = null;
         }
 

@@ -1,24 +1,21 @@
 ﻿using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
-using System.Linq;
 using McpDotNet;
 using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Transport;
-using Microsoft.Extensions.Logging.Abstractions;
 
 internal class Program
 {
     private static async Task<IMcpClient> GetMcpClientAsync()
     {
-
-        McpClientOptions options = new()
+        McpClientOptions clientOptions = new()
         {
             ClientInfo = new() { Name = "SimpleToolsConsole", Version = "1.0.0" }
         };
 
-        var config = new McpServerConfig
+        McpServerConfig serverConfig = new()
         {
             Id = "everything",
             Name = "Everything",
@@ -30,13 +27,7 @@ internal class Program
             }
         };
 
-        var factory = new McpClientFactory(
-            [config],
-            options,
-            NullLoggerFactory.Instance
-        );
-
-        return await factory.GetClientAsync("everything");
+        return await McpClientFactory.CreateAsync(serverConfig, clientOptions);
     }
 
     private static async Task Main(string[] args)
@@ -44,7 +35,7 @@ internal class Program
         try
         {
             Console.WriteLine("Initializing MCP 'everything' server");
-            var client = await GetMcpClientAsync();
+            await using var client = await GetMcpClientAsync();
             Console.WriteLine("MCP 'everything' server initialized");
             Console.WriteLine("Listing tools...");
             var tools = await client.ListToolsAsync().ToListAsync();
@@ -60,10 +51,10 @@ internal class Program
 
             Console.WriteLine("Asking Claude to call the Echo Tool...");
 
-            var messages = new List<Message>
-            {
+            List<Message> messages =
+            [
                 new Message(RoleType.User, "Please call the echo tool with the string 'Hello MCP!' and show me the echoed response.")
-            };
+            ];
 
             var parameters = new MessageParameters()
             {

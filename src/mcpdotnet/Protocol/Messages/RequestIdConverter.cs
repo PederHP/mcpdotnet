@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using McpDotNet.Utils;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace McpDotNet.Protocol.Messages;
@@ -22,14 +23,15 @@ public class RequestIdConverter : JsonConverter<RequestId>
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, RequestId value, JsonSerializerOptions options)
     {
-        if (writer is null)
-        {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        Throw.IfNull(writer);
 
         if (value.IsString)
+        {
             writer.WriteStringValue(value.AsString);
+        }
         else
+        {
             writer.WriteNumberValue(value.AsNumber);
+        }
     }
 }

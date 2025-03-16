@@ -30,20 +30,6 @@ public interface IMcpClient : IAsyncDisposable
     /// </summary>
     string? ServerInstructions { get; }
 
-    /// <summary>Sets a handler for the named operation.</summary>
-    /// <param name="operationName">The name of the operation.</param>
-    /// <param name="handler">The handler. Each operation requires a specific delegate signature.</param>
-    /// <remarks>
-    /// <para>
-    /// Each operation may have only a single handler. Setting a handler for an operation that already has one
-    /// will replace the existing handler.
-    /// </para>
-    /// <para>
-    /// <see cref="OperationNames"> provides constants for common operations.</see>
-    /// </para>
-    /// </remarks>
-    void SetOperationHandler(string operationName, Delegate handler);
-
     /// <summary>
     /// Adds a handler for server notifications of a specific method.
     /// </summary>
@@ -59,13 +45,6 @@ public interface IMcpClient : IAsyncDisposable
     /// </para>
     /// </remarks>
     void AddNotificationHandler(string method, Func<JsonRpcNotification, Task> handler);
-
-    /// <summary>
-    /// Establishes a connection to the server.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task ConnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a generic JSON-RPC request to the server.

@@ -2,7 +2,6 @@
 using McpDotNet.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Extensions.AI;
 
@@ -45,7 +44,7 @@ public sealed class McpSessionScope : IAsyncDisposable
         }
 
         var scope = new McpSessionScope();
-        var client = await scope.AddClientAsync(serverConfig, options, loggerFactory).ConfigureAwait(false);
+        var client = await AddClientAsync(serverConfig, options, loggerFactory).ConfigureAwait(false);
 
         scope.Tools = [];
         await foreach (var tool in client.ListToolsAsync().ConfigureAwait(false))
@@ -81,7 +80,7 @@ public sealed class McpSessionScope : IAsyncDisposable
 
         foreach (var config in serverConfigs)
         {
-            var client = await scope.AddClientAsync(config, options, loggerFactory).ConfigureAwait(false);
+            var client = await AddClientAsync(config, options, loggerFactory).ConfigureAwait(false);
 
             scope.Tools ??= [];
             await foreach (var tool in client.ListToolsAsync().ConfigureAwait(false))
@@ -95,17 +94,15 @@ public sealed class McpSessionScope : IAsyncDisposable
         return scope;
     }
 
-    private async Task<IMcpClient> AddClientAsync(McpServerConfig config,
-        McpClientOptions? options,
+    private static Task<IMcpClient> AddClientAsync(
+        McpServerConfig serverConfig,
+        McpClientOptions? clientOptions,
         ILoggerFactory? loggerFactory = null)
     {
-        using var factory = new McpClientFactory([config],
-            options ?? new() { ClientInfo = new() { Name = "AnonymousClient", Version = "1.0.0.0" } },
-            loggerFactory ?? NullLoggerFactory.Instance);
-        factory.DisposeClientsOnDispose = false;
-        var client = await factory.GetClientAsync(config.Id).ConfigureAwait(false);
-        _clients.Add(client);
-        return client;
+        return McpClientFactory.CreateAsync(
+            serverConfig,
+            clientOptions ?? new() { ClientInfo = new() { Name = "AnonymousClient", Version = "1.0.0.0" } }, 
+            loggerFactory: loggerFactory);
     }
 
     /// <inheritdoc/>

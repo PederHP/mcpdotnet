@@ -1,13 +1,14 @@
 ﻿using System.Text.Json;
-using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Server;
+using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
+#pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace McpDotNet.Protocol.Transport;
 
@@ -104,12 +105,15 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     public StdioServerTransport(string serverName, TextReader input, TextWriter output, ILoggerFactory? loggerFactory = null)
         : base(loggerFactory)
     {
-        _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
-        _input = input ?? throw new ArgumentNullException(nameof(input));
-        _output = output ?? throw new ArgumentNullException(nameof(output));
+        Throw.IfNull(serverName);
+        Throw.IfNull(input);
+        Throw.IfNull(output);
 
-        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<StdioClientTransport>() : NullLogger.Instance;
+        _serverName = serverName;
+        _input = input;
+        _output = output;
 
+        _logger = (ILogger?)loggerFactory?.CreateLogger<StdioClientTransport>() ?? NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
@@ -274,15 +278,8 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// <summary>Validates the <paramref name="serverOptions"/> and extracts from it the server name to use.</summary>
     private static string GetServerName(McpServerOptions serverOptions)
     {
-        if (serverOptions is null)
-        {
-            throw new ArgumentNullException(nameof(serverOptions));
-        }
-
-        if (serverOptions.ServerInfo is null)
-        {
-            throw new ArgumentNullException($"{nameof(serverOptions)}.{nameof(serverOptions.ServerInfo)}");
-        }
+        Throw.IfNull(serverOptions);
+        Throw.IfNull(serverOptions.ServerInfo);
 
         return serverOptions.ServerInfo.Name;
     }

@@ -1,7 +1,6 @@
 ﻿using McpDotNet.Client;
 using McpDotNet.Configuration;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
 
 namespace McpDotNet.Extensions.AI.Tests;
@@ -35,19 +34,13 @@ public class IntegrationTests
             ClientInfo = new() { Name = "McpDotNet.Extensions.AI.Tests", Version = "1.0.0" }
         };
 
-        var factory = new McpClientFactory(
-            [GetEverythingServerConfig()],
-            options,
-            NullLoggerFactory.Instance
-        );
-
-        return await factory.GetClientAsync("everything");
+        return await McpClientFactory.CreateAsync(GetEverythingServerConfig(), options);
     }
 
     [Fact]
     public async Task IntegrateWithMeai_UsingEverythingServer_ToolsAreProperlyCalled()
     {
-        var client = await GetMcpClientAsync();
+        await using var client = await GetMcpClientAsync();
         var mappedTools = await client.ListToolsAsync().Select(t => t.ToAITool(client)).ToListAsync();
 
         IChatClient openaiClient = new OpenAIClient(_openAIKey)

@@ -28,20 +28,6 @@ public interface IMcpServer : IAsyncDisposable
     /// </summary>
     IServiceProvider? ServiceProvider { get; }
 
-    /// <summary>Sets a handler for the named operation.</summary>
-    /// <param name="operationName">The name of the operation.</param>
-    /// <param name="handler">The handler. Each operation requires a specific delegate signature.</param>
-    /// <remarks>
-    /// <para>
-    /// Each operation may have only a single handler. Setting a handler for an operation that already has one
-    /// will replace the existing handler.
-    /// </para>
-    /// <para>
-    /// <see cref="OperationNames"> provides constants for common operations.</see>
-    /// </para>
-    /// </remarks>
-    void SetOperationHandler(string operationName, Delegate handler);
-
     /// <summary>
     /// Adds a handler for client notifications of a specific method.
     /// </summary>

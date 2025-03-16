@@ -1,8 +1,4 @@
-﻿using McpDotNet.Protocol.Messages;
-using McpDotNet.Protocol.Types;
-using Microsoft.Extensions.Logging;
-
-namespace McpDotNet.Protocol.Messages;
+﻿namespace McpDotNet.Protocol.Messages;
 
 /// <summary>Provides names of standard operations for use with registering handlers.</summary>
 /// <remarks>

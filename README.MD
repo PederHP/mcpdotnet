@@ -71,9 +71,7 @@ McpServerConfig config = new()
     }
 };
 		
-var factory = new McpClientFactory([config], options, NullLoggerFactory.Instance);
-
-var client = await factory.GetClientAsync("everything");
+var client = await McpClientFactory.CreateAsync(config, options);
 
 // Print the list of tools available from the server.
 await foreach (var tool in client.ListToolsAsync())
@@ -136,62 +134,64 @@ using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.Logging.Abstractions;
 
-var loggerFactory = NullLoggerFactory.Instance;
 McpServerOptions options = new()
 {
     ServerInfo = new() { Name = "MyServer", Version = "1.0.0" },
-    Capabilities = new() { Tools = new() },
-};
-McpServerFactory factory = new(new StdioServerTransport("MyServer", loggerFactory), options, loggerFactory);
-IMcpServer server = factory.CreateServer();
-
-server.SetListToolsHandler(async (request, cancellationToken) =>
-{
-    return new ListToolsResult()
+    Capabilities = new() 
     {
-        Tools =
-        [
-            new Tool()
+        Tools = new()
+        {
+            ListToolsHandler = async (request, cancellationToken) =>
             {
-                Name = "echo",
-                Description = "Echoes the input back to the client.",
-                InputSchema = new JsonSchema()
+                return new ListToolsResult()
                 {
-                    Type = "object",
-                    Properties = new Dictionary<string, JsonSchemaProperty>()
+                    Tools =
+                    [
+                        new Tool()
+                        {
+                            Name = "echo",
+                            Description = "Echoes the input back to the client.",
+                            InputSchema = new JsonSchema()
+                            {
+                                Type = "object",
+                                Properties = new Dictionary<string, JsonSchemaProperty>()
+                                {
+                                    ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
+                                }
+                            },
+                        }
+                    ]
+                };
+            },
+
+            CallToolHandler = async (request, cancellationToken) =>
+            {
+                if (request.Params?.Name == "echo")
+                {
+                    if (request.Params.Arguments?.TryGetValue("message", out var message) is not true)
                     {
-                        ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
+                        throw new McpServerException("Missing required argument 'message'");
                     }
-                },
-            }
-        ]
-    };
-});
 
-server.SetCallToolHandler(async (request, cancellationToken) =>
-{
-    if (request.Params?.Name == "echo")
-    {
-        if (request.Params.Arguments?.TryGetValue("message", out var message) is not true)
-        {
-            throw new McpServerException("Missing required argument 'message'");
+                    return new CallToolResponse()
+                    {
+                        Content = [new Content() { Text = $"Echo: {message}", Type = "text" }]
+                    };
+                }
+
+                throw new McpServerException($"Unknown tool: '{request.Params?.Name}'");
+            },
         }
+    },
+};
 
-        return new CallToolResponse()
-        {
-            Content = [new Content() { Text = $"Echo: {message}", Type = "text" }]
-        };
-    }
-
-    throw new McpServerException($"Unknown tool: '{request.Params?.Name}'");
-});
+await using IMcpServer server = McpServerFactory.Create(new StdioServerTransport("MyServer"), options);
 
 await server.StartAsync();
 
 // Run until process is stopped by the client (parent process)
 await Task.Delay(Timeout.Infinite);
 ```
-
 
 ## Roadmap
 

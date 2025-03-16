@@ -1,11 +1,11 @@
-﻿
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using McpDotNet.Logging;
-using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
+using McpDotNet.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Server;
 
@@ -15,17 +15,7 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     private readonly IServerTransport _serverTransport;
     private readonly McpServerOptions _options;
     private volatile bool _isInitializing;
-    private readonly ILogger<McpServer> _logger;
-
-    private Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? _listToolsHandler;
-    private Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? _callToolHandler;
-    private Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? _listPromptsHandler;
-    private Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? _getPromptHandler;
-    private Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? _listResourcesHandler;
-    private Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? _readResourceHandler;
-    private Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? _getCompletionHandler;
-    private Func<RequestContext<string>, CancellationToken, Task>? _subscribeToResourcesHandler;
-    private Func<RequestContext<string>, CancellationToken, Task>? _unsubscribeFromResourcesHandler;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Creates a new instance of <see cref="McpServer"/>.
@@ -36,22 +26,29 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// <param name="loggerFactory">Logger factory to use for logging</param>
     /// <param name="serviceProvider">Optional service provider to use for dependency injection</param>
     /// <exception cref="McpServerException"></exception>
-    public McpServer(IServerTransport transport, McpServerOptions options, ILoggerFactory loggerFactory, IServiceProvider? serviceProvider)
+    public McpServer(IServerTransport transport, McpServerOptions options, ILoggerFactory? loggerFactory, IServiceProvider? serviceProvider)
         : base(transport, loggerFactory)
     {
+        Throw.IfNull(options);
+
         _serverTransport = transport;
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = loggerFactory.CreateLogger<McpServer>();
+        _options = options;
+        _logger = (ILogger?)loggerFactory?.CreateLogger<McpServer>() ?? NullLogger.Instance;
         ServerInstructions = options.ServerInstructions;
         ServiceProvider = serviceProvider;
 
+        AddNotificationHandler("notifications/initialized", _ =>
+        {
+            IsInitialized = true;
+            return Task.CompletedTask;
+        });
+
+        SetInitializeHandler(options);
+        SetCompletionHandler(options);
+        SetPingHandler();
         SetToolsHandler(options);
         SetPromptsHandler(options);
         SetResourcesHandler(options);
-        SetCompletionHandler();
-        SetInitializeHandler(options);
-        SetPingHandler();
-        AddNotificationHandler();
     }
 
     public ClientCapabilities? ClientCapabilities { get; set; }
@@ -68,54 +65,6 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     /// <inheritdoc />
     public override string EndpointName =>
         $"Server ({_options.ServerInfo.Name} {_options.ServerInfo.Version}), Client ({ClientInfo?.Name} {ClientInfo?.Version})";
-
-    public void SetOperationHandler(string operationName, Delegate handler)
-    {
-        if (operationName is null)
-        {
-            throw new ArgumentNullException(nameof(operationName));
-        }
-
-        if (handler is null)
-        {
-            throw new ArgumentNullException(nameof(handler));
-        }
-
-        if (!TrySetOperationHandler(OperationNames.ListTools, operationName, handler, ref _listToolsHandler) &&
-            !TrySetOperationHandler(OperationNames.CallTool, operationName, handler, ref _callToolHandler) &&
-            !TrySetOperationHandler(OperationNames.ListPrompts, operationName, handler, ref _listPromptsHandler) &&
-            !TrySetOperationHandler(OperationNames.GetPrompt, operationName, handler, ref _getPromptHandler) &&
-            !TrySetOperationHandler(OperationNames.ListResources, operationName, handler, ref _listResourcesHandler) &&
-            !TrySetOperationHandler(OperationNames.ReadResource, operationName, handler, ref _readResourceHandler) &&
-            !TrySetOperationHandler(OperationNames.GetCompletion, operationName, handler, ref _getCompletionHandler) &&
-            !TrySetOperationHandler(OperationNames.SubscribeToResources, operationName, handler, ref _subscribeToResourcesHandler) &&
-            !TrySetOperationHandler(OperationNames.UnsubscribeFromResources, operationName, handler, ref _unsubscribeFromResourcesHandler))
-        {
-            throw new ArgumentException($"Unknown operation '{operationName}'", nameof(operationName));
-        }
-
-        static bool TrySetOperationHandler<TFieldRequest, TFieldResponse>(
-            string targetOperationName,
-            string operationName,
-            Delegate handler,
-            ref Func<TFieldRequest, CancellationToken, TFieldResponse>? field)
-        {
-            if (operationName == targetOperationName)
-            {
-                if (handler is Func<TFieldRequest, CancellationToken, TFieldResponse> typed)
-                {
-                    field = typed;
-                    return true;
-                }
-
-                throw new ArgumentException(
-                    $"Handler must be of type {typeof(Func<TFieldRequest, CancellationToken, TFieldResponse>)}",
-                    nameof(handler));
-            }
-
-            return false;
-        }
-    }
 
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -153,15 +102,6 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
         }
     }
 
-    private void AddNotificationHandler()
-    {
-        AddNotificationHandler("notifications/initialized", (notification) =>
-        {
-            IsInitialized = true;
-            return Task.CompletedTask;
-        });
-    }
-
     private void SetPingHandler()
     {
         SetRequestHandler<JsonNode, PingResult>("ping", 
@@ -171,136 +111,94 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     private void SetInitializeHandler(McpServerOptions options)
     {
         SetRequestHandler<InitializeRequestParams, InitializeResult>("initialize",
-                    (request) =>
-                    {
-                        ClientCapabilities = request?.Capabilities ?? new();
-                        ClientInfo = request?.ClientInfo;
-                        return Task.FromResult(new InitializeResult()
-                        {
-                            ProtocolVersion = options.ProtocolVersion,
-                            Instructions = ServerInstructions,
-                            ServerInfo = _options.ServerInfo,
-                            Capabilities = options.Capabilities ?? new ServerCapabilities(),
-                        });
-                    });
+            request =>
+            {
+                ClientCapabilities = request?.Capabilities ?? new();
+                ClientInfo = request?.ClientInfo;
+                return Task.FromResult(new InitializeResult()
+                {
+                    ProtocolVersion = options.ProtocolVersion,
+                    Instructions = ServerInstructions,
+                    ServerInfo = _options.ServerInfo,
+                    Capabilities = options.Capabilities ?? new ServerCapabilities(),
+                });
+            });
     }
 
-    private void SetCompletionHandler()
+    private void SetCompletionHandler(McpServerOptions options)
     {
+        // This capability is not optional, so return an empty result if there is no handler.
         SetRequestHandler<CompleteRequestParams, CompleteResult>("completion/complete",
-                        async (request) =>
-                        {
-                            if (_getCompletionHandler is null)
-                            {
-                                // This capability is not optional, so return an empty result if there is no handler
-                                return new CompleteResult()
-                                {
-                                    Completion = new()
-                                    {
-                                        Values = [],
-                                        Total = 0,
-                                        HasMore = false
-                                    }
-                                };
-                            }
-
-                            return await _getCompletionHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                        });
+            options.GetCompletionHandler is { } handler ?
+                request => handler(new(this, request), CancellationTokenSource?.Token ?? default) :
+                request => Task.FromResult(new CompleteResult() { Completion = new() { Values = [], Total = 0, HasMore = false } }));
     }
 
     private void SetResourcesHandler(McpServerOptions options)
     {
-        if (options.Capabilities?.Resources is not null)
+        if (options.Capabilities?.Resources is not { } resourcesCapability)
         {
-            SetRequestHandler<ListResourcesRequestParams, ListResourcesResult>("resources/list",
-                async (request) =>
-                {
-                    if (_listResourcesHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.ListResourcesHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("ListResources handler not configured");
-                    }
-
-                    return await _listResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
-
-            SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read",
-                async (request) =>
-                {
-                    if (_readResourceHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.ReadResourceHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("ReadResource handler not configured");
-                    }
-
-                    return await _readResourceHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
+            return;
         }
+
+        if (resourcesCapability.ListResourcesHandler is not { } listResourcesHandler ||
+            resourcesCapability.ReadResourceHandler is not { } readResourceHandler)
+        {
+            throw new McpServerException("Resources capability was enabled, but ListResources and/or ReadResource handlers were not specified.");
+        }
+
+        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
+        SetRequestHandler<ListResourcesRequestParams, ListResourcesResult>("resources/list", request => listResourcesHandler(new(this, request), cancellationToken));
+        SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read", request => readResourceHandler(new(this, request), cancellationToken));
+
+        if (resourcesCapability.Subscribe is not true)
+        {
+            return;
+        }
+
+        var subscribeHandler = resourcesCapability.SubscribeToResourcesHandler;
+        var unsubscribeHandler = resourcesCapability.UnsubscribeFromResourcesHandler;
+        if (subscribeHandler is null || unsubscribeHandler is null)
+        {
+            throw new McpServerException("Resources capability was enabled with subscribe support, but SubscribeToResources and/or UnsubscribeFromResources handlers were not specified.");
+        }
+
+        // TODO: Implement Subscribe support
     }
 
     private void SetPromptsHandler(McpServerOptions options)
     {
-        if (options.Capabilities?.Prompts is not null)
+        if (options.Capabilities?.Prompts is not { } promptsCapability)
         {
-            SetRequestHandler<ListPromptsRequestParams, ListPromptsResult>("prompts/list",
-                async (request) =>
-                {
-                    if (_listPromptsHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.ListPromptsHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("ListPrompts handler not configured");
-                    }
-
-                    return await _listPromptsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
-
-            SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get",
-                async (request) =>
-                {
-                    if (_getPromptHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.GetPromptHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("GetPrompt handler not configured");
-                    }
-
-                    return await _getPromptHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
+            return;
         }
+
+        if (promptsCapability.ListPromptsHandler is not { } listPromptsHandler ||
+            promptsCapability.GetPromptHandler is not { } getPromptHandler)
+        {
+            throw new McpServerException("Prompts capability was enabled, but ListPrompts and/or GetPrompt handlers were not specified.");
+        }
+
+        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
+        SetRequestHandler<ListPromptsRequestParams, ListPromptsResult>("prompts/list", request => listPromptsHandler(new(this, request), cancellationToken));
+        SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get", request => getPromptHandler(new(this, request), cancellationToken));
     }
 
     private void SetToolsHandler(McpServerOptions options)
     {
-        if (options.Capabilities?.Tools is not null)
+        if (options.Capabilities?.Tools is not { } toolsCapability)
         {
-            SetRequestHandler<ListToolsRequestParams, ListToolsResult>("tools/list",
-                async (request) =>
-                {
-                    if (_listToolsHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.ListToolsHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("ListTools handler not configured");
-                    }
-
-                    return await _listToolsHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
-
-            SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call",
-                async (request) =>
-                {
-                    if (_callToolHandler is null)
-                    {
-                        // Setting the capability, but not a handler means we have nothing to return to the server
-                        _logger.CallToolHandlerNotConfigured(EndpointName);
-                        throw new McpServerException("CallTool handler not configured");
-                    }
-
-                    return await _callToolHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-                });
+            return;
         }
+
+        if (toolsCapability.ListToolsHandler is not { } listToolsHandler ||
+            toolsCapability.CallToolHandler is not { } callToolHandler)
+        {
+            throw new McpServerException("ListTools and/or CallTool handlers were specified but the Tools capability was not enabled.");
+        }
+
+        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
+        SetRequestHandler<ListToolsRequestParams, ListToolsResult>("tools/list", request => listToolsHandler(new(this, request), cancellationToken));
+        SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call", request => callToolHandler(new(this, request), cancellationToken));
     }
 }

@@ -1,8 +1,7 @@
 ﻿using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
-using Microsoft.Extensions.Logging;
+using McpDotNet.Utils;
 using System.Runtime.CompilerServices;
-using System.Xml.XPath;
 
 namespace McpDotNet.Client;
 
@@ -20,10 +19,7 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task SendNotificationAsync(this IMcpClient client, string method, object? parameters = null, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendMessageAsync(
             new JsonRpcNotification { Method = method, Params = parameters },
@@ -38,10 +34,7 @@ public static class McpClientExtensions
     /// <returns>A task that completes when the ping is successful.</returns>
     public static Task PingAsync(this IMcpClient client, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<dynamic>(
             CreateRequest("ping", null),
@@ -80,10 +73,7 @@ public static class McpClientExtensions
     /// <returns>A task containing the server's response with tool information.</returns>
     public static Task<ListToolsResult> ListToolsAsync(this IMcpClient client, string? cursor, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<ListToolsResult>(
             CreateRequest("tools/list", CreateCursorDictionary(cursor)),
@@ -122,10 +112,7 @@ public static class McpClientExtensions
     /// <returns>A task containing the server's response with prompt information.</returns>
     public static Task<ListPromptsResult> ListPromptsAsync(this IMcpClient client, string? cursor, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<ListPromptsResult>(
             CreateRequest("prompts/list", CreateCursorDictionary(cursor)),
@@ -142,10 +129,7 @@ public static class McpClientExtensions
     /// <returns>A task containing the prompt's content and messages.</returns>
     public static Task<GetPromptResult> GetPromptAsync(this IMcpClient client, string name, Dictionary<string, object>? arguments = null, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<GetPromptResult>(
             CreateRequest("prompts/get", CreateParametersDictionary(name, arguments)),
@@ -183,10 +167,7 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task<ListResourcesResult> ListResourcesAsync(this IMcpClient client, string? cursor, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<ListResourcesResult>(
             CreateRequest("resources/list", CreateCursorDictionary(cursor)),
@@ -201,10 +182,7 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task<ReadResourceResult> ReadResourceAsync(this IMcpClient client, string uri, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<ReadResourceResult>(
             CreateRequest("resources/read", new() { ["uri"] = uri }),
@@ -221,22 +199,9 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task<CompleteResult> GetCompletionAsync(this IMcpClient client, Reference reference, string argumentName, string argumentValue, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
-
-        if (reference is null)
-        {
-            throw new ArgumentNullException(nameof(reference));
-        }
-
-        if (string.IsNullOrWhiteSpace(argumentName))
-        {
-            throw argumentName is null ?
-                new ArgumentNullException(nameof(argumentName)) :
-                new ArgumentException("Argument name cannot be empty.", nameof(argumentName));
-        }
+        Throw.IfNull(client);
+        Throw.IfNull(reference);
+        Throw.IfNullOrWhiteSpace(argumentName);
 
         if (!reference.Validate(out string? validationMessage))
         {
@@ -260,10 +225,7 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task SubscribeToResourceAsync(this IMcpClient client, string uri, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<dynamic>(
             CreateRequest("resources/subscribe", new() { ["uri"] = uri }),
@@ -278,10 +240,7 @@ public static class McpClientExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public static Task UnsubscribeFromResourceAsync(this IMcpClient client, string uri, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<dynamic>(
             CreateRequest("resources/unsubscribe", new() { ["uri"] = uri }),
@@ -298,40 +257,11 @@ public static class McpClientExtensions
     /// <returns>A task containing the tool's response.</returns>
     public static Task<CallToolResponse> CallToolAsync(this IMcpClient client, string toolName, Dictionary<string, object> arguments, CancellationToken cancellationToken = default)
     {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
+        Throw.IfNull(client);
 
         return client.SendRequestAsync<CallToolResponse>(
             CreateRequest("tools/call", CreateParametersDictionary(toolName, arguments)),
             cancellationToken);
-    }
-
-    /// <summary>Sets the handler for server sampling requests.</summary>
-    /// <param name="client">The client.</param>
-    /// <param name="handler">The sampling request handler.</param>
-    public static void SetSamplingHandler(this IMcpClient client, Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>> handler)
-    {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
-
-        client.SetOperationHandler(OperationNames.Sampling, handler);
-    }
-
-    /// <summary>Sets the handler for server roots requests.</summary>
-    /// <param name="client">The client.</param>
-    /// <param name="handler">The roots request handler.</param>
-    public static void SetRootsHandler(this IMcpClient client, Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>> handler)
-    {
-        if (client is null)
-        {
-            throw new ArgumentNullException(nameof(client));
-        }
-
-        client.SetOperationHandler(OperationNames.Roots, handler);
     }
 
     private static JsonRpcRequest CreateRequest(string method, Dictionary<string, object?>? parameters) =>

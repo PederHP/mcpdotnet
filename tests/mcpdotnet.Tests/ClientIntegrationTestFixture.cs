@@ -8,8 +8,11 @@ namespace McpDotNet.Tests;
 public class ClientIntegrationTestFixture : IDisposable
 {
     public ILoggerFactory LoggerFactory { get; }
-    public McpClientFactory Factory { get; }
     public McpClientOptions DefaultOptions { get; }
+    public McpServerConfig EverythingServerConfig { get; }
+    public McpServerConfig TestServerConfig { get; }
+
+    public static IEnumerable<string> ClientIds => ["everything", "test_server"];
 
     public ClientIntegrationTestFixture()
     {
@@ -20,10 +23,9 @@ public class ClientIntegrationTestFixture : IDisposable
         DefaultOptions = new()
         {
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" },
-            Capabilities = new() { Sampling = new(), Roots = new() }
         };
 
-        var everythingServerConfig = new McpServerConfig
+        EverythingServerConfig = new()
         {
             Id = "everything",
             Name = "Everything",
@@ -36,7 +38,7 @@ public class ClientIntegrationTestFixture : IDisposable
             }
         };
 
-        var testServerConfig = new McpServerConfig
+        TestServerConfig = new()
         {
             Id = "test_server",
             Name = "TestServer",
@@ -49,19 +51,21 @@ public class ClientIntegrationTestFixture : IDisposable
         };
 
         if (!OperatingSystem.IsWindows())
-            testServerConfig.TransportOptions["arguments"] = "TestServer.dll";
-
-        // Inject the mock transport into the factory
-        Factory = new McpClientFactory(
-            [everythingServerConfig, testServerConfig],
-            DefaultOptions,
-            LoggerFactory
-        );
+        {
+            TestServerConfig.TransportOptions["arguments"] = "TestServer.dll";
+        }
     }
+
+    public Task<IMcpClient> CreateClientAsync(string clientId, McpClientOptions? clientOptions = null) =>
+        McpClientFactory.CreateAsync(clientId switch
+        {
+            "everything" => EverythingServerConfig,
+            "test_server" => TestServerConfig,
+            _ => throw new ArgumentException($"Unknown client ID: {clientId}")
+        }, clientOptions ?? DefaultOptions, loggerFactory: LoggerFactory);
 
     public void Dispose()
     {
-        Factory?.Dispose();
         LoggerFactory?.Dispose();
         GC.SuppressFinalize(this);
     }

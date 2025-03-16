@@ -1,10 +1,12 @@
-﻿using System.Reflection;
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Hosting;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Reflection;
 
 namespace McpDotNet;
 
@@ -36,11 +38,21 @@ public static class McpServerServiceCollectionExtension
     public static IMcpServerBuilder AddMcpServer(this IServiceCollection services, McpServerOptions serverOptions)
     {
         services.AddSingleton(serverOptions);
-        services.AddSingleton<IMcpServerFactory, McpServerFactory>();
         services.AddHostedService<McpServerHostedService>();
         services.AddOptions();
+        services.AddSingleton(services =>
+        {
+            IServerTransport serverTransport = services.GetRequiredService<IServerTransport>();
+            McpServerOptions options = services.GetRequiredService<McpServerOptions>();
+            ILoggerFactory? loggerFactory = services.GetService<ILoggerFactory>();
 
-        services.AddSingleton<IMcpServer>(sp => sp.GetRequiredService<IMcpServerFactory>().CreateServer());
+            if (services.GetService<IOptions<McpServerHandlers>>() is { } handlersOptions)
+            {
+                options = handlersOptions.Value.OverwriteWithSetHandlers(options);
+            }
+
+            return McpServerFactory.Create(serverTransport, options, loggerFactory, services);
+        });
 
         return new DefaultMcpServerBuilder(services);
     }

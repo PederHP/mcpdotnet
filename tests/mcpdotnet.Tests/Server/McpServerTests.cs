@@ -34,7 +34,7 @@ public class McpServerTests
             ServerInfo = new Implementation { Name = "TestServer", Version = "1.0" },
             ProtocolVersion = "2024",
             InitializationTimeout = TimeSpan.FromSeconds(30),
-            Capabilities = capabilities
+            Capabilities = capabilities,
         };
     }
 
@@ -63,10 +63,13 @@ public class McpServerTests
     }
 
     [Fact]
-    public void Constructor_Throws_For_Null_LoggerFactory()
+    public async Task Constructor_Does_Not_Throw_For_Null_Logger()
     {
-        // Arrange, Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new McpServer(_serverTransport.Object, _options, null!, _serviceProvider));
+        // Arrange & Act
+        await using var server = new McpServer(_serverTransport.Object, _options, null, _serviceProvider);
+
+        // Assert
+        Assert.NotNull(server);
     }
 
     [Fact]
@@ -226,103 +229,114 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_Ping_Requests()
     {
-        await Can_Handle_Requests(null, "ping",
-          configureServer: server => { },
-          assertResult: response =>
-          {
-              Assert.IsType<PingResult>(response);
-          });
+        await Can_Handle_Requests(
+            serverCapabilities: null,
+            method: "ping",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<PingResult>(response);
+            });
     }
 
     [Fact]
     public async Task Can_Handle_Initialize_Requests()
     {
-        await Can_Handle_Requests(null, "initialize",
-           configureServer: server => { },
-           assertResult: response =>
-           {
-               Assert.IsType<InitializeResult>(response);
+        await Can_Handle_Requests(
+            serverCapabilities: null,
+            method: "initialize",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<InitializeResult>(response);
 
-               var result = (InitializeResult)response;
-               Assert.Equal("TestServer", result.ServerInfo.Name);
-               Assert.Equal("1.0", result.ServerInfo.Version);
-               Assert.Equal("2024", result.ProtocolVersion);
-           });
+                var result = (InitializeResult)response;
+                Assert.Equal("TestServer", result.ServerInfo.Name);
+                Assert.Equal("1.0", result.ServerInfo.Version);
+                Assert.Equal("2024", result.ProtocolVersion);
+            });
     }
 
     [Fact]
     public async Task Can_Handle_Completion_Requests()
     {
-        await Can_Handle_Requests(null, "completion/complete",
-        configureServer: server => { },
-        assertResult: response =>
-        {
-            Assert.IsType<CompleteResult>(response);
+        await Can_Handle_Requests(
+            serverCapabilities: null,
+            method: "completion/complete",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<CompleteResult>(response);
 
-            var result = (CompleteResult)response;
-            Assert.NotNull(result.Completion);
-            Assert.Empty(result.Completion.Values);
-            Assert.Equal(0, result.Completion.Total);
-            Assert.False(result.Completion.HasMore);
-        });
+                var result = (CompleteResult)response;
+                Assert.NotNull(result.Completion);
+                Assert.Empty(result.Completion.Values);
+                Assert.Equal(0, result.Completion.Total);
+                Assert.False(result.Completion.HasMore);
+            });
     }
 
     [Fact]
     public async Task Can_Handle_Completion_Requests_With_Handler()
     {
-        await Can_Handle_Requests(null, "completion/complete",
-          configureServer: server =>
-          {
-              server.SetGetCompletionHandler((request, ct) =>
-              {
-                  return Task.FromResult(new CompleteResult
-                  {
-                      Completion = new()
-                      {
-                          Values = ["test"],
-                          Total = 2,
-                          HasMore = true
-                      }
-                  });
-              });
-          },
-         assertResult: response =>
-         {
-             Assert.IsType<CompleteResult>(response);
+        await Can_Handle_Requests(
+            serverCapabilities: null,
+            method: "completion/complete",
+            configureOptions: options => options with
+            {
+                GetCompletionHandler = (request, ct) =>
+                    Task.FromResult(new CompleteResult
+                    {
+                        Completion = new()
+                        {
+                            Values = ["test"],
+                            Total = 2,
+                            HasMore = true
+                        }
+                    })
+            },
+            assertResult: response =>
+            {
+                Assert.IsType<CompleteResult>(response);
 
-             var result = (CompleteResult)response;
-             Assert.NotNull(result.Completion);
-             Assert.NotEmpty(result.Completion.Values);
-             Assert.Equal("test", result.Completion.Values[0]);
-             Assert.Equal(2, result.Completion.Total);
-             Assert.True(result.Completion.HasMore);
-         });
+                var result = (CompleteResult)response;
+                Assert.NotNull(result.Completion);
+                Assert.NotEmpty(result.Completion.Values);
+                Assert.Equal("test", result.Completion.Values[0]);
+                Assert.Equal(2, result.Completion.Total);
+                Assert.True(result.Completion.HasMore);
+            });
     }
 
     [Fact]
     public async Task Can_Handle_Resources_List_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/list",
-          configureServer: server =>
-          {
-              server.SetListResourcesHandler((request, ct) =>
-              {
-                  return Task.FromResult(new ListResourcesResult
-                  {
-                      Resources = [new() { Uri = "test", Name = "Test Resource" }]
-                  });
-              });
+        await Can_Handle_Requests(
+            new ServerCapabilities
+            {
+                Resources = new()
+                {
+                    ListResourcesHandler = (request, ct) =>
+                    {
+                        return Task.FromResult(new ListResourcesResult
+                        {
+                            Resources = [new() { Uri = "test", Name = "Test Resource" }]
+                        });
+                    },
+                    ReadResourceHandler = (request, ct) => throw new NotImplementedException(),
+                }
+            },
+            "resources/list",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<ListResourcesResult>(response);
 
-          },
-         assertResult: response =>
-         {
-             Assert.IsType<ListResourcesResult>(response);
-
-             var result = (ListResourcesResult)response;
-             Assert.NotNull(result.Resources);
-             Assert.NotEmpty(result.Resources);
-             Assert.Equal("test", result.Resources[0].Uri);
-         });
+                var result = (ListResourcesResult)response;
+                Assert.NotNull(result.Resources);
+                Assert.NotEmpty(result.Resources);
+                Assert.Equal("test", result.Resources[0].Uri);
+            });
     }
 
     [Fact]
@@ -334,26 +348,32 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_ResourcesRead_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Resources = new() }, "resources/read",
-           configureServer: server =>
-           {
-               server.SetReadResourceHandler((request, ct) =>
-               {
-                   return Task.FromResult(new ReadResourceResult
-                   {
-                       Contents = [new() { Text = "test" }]
-                   });
-               });
-           },
-          assertResult: response =>
-          {
-              Assert.IsType<ReadResourceResult>(response);
+        await Can_Handle_Requests(
+            new ServerCapabilities
+            {
+                Resources = new()
+                {
+                    ReadResourceHandler = (request, ct) =>
+                    {
+                        return Task.FromResult(new ReadResourceResult
+                        {
+                            Contents = [new() { Text = "test" }]
+                        });
+                    },
+                    ListResourcesHandler = (request, ct) => throw new NotImplementedException(),
+                }
+            }, 
+            method: "resources/read",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<ReadResourceResult>(response);
 
-              var result = (ReadResourceResult)response;
-              Assert.NotNull(result.Contents);
-              Assert.NotEmpty(result.Contents);
-              Assert.Equal("test", result.Contents[0].Text);
-          });
+                var result = (ReadResourceResult)response;
+                Assert.NotNull(result.Contents);
+                Assert.NotEmpty(result.Contents);
+                Assert.Equal("test", result.Contents[0].Text);
+            });
     }
 
     [Fact]
@@ -365,26 +385,32 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_List_Prompts_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/list",
-            configureServer: server =>
+        await Can_Handle_Requests(
+            new ServerCapabilities
             {
-                server.SetListPromptsHandler((request, ct) =>
+                Prompts = new()
                 {
-                    return Task.FromResult(new ListPromptsResult
+                    ListPromptsHandler = (request, ct) =>
                     {
-                        Prompts = [new() { Name = "test" }]
-                    });
-                });
+                        return Task.FromResult(new ListPromptsResult
+                        {
+                            Prompts = [new() { Name = "test" }]
+                        });
+                    },
+                    GetPromptHandler = (request, ct) => throw new NotImplementedException(),
+                },
             },
-           assertResult: response =>
-           {
-               Assert.IsType<ListPromptsResult>(response);
+            method: "prompts/list",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<ListPromptsResult>(response);
 
-               var result = (ListPromptsResult)response;
-               Assert.NotNull(result.Prompts);
-               Assert.NotEmpty(result.Prompts);
-               Assert.Equal("test", result.Prompts[0].Name);
-           });
+                var result = (ListPromptsResult)response;
+                Assert.NotNull(result.Prompts);
+                Assert.NotEmpty(result.Prompts);
+                Assert.Equal("test", result.Prompts[0].Name);
+            });
     }
 
     [Fact]
@@ -396,24 +422,24 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_Get_Prompts_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Prompts = new() }, "prompts/get",
-            configureServer: server =>
+        await Can_Handle_Requests(
+            new ServerCapabilities 
             {
-                server.SetGetPromptHandler((request, ct) =>
+                Prompts = new()
                 {
-                    return Task.FromResult(new GetPromptResult
-                    {
-                        Description = "test"
-                    });
-                });
+                    GetPromptHandler = (request, ct) => Task.FromResult(new GetPromptResult { Description = "test" }),
+                    ListPromptsHandler = (request, ct) => throw new NotImplementedException(),
+                }
             },
-           assertResult: response =>
-           {
-               Assert.IsType<GetPromptResult>(response);
+            method: "prompts/get",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<GetPromptResult>(response);
 
-               var result = (GetPromptResult)response;
-               Assert.Equal("test", result.Description);
-           });
+                var result = (GetPromptResult)response;
+                Assert.Equal("test", result.Description);
+            });
     }
 
     [Fact]
@@ -425,25 +451,31 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_List_Tools_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/list",
-            configureServer: server =>
+        await Can_Handle_Requests(
+            new ServerCapabilities 
             {
-                server.SetListToolsHandler((request, ct) =>
+                Tools = new()
                 {
-                    return Task.FromResult(new ListToolsResult
+                    ListToolsHandler = (request, ct) =>
                     {
-                        Tools = [new() { Name = "test" }]
-                    });
-                });
+                        return Task.FromResult(new ListToolsResult
+                        {
+                            Tools = [new() { Name = "test" }]
+                        });
+                    },
+                    CallToolHandler = (request, ct) => throw new NotImplementedException(),
+                }
             },
-           assertResult: response =>
-           {
-               Assert.IsType<ListToolsResult>(response);
+            method: "tools/list",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<ListToolsResult>(response);
 
-               var result = (ListToolsResult)response;
-               Assert.NotEmpty(result.Tools);
-               Assert.Equal("test", result.Tools[0].Name);
-           });
+                var result = (ListToolsResult)response;
+                Assert.NotEmpty(result.Tools);
+                Assert.Equal("test", result.Tools[0].Name);
+            });
     }
 
     [Fact]
@@ -455,25 +487,31 @@ public class McpServerTests
     [Fact]
     public async Task Can_Handle_Call_Tool_Requests()
     {
-        await Can_Handle_Requests(new ServerCapabilities { Tools = new() }, "tools/call",
-            configureServer: server =>
+        await Can_Handle_Requests(
+            new ServerCapabilities
             {
-                server.SetCallToolHandler((request, ct) =>
+                Tools = new()
                 {
-                    return Task.FromResult(new CallToolResponse
+                    CallToolHandler = (request, ct) =>
                     {
-                        Content = [new Content { Text = "test" }]
-                    });
-                });
-            },
-           assertResult: response =>
-           {
-               Assert.IsType<CallToolResponse>(response);
+                        return Task.FromResult(new CallToolResponse
+                        {
+                            Content = [new Content { Text = "test" }]
+                        });
+                    },
+                    ListToolsHandler = (request, ct) => throw new NotImplementedException(),
+                }
+            }, 
+            method: "tools/call",
+            configureOptions: null,
+            assertResult: response =>
+            {
+                Assert.IsType<CallToolResponse>(response);
 
-               var result = (CallToolResponse)response;
-               Assert.NotEmpty(result.Content);
-               Assert.Equal("test", result.Content[0].Text);
-           });
+                var result = (CallToolResponse)response;
+                Assert.NotEmpty(result.Content);
+                Assert.Equal("test", result.Content[0].Text);
+            });
     }
 
     [Fact]
@@ -482,16 +520,18 @@ public class McpServerTests
         await Throws_Exception_If_No_Handler_Assigned(new ServerCapabilities { Tools = new() }, "tools/call", "CallTool handler not configured");
     }
 
-    private async Task Can_Handle_Requests(ServerCapabilities? serverCapabilities, string method, Action<IMcpServer> configureServer, Action<object> assertResult)
+    private async Task Can_Handle_Requests(ServerCapabilities? serverCapabilities, string method, Func<McpServerOptions, McpServerOptions>? configureOptions, Action<object> assertResult)
     {
         await using var transport = new TestServerTransport();
-        var options = serverCapabilities == null ? _options : CreateOptions(serverCapabilities);
+        var options = CreateOptions(serverCapabilities);
+        if (configureOptions is not null)
+        {
+            options = configureOptions(options);
+        }
 
         await using var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
 
         await server.StartAsync();
-
-        configureServer(server);
 
         var receivedMessage = new TaskCompletionSource<JsonRpcResponse>();
 
@@ -521,32 +561,6 @@ public class McpServerTests
         await using var transport = new TestServerTransport();
         var options = CreateOptions(serverCapabilities);
 
-        await using var server = new McpServer(transport, options, _loggerFactory.Object, _serviceProvider);
-
-        await server.StartAsync();
-
-        var receivedMessage = new TaskCompletionSource<IJsonRpcMessage>();
-
-        transport.OnMessageSent = (message) =>
-        {
-            if (message is JsonRpcError response && response.Id.AsNumber == 55)
-                receivedMessage.SetResult(response);
-        };
-
-        await transport.SendMessageAsync(
-            new JsonRpcRequest
-            {
-                Method = method,
-                Id = RequestId.FromNumber(55)
-            }
-        );
-
-        var response = await receivedMessage.Task.WaitAsync(TimeSpan.FromSeconds(1));
-        Assert.NotNull(response);
-        Assert.IsType<JsonRpcError>(response);
-
-        var result = (JsonRpcError)response;
-        Assert.NotNull(result.Error);
-        Assert.Equal(expectedError, result.Error.Message);
+        Assert.Throws<McpServerException>(() => McpServerFactory.Create(transport, options, _loggerFactory.Object, _serviceProvider));
     }
 }

@@ -1,6 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿using McpDotNet.Server;
+using System.Text.Json.Serialization;
 
 namespace McpDotNet.Protocol.Types;
+
 /// <summary>
 /// Represents the capabilities that a client may support.
 /// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
@@ -37,6 +39,10 @@ public record RootsCapability
     /// </summary>
     [JsonPropertyName("listChanged")]
     public bool? ListChanged { get; init; }
+
+    /// <summary>Gets or sets the handler for sampling requests.</summary>
+    [JsonIgnore]
+    public Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? RootsHandler { get; init; }
 }
 
 /// <summary>
@@ -46,6 +52,10 @@ public record RootsCapability
 public record SamplingCapability
 {
     // Currently empty in the spec, but may be extended in the future
+
+    /// <summary>Gets or sets the handler for sampling requests.</summary>
+    [JsonIgnore]
+    public Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? SamplingHandler { get; init; }
 }
 
 /// <summary>
@@ -68,6 +78,18 @@ public record PromptsCapability
     /// </summary>
     [JsonPropertyName("listChanged")]
     public bool? ListChanged { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for list prompts requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<ListPromptsRequestParams>, CancellationToken, Task<ListPromptsResult>>? ListPromptsHandler { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for get prompt requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; init; }
 }
 
 /// <summary>
@@ -87,6 +109,30 @@ public record ResourcesCapability
     /// </summary>
     [JsonPropertyName("listChanged")]
     public bool? ListChanged { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for list resources requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for read resources requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? ReadResourceHandler { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for subscribe to resources messages.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for unsubscribe from resources messages.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; init; }
 }
 
 /// <summary>
@@ -100,4 +146,16 @@ public record ToolsCapability
     /// </summary>
     [JsonPropertyName("listChanged")]
     public bool? ListChanged { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for list tools requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<ListToolsRequestParams>, CancellationToken, Task<ListToolsResult>>? ListToolsHandler { get; init; }
+
+    /// <summary>
+    /// Gets or sets the handler for call tool requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>? CallToolHandler { get; init; }
 }

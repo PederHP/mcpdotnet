@@ -26,7 +26,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         Assert.NotNull(options.ListToolsHandler);
         Assert.NotNull(options.CallToolHandler);
@@ -38,7 +38,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
         Assert.NotNull(result);
@@ -69,7 +69,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo", Arguments = new() { { "message", "Peter" } } }), CancellationToken.None);
         Assert.NotNull(result);
@@ -86,7 +86,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "EchoArray", Arguments = new() { { "message", "Peter" } } }), CancellationToken.None);
         Assert.NotNull(result);
@@ -103,7 +103,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnNull" }), CancellationToken.None);
         Assert.NotNull(result);
@@ -120,7 +120,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnJson" }), CancellationToken.None);
         Assert.NotNull(result);
@@ -137,7 +137,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnInteger" }), CancellationToken.None);
         Assert.NotNull(result);
@@ -154,7 +154,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
@@ -173,7 +173,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
@@ -190,7 +190,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "EchoComplex", Arguments = new() { { "complex", JsonDocument.Parse("{\"Name\": \"Peter\", \"Age\": 25}").RootElement } } }), CancellationToken.None);
         Assert.NotNull(result);
@@ -207,7 +207,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var action = async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnError" }), CancellationToken.None);
 
@@ -228,7 +228,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTool<EchoToolWithDi>();
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var mcpServer = new Mock<IMcpServer>();
         mcpServer.SetupGet(s => s.ServiceProvider).Returns(serviceProvider);
@@ -249,7 +249,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var exception = await Assert.ThrowsAsync<McpServerException>(async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "NotRegisteredTool" }), CancellationToken.None));
         Assert.Equal("Unknown tool: NotRegisteredTool", exception.Message);
@@ -261,7 +261,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var exception = await Assert.ThrowsAsync<McpServerException>(async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo" }), CancellationToken.None));
         Assert.Equal("Missing required argument 'message'.", exception.Message);
@@ -291,7 +291,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools();
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
         Assert.NotNull(result);
@@ -316,7 +316,7 @@ public class McpServerBuilderExtensionsToolsTests
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
         Assert.NotNull(result);

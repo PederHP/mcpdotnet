@@ -3,20 +3,18 @@ using McpDotNet.Configuration;
 using McpDotNet.Extensions.AI;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
 
 internal class Program
 {
     private static async Task<IMcpClient> GetMcpClientAsync()
     {
-
-        McpClientOptions options = new()
+        McpClientOptions clientOptions = new()
         {
             ClientInfo = new() { Name = "SimpleToolsConsole", Version = "1.0.0" }
         };
 
-        var config = new McpServerConfig
+        McpServerConfig serverConfig = new()
         {
             Id = "everything",
             Name = "Everything",
@@ -28,13 +26,7 @@ internal class Program
             }
         };
 
-        var factory = new McpClientFactory(
-            [config],
-            options,
-            NullLoggerFactory.Instance
-        );
-
-        return await factory.GetClientAsync("everything");
+        return await McpClientFactory.CreateAsync(serverConfig, clientOptions);
     }
 
     private static async Task Main(string[] args)
@@ -42,7 +34,7 @@ internal class Program
         try
         {
             Console.WriteLine("Initializing MCP 'everything' server");
-            var client = await GetMcpClientAsync();
+            await using var client = await GetMcpClientAsync();
             Console.WriteLine("MCP 'everything' server initialized");
             Console.WriteLine("Listing tools...");
             var mappedTools = await client.ListToolsAsync().Select(t => t.ToAITool(client)).ToListAsync();
