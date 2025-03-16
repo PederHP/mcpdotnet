@@ -5,6 +5,7 @@ using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
+using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -54,27 +55,16 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
     public SseClientTransport(SseClientTransportOptions transportOptions, McpServerConfig serverConfig, HttpClient httpClient, ILoggerFactory? loggerFactory, bool ownsHttpClient = false)
         : base(loggerFactory)
     {
-        if (transportOptions is null)
-        {
-            throw new ArgumentNullException(nameof(transportOptions));
-        }
-
-        if (serverConfig is null)
-        {
-            throw new ArgumentNullException(nameof(serverConfig));
-        }
-
-        if (httpClient is null)
-        {
-            throw new ArgumentNullException(nameof(httpClient));
-        }
+        Throw.IfNull(transportOptions);
+        Throw.IfNull(serverConfig);
+        Throw.IfNull(httpClient);
 
         _options = transportOptions;
         _serverConfig = serverConfig;
         _sseEndpoint = new Uri(serverConfig.Location!);
         _httpClient = httpClient;
         _connectionCts = new CancellationTokenSource();
-        _logger = loggerFactory is not null ? loggerFactory.CreateLogger<SseClientTransport>() : NullLogger.Instance;
+        _logger = (ILogger?)loggerFactory?.CreateLogger<SseClientTransport>() ?? NullLogger.Instance;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
         _connectionEstablished = new TaskCompletionSource<bool>();
         _ownsHttpClient = ownsHttpClient;

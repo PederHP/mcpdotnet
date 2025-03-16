@@ -36,14 +36,8 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test_server");
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
 
         // Wait for SSE connection to be established
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
@@ -82,14 +76,8 @@ public class SseIntegrationTests
             Location = $"http://localhost:{port}/sse"
         };
 
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-
         // Create client and run tests
-        var client = await factory.GetClientAsync("everything");
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
         var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
@@ -110,6 +98,16 @@ public class SseIntegrationTests
         await using var fixture = new EverythingSseServerFixture(port);
         await fixture.StartAsync();
 
+        var defaultConfig = new McpServerConfig
+        {
+            Id = "everything",
+            Name = "Everything",
+            TransportType = TransportTypes.Sse,
+            TransportOptions = [],
+            Location = $"http://localhost:{port}/sse"
+        };
+
+        int samplingHandlerCalls = 0;
         var defaultOptions = new McpClientOptions
         {
             ClientInfo = new()
@@ -120,41 +118,26 @@ public class SseIntegrationTests
             Capabilities = new()
             {
                 Sampling = new()
-            }
-        };
-
-        var defaultConfig = new McpServerConfig
-        {
-            Id = "everything",
-            Name = "Everything",
-            TransportType = TransportTypes.Sse,
-            TransportOptions = [],
-            Location = $"http://localhost:{port}/sse"
-        };
-
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-        var client = await factory.GetClientAsync("everything");
-
-        // Set up the sampling handler
-        int samplingHandlerCalls = 0;
-        client.SetSamplingHandler((_, _) =>
-        {
-            samplingHandlerCalls++;
-            return Task.FromResult(new CreateMessageResult
-            {
-                Model = "test-model",
-                Role = "assistant",
-                Content = new Content
                 {
-                    Type = "text",
-                    Text = "Test response"
-                }
-            });
-        });
+                    SamplingHandler = (_, _) =>
+                    {
+                        samplingHandlerCalls++;
+                        return Task.FromResult(new CreateMessageResult
+                        {
+                            Model = "test-model",
+                            Role = "assistant",
+                            Content = new Content
+                            {
+                                Type = "text",
+                                Text = "Test response"
+                            }
+                        });
+                    },
+                },
+            },
+        };
+
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
         var result = await client.CallToolAsync(
@@ -200,14 +183,8 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test_server");
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
 
         // Wait for SSE connection to be established
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
@@ -245,14 +222,8 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test_server");
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
 
         // Wait for SSE connection to be established
         await server.WaitForConnectionAsync(TimeSpan.FromSeconds(10));
@@ -300,14 +271,8 @@ public class SseIntegrationTests
             Location = "http://localhost:5000/sse"
         };
 
-        using var factory = new McpClientFactory(
-            [defaultConfig],
-            defaultOptions,
-            loggerFactory
-        );
-
         // Act
-        var client = await factory.GetClientAsync("test_server");
+        var client = await McpClientFactory.CreateAsync(defaultConfig, defaultOptions, loggerFactory: loggerFactory);
         var mcpClient = (McpClient)client;
         var transport = (SseClientTransport)mcpClient.Transport;
 

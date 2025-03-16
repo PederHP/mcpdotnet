@@ -1,4 +1,5 @@
 ﻿using McpDotNet.Server;
+using McpDotNet.Utils;
 using Microsoft.Extensions.Hosting;
 
 namespace McpDotNet.Hosting;
@@ -17,7 +18,9 @@ public class McpServerHostedService : BackgroundService
     /// <exception cref="ArgumentNullException"></exception>
     public McpServerHostedService(IMcpServer server)
     {
-        _server = server ?? throw new ArgumentNullException(nameof(server));
+        Throw.IfNull(server);
+     
+        _server = server;
     }
 
     /// <inheritdoc />

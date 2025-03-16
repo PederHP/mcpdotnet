@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace System.Threading.Tasks;
 
 internal static class CancellationTokenSourceExtensions

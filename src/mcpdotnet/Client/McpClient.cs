@@ -6,8 +6,7 @@ using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
 using Microsoft.Extensions.Logging;
-
-#pragma warning disable CA1508 // Avoid dead conditional code
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Client;
 
@@ -15,14 +14,10 @@ namespace McpDotNet.Client;
 internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
 {
     private readonly McpClientOptions _options;
-    private readonly McpServerConfig _serverConfig;
-    private readonly ILogger<McpClient> _logger;
+    private readonly ILogger _logger;
     private readonly IClientTransport _clientTransport;
     
     private volatile bool _isInitializing;
-
-    private Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>>? _samplingHandler;
-    private Func<ListRootsRequestParams?, CancellationToken, Task<ListRootsResult>>? _rootsHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="McpClient"/> class.
@@ -31,26 +26,37 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
     /// <param name="options">Options for the client, defining protocol version and capabilities.</param>
     /// <param name="serverConfig">The server configuration.</param>
     /// <param name="loggerFactory">The logger factory.</param>
-    public McpClient(IClientTransport transport, McpClientOptions options, McpServerConfig serverConfig, ILoggerFactory loggerFactory)
+    public McpClient(IClientTransport transport, McpClientOptions options, McpServerConfig serverConfig, ILoggerFactory? loggerFactory)
         : base(transport, loggerFactory)
     {
         _options = options;
-        _serverConfig = serverConfig;
-        _logger = loggerFactory.CreateLogger<McpClient>();
+        _logger = (ILogger?)loggerFactory?.CreateLogger<McpClient>() ?? NullLogger.Instance;
         _clientTransport = transport;
 
         EndpointName = $"Client ({serverConfig.Id}: {serverConfig.Name})";
 
-        if (options.Capabilities?.Sampling is not null)
+        if (options.Capabilities?.Sampling is { } samplingCapability)
         {
+            if (samplingCapability.SamplingHandler is not { } samplingHandler)
+            {
+                throw new InvalidOperationException($"Sampling capability was set but it did not provide a handler.");
+            }
+
             SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>(
-                "sampling/createMessage", request => HandleRequest("Sampling", _samplingHandler, request));
+                "sampling/createMessage",
+                request => samplingHandler(request, CancellationTokenSource?.Token ?? default));
         }
 
-        if (options.Capabilities?.Roots is not null)
+        if (options.Capabilities?.Roots is { } rootsCapability)
         {
+            if (rootsCapability.RootsHandler is not { } rootsHandler)
+            {
+                throw new InvalidOperationException($"Roots capability was set but it did not provide a handler.");
+            }
+
             SetRequestHandler<ListRootsRequestParams, ListRootsResult>(
-                "roots/list", request => HandleRequest("Roots", _rootsHandler, request));
+                "roots/list",
+                request => rootsHandler(request, CancellationTokenSource?.Token ?? default));
         }
     }
 
@@ -65,47 +71,6 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
 
     /// <inheritdoc/>
     public override string EndpointName { get; }
-
-    public void SetOperationHandler(string operationName, Delegate handler)
-    {
-        if (operationName is null)
-        {
-            throw new ArgumentNullException(nameof(operationName));
-        }
-
-        if (handler is null)
-        {
-            throw new ArgumentNullException(nameof(handler));
-        }
-
-        if (!TrySetOperationHandler(OperationNames.Sampling, operationName, handler, ref _samplingHandler) &&
-            !TrySetOperationHandler(OperationNames.Roots, operationName, handler, ref _rootsHandler))
-        {
-            throw new ArgumentException($"Unknown operation '{operationName}'", nameof(operationName));
-        }
-     
-        static bool TrySetOperationHandler<TFieldRequest, TFieldResponse>(
-            string targetOperationName,
-            string operationName,
-            Delegate handler,
-            ref Func<TFieldRequest, CancellationToken, Task<TFieldResponse>>? field)
-        {
-            if (operationName == targetOperationName)
-            {
-                if (handler is Func<TFieldRequest, CancellationToken, Task<TFieldResponse>> typed)
-                {
-                    field = typed;
-                    return true;
-                }
-
-                throw new ArgumentException(
-                    $"Handler must be of type {typeof(Func<TFieldRequest, CancellationToken, Task<TFieldResponse>>)}",
-                    nameof(handler));
-            }
-
-            return false;
-        }
-    }
 
     /// <inheritdoc/>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -194,20 +159,5 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
             _logger.ClientInitializationTimeout(EndpointName);
             throw new McpClientException("Initialization timed out");
         }
-    }
-
-    private async Task<TResponse> HandleRequest<TRequest, TResponse>(
-        string friendlyName,
-        Func<TRequest, CancellationToken, Task<TResponse>>? handler,
-        TRequest args)
-    {
-        if (handler is not null)
-        {
-            return await handler(args, CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
-        }
-
-        // Setting the capability, but not a handler means we have nothing to return to the server
-        _logger.HandlerNotConfigured(friendlyName, EndpointName);
-        throw new McpClientException($"{friendlyName} handler not configured.");
     }
 }

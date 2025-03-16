@@ -36,27 +36,17 @@ internal static class Program
             ServerInfo = new Implementation() { Name = "TestServer", Version = "1.0.0" },
             Capabilities = new ServerCapabilities()
             {
-                Tools = new(),
-                Resources = new()
-                {
-                    Subscribe = true,
-                },
-                Prompts = new(),
+                Tools = ConfigureTools(),
+                Resources = ConfigureResources(),
+                Prompts = ConfigurePrompts(),
             },
             ProtocolVersion = "2024-11-05",
             ServerInstructions = "This is a test server with only stub functionality",
+            GetCompletionHandler = ConfigureCompletion(),
         };
 
         var loggerFactory = CreateLoggerFactory();
-        McpServerFactory factory = new(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
-        IMcpServer server = factory.CreateServer();
-
-        Log.Logger.Information("Server object created, registering handlers.");
-
-        ConfigureTools(server);
-        ConfigureResources(server);
-        ConfigurePrompts(server);
-        ConfigureCompletion(server);
+        await using IMcpServer server = McpServerFactory.Create(new StdioServerTransport("TestServer", loggerFactory), options, loggerFactory);
 
         Log.Logger.Information("Server initialized.");
 
@@ -65,12 +55,12 @@ internal static class Program
         Log.Logger.Information("Server started.");
 
         // Run until process is stopped by the client (parent process)
-        while (true) // NOSONAR
+        while (true)
         {
             await Task.Delay(5000);
             foreach (var resource in _subscribedResources)
             {
-                dynamic responseParams = new { uri = resource };
+                SubscribeToResourceRequestParams responseParams = new() { Uri = resource };
                 await server.SendMessageAsync(new JsonRpcNotification()
                 {
                     Method = NotificationMethods.ResourceUpdatedNotification,
@@ -80,180 +70,186 @@ internal static class Program
         }
     }
 
-    private static void ConfigureTools(IMcpServer server)
+    private static ToolsCapability ConfigureTools()
     {
-        server.SetListToolsHandler((request, cancellationToken) =>
+        return new()
         {
-            return Task.FromResult(new ListToolsResult()
+            ListToolsHandler = (request, cancellationToken) =>
             {
-                Tools =
-                [
-                    new Tool()
-                    {
-                        Name = "echo",
-                        Description = "Echoes the input back to the client.",
-                        InputSchema = new JsonSchema()
+                return Task.FromResult(new ListToolsResult()
+                {
+                    Tools =
+                    [
+                        new Tool()
                         {
-                            Type = "object",
-                            Properties = new Dictionary<string, JsonSchemaProperty>()
+                            Name = "echo",
+                            Description = "Echoes the input back to the client.",
+                            InputSchema = new JsonSchema()
                             {
-                                ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
-                            }
+                                Type = "object",
+                                Properties = new Dictionary<string, JsonSchemaProperty>()
+                                {
+                                    ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
+                                }
+                            },
                         },
-                    },
-                    new Tool()
-                    {
-                        Name = "sampleLLM",
-                        Description = "Samples from an LLM using MCP's sampling feature.",
-                        InputSchema = new JsonSchema()
+                        new Tool()
                         {
-                            Type = "object",
-                            Properties = new Dictionary<string, JsonSchemaProperty>()
+                            Name = "sampleLLM",
+                            Description = "Samples from an LLM using MCP's sampling feature.",
+                            InputSchema = new JsonSchema()
                             {
-                                ["prompt"] = new JsonSchemaProperty() { Type = "string", Description = "The prompt to send to the LLM" },
-                                ["maxTokens"] = new JsonSchemaProperty() { Type = "number", Description = "Maximum number of tokens to generate" }
-                            }
-                        },
+                                Type = "object",
+                                Properties = new Dictionary<string, JsonSchemaProperty>()
+                                {
+                                    ["prompt"] = new JsonSchemaProperty() { Type = "string", Description = "The prompt to send to the LLM" },
+                                    ["maxTokens"] = new JsonSchemaProperty() { Type = "number", Description = "Maximum number of tokens to generate" }
+                                }
+                            },
+                        }
+                    ]
+                });
+            },
+
+            CallToolHandler = async (request, cancellationToken) =>
+            {
+                if (request.Params?.Name == "echo")
+                {
+                    if (request.Params?.Arguments is null || !request.Params.Arguments.TryGetValue("message", out var message))
+                    {
+                        throw new McpServerException("Missing required argument 'message'");
                     }
-                ]
-            });
-        });
-
-        server.SetCallToolHandler(async (request, cancellationToken) =>
-        {
-            if (request.Params?.Name == "echo")
-            {
-                if (request.Params?.Arguments is null || !request.Params.Arguments.TryGetValue("message", out var message))
-                {
-                    throw new McpServerException("Missing required argument 'message'");
+                    return new CallToolResponse()
+                    {
+                        Content = [new Content() { Text = "Echo: " + message?.ToString(), Type = "text" }]
+                    };
                 }
-                return new CallToolResponse()
+                else if (request.Params?.Name == "sampleLLM")
                 {
-                    Content = [new Content() { Text = "Echo: " + message?.ToString(), Type = "text" }]
-                };
-            }
-            else if (request.Params?.Name == "sampleLLM")
-            {
-                if (request.Params?.Arguments is null ||
-                    !request.Params.Arguments.TryGetValue("prompt", out var prompt) ||
-                    !request.Params.Arguments.TryGetValue("maxTokens", out var maxTokens))
-                {
-                    throw new McpServerException("Missing required arguments 'prompt' and 'maxTokens'");
-                }
-                var sampleResult = await server.RequestSamplingAsync(CreateRequestSamplingParams(prompt?.ToString() ?? "", "sampleLLM", Convert.ToInt32(maxTokens?.ToString())),
-                    cancellationToken);
+                    if (request.Params?.Arguments is null ||
+                        !request.Params.Arguments.TryGetValue("prompt", out var prompt) ||
+                        !request.Params.Arguments.TryGetValue("maxTokens", out var maxTokens))
+                    {
+                        throw new McpServerException("Missing required arguments 'prompt' and 'maxTokens'");
+                    }
+                    var sampleResult = await request.Server.RequestSamplingAsync(CreateRequestSamplingParams(prompt?.ToString() ?? "", "sampleLLM", Convert.ToInt32(maxTokens?.ToString())),
+                        cancellationToken);
 
-                return new CallToolResponse()
+                    return new CallToolResponse()
+                    {
+                        Content = [new Content() { Text = $"LLM sampling result: {sampleResult.Content.Text}", Type = "text" }]
+                    };
+                }
+                else
                 {
-                    Content = [new Content() { Text = $"LLM sampling result: {sampleResult.Content.Text}", Type = "text" }]
-                };
+                    throw new McpServerException($"Unknown tool: {request.Params?.Name}");
+                }
             }
-            else
-            {
-                throw new McpServerException($"Unknown tool: {request.Params?.Name}");
-            }
-        });
+        };
     }
 
-    private static void ConfigurePrompts(IMcpServer server)
+    private static PromptsCapability ConfigurePrompts()
     {
-        server.SetListPromptsHandler((request, cancellationToken) =>
+        return new()
         {
-            return Task.FromResult(new ListPromptsResult()
+            ListPromptsHandler = (request, cancellationToken) =>
             {
-                Prompts = [
-                    new Prompt()
-                    {
-                        Name = "simple_prompt",
-                        Description = "A prompt without arguments"
-                    },
-                    new Prompt()
-                    {
-                        Name = "complex_prompt",
-                        Description = "A prompt with arguments",
-                        Arguments =
-                        [
-                            new PromptArgument()
-                            {
-                                Name = "temperature",
-                                Description = "Temperature setting",
-                                Required = true
-                            },
-                            new PromptArgument()
-                            {
-                                Name = "style",
-                                Description = "Output style",
-                                Required = false
-                            }
-                        ]
-                    }
-                ]
-            });
-        });
+                return Task.FromResult(new ListPromptsResult()
+                {
+                    Prompts = [
+                        new Prompt()
+                        {
+                            Name = "simple_prompt",
+                            Description = "A prompt without arguments"
+                        },
+                        new Prompt()
+                        {
+                            Name = "complex_prompt",
+                            Description = "A prompt with arguments",
+                            Arguments =
+                            [
+                                new PromptArgument()
+                                {
+                                    Name = "temperature",
+                                    Description = "Temperature setting",
+                                    Required = true
+                                },
+                                new PromptArgument()
+                                {
+                                    Name = "style",
+                                    Description = "Output style",
+                                    Required = false
+                                }
+                            ]
+                        }
+                    ]
+                });
+            },
 
-        server.SetGetPromptHandler((request, cancellationToken) =>
-        {
-            List<PromptMessage> messages = new();
-            if (request.Params?.Name == "simple_prompt")
+            GetPromptHandler = (request, cancellationToken) =>
             {
-                messages.Add(new PromptMessage()
+                List<PromptMessage> messages = [];
+                if (request.Params?.Name == "simple_prompt")
                 {
-                    Role = Role.User,
-                    Content = new Content()
+                    messages.Add(new PromptMessage()
                     {
-                        Type = "text",
-                        Text = "This is a simple prompt without arguments."
-                    }
-                });
-            }
-            else if (request.Params?.Name == "complex_prompt")
-            {
-                string temperature = request.Params.Arguments?["temperature"]?.ToString() ?? "unknown";
-                string style = request.Params.Arguments?["style"]?.ToString() ?? "unknown";
-                messages.Add(new PromptMessage()
+                        Role = Role.User,
+                        Content = new Content()
+                        {
+                            Type = "text",
+                            Text = "This is a simple prompt without arguments."
+                        }
+                    });
+                }
+                else if (request.Params?.Name == "complex_prompt")
                 {
-                    Role = Role.User,
-                    Content = new Content()
+                    string temperature = request.Params.Arguments?["temperature"]?.ToString() ?? "unknown";
+                    string style = request.Params.Arguments?["style"]?.ToString() ?? "unknown";
+                    messages.Add(new PromptMessage()
                     {
-                        Type = "text",
-                        Text = $"This is a complex prompt with arguments: temperature={temperature}, style={style}"
-                    }
-                });
-                messages.Add(new PromptMessage()
+                        Role = Role.User,
+                        Content = new Content()
+                        {
+                            Type = "text",
+                            Text = $"This is a complex prompt with arguments: temperature={temperature}, style={style}"
+                        }
+                    });
+                    messages.Add(new PromptMessage()
+                    {
+                        Role = Role.Assistant,
+                        Content = new Content()
+                        {
+                            Type = "text",
+                            Text = "I understand. You've provided a complex prompt with temperature and style arguments. How would you like me to proceed?"
+                        }
+                    });
+                    messages.Add(new PromptMessage()
+                    {
+                        Role = Role.User,
+                        Content = new Content()
+                        {
+                            Type = "image",
+                            Data = MCP_TINY_IMAGE,
+                            MimeType = "image/png"
+                        }
+                    });
+                }
+                else
                 {
-                    Role = Role.Assistant,
-                    Content = new Content()
-                    {
-                        Type = "text",
-                        Text = "I understand. You've provided a complex prompt with temperature and style arguments. How would you like me to proceed?"
-                    }
-                });
-                messages.Add(new PromptMessage()
-                {
-                    Role = Role.User,
-                    Content = new Content()
-                    {
-                        Type = "image",
-                        Data = MCP_TINY_IMAGE,
-                        MimeType = "image/png"
-                    }
-                });
-            }
-            else
-            {
-                throw new McpServerException($"Unknown prompt: {request.Params?.Name}");
-            }
+                    throw new McpServerException($"Unknown prompt: {request.Params?.Name}");
+                }
 
-            return Task.FromResult(new GetPromptResult()
-            {
-                Messages = messages
-            });
-        });
+                return Task.FromResult(new GetPromptResult()
+                {
+                    Messages = messages
+                });
+            }
+        };
     }
 
     private static HashSet<string> _subscribedResources = new();
 
-    private static void ConfigureResources(IMcpServer server)
+    private static ResourcesCapability ConfigureResources()
     {
         List<Resource> resources = [];
         List<ResourceContents> resourceContents = [];
@@ -295,86 +291,90 @@ internal static class Program
 
         const int pageSize = 10;
 
-        server.SetListResourcesHandler((request, cancellationToken) =>
+        return new()
         {
-            int startIndex = 0;
-            request ??= new(server, new());
-            if (request.Params?.Cursor is not null)
+            ListResourcesHandler = (request, cancellationToken) =>
             {
-                try
+                int startIndex = 0;
+                if (request.Params?.Cursor is not null)
                 {
-                    var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Params.Cursor));
-                    startIndex = Convert.ToInt32(startIndexAsString);
+                    try
+                    {
+                        var startIndexAsString = Encoding.UTF8.GetString(Convert.FromBase64String(request.Params.Cursor));
+                        startIndex = Convert.ToInt32(startIndexAsString);
+                    }
+                    catch
+                    {
+                        throw new McpServerException("Invalid cursor");
+                    }
                 }
-                catch
+
+                int endIndex = Math.Min(startIndex + pageSize, resources.Count);
+                string? nextCursor = null;
+
+                if (endIndex < resources.Count)
                 {
-                    throw new McpServerException("Invalid cursor");
+                    nextCursor = Convert.ToBase64String(Encoding.UTF8.GetBytes(endIndex.ToString()));
                 }
-            }
+                return Task.FromResult(new ListResourcesResult()
+                {
+                    NextCursor = nextCursor,
+                    Resources = resources.GetRange(startIndex, endIndex - startIndex)
+                });
+            },
 
-            int endIndex = Math.Min(startIndex + pageSize, resources.Count);
-            string? nextCursor = null;
-
-            if (endIndex < resources.Count)
+            ReadResourceHandler = (request, cancellationToken) =>
             {
-                nextCursor = Convert.ToBase64String(Encoding.UTF8.GetBytes(endIndex.ToString()));
-            }
-            return Task.FromResult(new ListResourcesResult()
+                if (request.Params?.Uri is null)
+                {
+                    throw new McpServerException("Missing required argument 'uri'");
+                }
+                ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
+                    ?? throw new McpServerException("Resource not found");
+
+                return Task.FromResult(new ReadResourceResult()
+                {
+                    Contents = [contents]
+                });
+            },
+
+            SubscribeToResourcesHandler = (request, cancellationToken) =>
             {
-                NextCursor = nextCursor,
-                Resources = resources.GetRange(startIndex, endIndex - startIndex)
-            });
-        });
+                if (request?.Params?.Uri is null)
+                {
+                    throw new McpServerException("Missing required argument 'uri'");
+                }
+                if (!request.Params.Uri.StartsWith("test://static/resource/"))
+                {
+                    throw new McpServerException("Invalid resource URI");
+                }
 
-        server.SetReadResourceHandler((request, cancellationToken) =>
-        {
-            if (request.Params?.Uri is null)
+                _subscribedResources.Add(request.Params.Uri);
+
+                return Task.FromResult(new EmptyResult());
+            },
+
+            UnsubscribeFromResourcesHandler = (request, cancellationToken) =>
             {
-                throw new McpServerException("Missing required argument 'uri'");
-            }
-            ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
-                ?? throw new McpServerException("Resource not found");
+                if (request?.Params?.Uri is null)
+                {
+                    throw new McpServerException("Missing required argument 'uri'");
+                }
+                if (!request.Params.Uri.StartsWith("test://static/resource/"))
+                {
+                    throw new McpServerException("Invalid resource URI");
+                }
 
-            return Task.FromResult(new ReadResourceResult()
-            {
-                Contents = [contents]
-            });
-        });
+                _subscribedResources.Remove(request.Params.Uri);
 
-        server.SetSubscribeToResourcesHandler((request, cancellationToken) =>
-        {
-            if (request?.Params?.Uri is null)
-            {
-                throw new McpServerException("Missing required argument 'uri'");
-            }
-            if (!request.Params.Uri.StartsWith("test://static/resource/"))
-            {
-                throw new McpServerException("Invalid resource URI");
-            }
+                return Task.FromResult(new EmptyResult());
+            },
 
-            _subscribedResources.Add(request.Params.Uri);
-
-            return Task.FromResult(new EmptyResult());
-        });
-
-        server.SetUnsubscribeFromResourcesHandler((request, cancellationToken) =>
-        {
-            if (request?.Params?.Uri is null)
-            {
-                throw new McpServerException("Missing required argument 'uri'");
-            }
-            if (!request.Params.Uri.StartsWith("test://static/resource/"))
-            {
-                throw new McpServerException("Invalid resource URI");
-            }
-
-            _subscribedResources.Remove(request.Params.Uri);
-
-            return Task.FromResult(new EmptyResult());
-        });
+            Subscribe = true
+        };
     }
 
-    private static void ConfigureCompletion(IMcpServer server)
+    private static Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>> ConfigureCompletion()
     {
         List<string> sampleResourceIds = ["1", "2", "3", "4", "5"];
         Dictionary<string, List<string>> exampleCompletions = new()
@@ -383,7 +383,7 @@ internal static class Program
             {"temperature", ["0", "0.5", "0.7", "1.0"]},
         };
 
-        server.SetGetCompletionHandler((request, cancellationToken) =>
+        return (request, cancellationToken) =>
         {
             if (request.Params?.Ref?.Type == "ref/resource")
             {
@@ -392,7 +392,7 @@ internal static class Program
                     return Task.FromResult(new CompleteResult() { Completion = new() { Values = [] } });
 
                 // Filter resource IDs that start with the input value
-                var values = sampleResourceIds.Where(id => id.StartsWith(request.Params.Argument.Value)).ToArray();
+                var values = sampleResourceIds.Where(id => id.StartsWith(request.Params!.Argument.Value)).ToArray();
                 return Task.FromResult(new CompleteResult() { Completion = new() { Values = values, HasMore = false, Total = values.Length } });
 
             }
@@ -408,7 +408,7 @@ internal static class Program
             }
 
             throw new McpServerException($"Unknown reference type: {request.Params?.Ref.Type}");
-        });
+        };
     }
 
     static CreateMessageRequestParams CreateRequestSamplingParams(string context, string uri, int maxTokens = 100)

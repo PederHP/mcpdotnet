@@ -4,8 +4,10 @@ using McpDotNet.Client;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
+using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace McpDotNet.Shared;
 
@@ -24,7 +26,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     private readonly Dictionary<string, Func<JsonRpcRequest, Task<object?>>> _requestHandlers = [];
     private int _nextRequestId;
     private readonly JsonSerializerOptions _jsonOptions;
-    private readonly ILogger<McpClient> _logger;
+    private readonly ILogger _logger;
     private bool _isDisposed;
 
     /// <summary>
@@ -32,19 +34,18 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// </summary>
     /// <param name="transport">An MCP transport implementation.</param>
     /// <param name="loggerFactory">The logger factory.</param>
-    protected McpJsonRpcEndpoint(ITransport transport, ILoggerFactory loggerFactory)
+    protected McpJsonRpcEndpoint(ITransport transport, ILoggerFactory? loggerFactory = null)
     {
-        if (transport is null)
-        {
-            throw new ArgumentNullException(nameof(transport));
-        }
+        Throw.IfNull(transport);
+
+        loggerFactory ??= NullLoggerFactory.Instance;
 
         _transport = transport;
         _pendingRequests = new();
         _notificationHandlers = new();
         _nextRequestId = 1;
         _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
-        _logger = loggerFactory.CreateLogger<McpClient>();
+        _logger = (ILogger?)loggerFactory?.CreateLogger<McpClient>() ?? NullLogger.Instance;
     }
 
     /// <summary>
@@ -282,10 +283,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 
     public Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default)
     {
-        if (message is null)
-        {
-            throw new ArgumentNullException(nameof(message));
-        }
+        Throw.IfNull(message);
 
         if (!_transport.IsConnected)
         {
@@ -333,15 +331,8 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// <param name="handler">Handler to be called when a request with specified method identifier is received</param>
     protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, Task<TResponse>> handler)
     {
-        if (method is null)
-        {
-            throw new ArgumentNullException(nameof(method));
-        }
-
-        if (handler is null)
-        {
-            throw new ArgumentNullException(nameof(handler));
-        }
+        Throw.IfNull(method);
+        Throw.IfNull(handler);
 
         _requestHandlers[method] = async (request) =>
         {

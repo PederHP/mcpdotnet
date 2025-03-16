@@ -19,7 +19,7 @@ public record StdioClientTransportOptions
     /// <summary>
     /// Arguments to pass to the server process.
     /// </summary>
-    public string[]? Arguments { get; set; } = [];
+    public string? Arguments { get; set; }
 
     /// <summary>
     /// The working directory for the server process.

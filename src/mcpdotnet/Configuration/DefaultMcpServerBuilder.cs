@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using McpDotNet.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace McpDotNet.Configuration;
 
@@ -17,6 +18,8 @@ internal class DefaultMcpServerBuilder : IMcpServerBuilder
     /// <exception cref="ArgumentNullException"></exception>
     public DefaultMcpServerBuilder(IServiceCollection services)
     {
-        Services = services ?? throw new ArgumentNullException(nameof(services));
+        Throw.IfNull(services);
+
+        Services = services;
     }
 }

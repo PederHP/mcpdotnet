@@ -16,11 +16,8 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         _fixture = fixture;
     }
 
-    public static IEnumerable<object[]> GetClients()
-    {
-        yield return ["everything"];
-        yield return ["test_server"];
-    }
+    public static IEnumerable<object[]> GetClients() =>
+        ClientIntegrationTestFixture.ClientIds.Select(id => new object[] { id });
 
     [Theory]
     [MemberData(nameof(GetClients))]
@@ -29,7 +26,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         await client.PingAsync(CancellationToken.None);
 
         // Assert
@@ -43,7 +40,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
 
         // Assert
         Assert.NotNull(client.ServerCapabilities);
@@ -59,7 +56,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
@@ -74,7 +71,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var result = await client.CallToolAsync(
             "echo",
             new Dictionary<string, object>
@@ -98,7 +95,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var prompts = await client.ListPromptsAsync().ToListAsync();
 
         // assert
@@ -115,7 +112,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var result = await client.GetPromptAsync("simple_prompt", null, CancellationToken.None);
 
         // assert
@@ -130,7 +127,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var arguments = new Dictionary<string, object>
         {
             { "temperature", "0.7" },
@@ -150,7 +147,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         await Assert.ThrowsAsync<McpClientException>(() =>
             client.GetPromptAsync("non_existent_prompt", null, CancellationToken.None));
     }
@@ -162,7 +159,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
 
         List<Resource> allResources = [];
         string? cursor = null;
@@ -185,7 +182,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         // Odd numbered resources are text in the everything server (despite the docs saying otherwise)
         // 1 is index 0, which is "even" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/1", CancellationToken.None);
@@ -202,7 +199,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
         // 2 is index 1, which is "odd" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/2", CancellationToken.None);
@@ -221,13 +218,12 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         int counter = 0;
-        var client = await _fixture.Factory.GetClientAsync(clientId);
-        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
+        await using var client = await _fixture.CreateClientAsync(clientId);
+        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, (notification) =>
         {
-            Assert.NotNull(notification.Params);
-            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params.ToString());
-            Assert.Equal("test://static/resource/1", notificationParams.Uri);
+            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params!.ToString() ?? string.Empty);
             ++counter;
+            return Task.CompletedTask;
         });
         await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
 
@@ -247,13 +243,12 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         int counter = 0;
-        var client = await _fixture.Factory.GetClientAsync(clientId);
-        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
+        await using var client = await _fixture.CreateClientAsync(clientId);
+        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, (notification) =>
         {
-            Assert.NotNull(notification.Params);
-            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params.ToString());
-            Assert.Equal("test://static/resource/1", notificationParams.Uri);
+            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params!.ToString() ?? string.Empty);
             ++counter;
+            return Task.CompletedTask;
         });
         await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
 
@@ -282,7 +277,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var result = await client.GetCompletionAsync(new Reference
         {
             Type = "ref/resource",
@@ -304,7 +299,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync(clientId);
+        await using var client = await _fixture.CreateClientAsync(clientId);
         var result = await client.GetCompletionAsync(new Reference
         {
             Type = "ref/prompt",
@@ -322,24 +317,32 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     [Theory]
     [MemberData(nameof(GetClients))]
     public async Task Sampling_Stdio(string clientId)
-    {
-        var client = await _fixture.Factory.GetClientAsync(clientId);
-
+    {   
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
-        client.SetSamplingHandler((_, _) =>
+        await using var client = await _fixture.CreateClientAsync(clientId, new()
         {
-            samplingHandlerCalls++;
-            return Task.FromResult(new CreateMessageResult
+            ClientInfo = new() { Name = "Sampling_Stdio", Version = "1.0.0" },
+            Capabilities = new()
             {
-                Model = "test-model",
-                Role = "assistant",
-                Content = new Content
+                Sampling = new()
                 {
-                    Type = "text",
-                    Text = "Test response"
-                }
-            });
+                    SamplingHandler = (_, _) =>
+                    {
+                        samplingHandlerCalls++;
+                        return Task.FromResult(new CreateMessageResult
+                        {
+                            Model = "test-model",
+                            Role = "assistant",
+                            Content = new Content
+                            {
+                                Type = "text",
+                                Text = "Test response"
+                            }
+                        });
+                    },
+                },
+            },
         });
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
@@ -370,7 +373,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     //        new() { Uri = "file:///test/root2", Name = "Test Root 2" }
     //    };
 
-    //    var client = await _fixture.Factory.GetClientAsync(clientId);
+    //    await using var client = await _fixture.Factory.GetClientAsync(clientId);
 
     //    // Set up the roots handler
     //    client.SetRootsHandler((request, ct) =>
@@ -394,9 +397,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     [MemberData(nameof(GetClients))]
     public async Task Notifications_Stdio(string clientId)
     {
-        var client = await _fixture.Factory.GetClientAsync(clientId);
-
-        await client.ConnectAsync();
+        await using var client = await _fixture.CreateClientAsync(clientId);
 
         // Verify we can send notifications without errors
         await client.SendNotificationAsync(NotificationMethods.RootsUpdatedNotification);
@@ -411,7 +412,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
     public async Task CallTool_Stdio_MemoryServer()
     {
         // arrange
-        var config = new McpServerConfig
+        McpServerConfig serverConfig = new()
         {
             Id = "memory",
             Name = "memory",
@@ -423,21 +424,17 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
             }
         };
 
-        var options = new McpClientOptions
+        McpClientOptions clientOptions = new()
         {
             ClientInfo = new() { Name = "IntegrationTestClient", Version = "1.0.0" }
         };
 
-        using var factory = new McpClientFactory([config], options, _fixture.LoggerFactory);
-        var client = await factory.GetClientAsync("memory");
-
-        await client.ConnectAsync();
+        await using var client = await McpClientFactory.CreateAsync(serverConfig, clientOptions, loggerFactory: _fixture.LoggerFactory);
 
         // act
         var result = await client.CallToolAsync(
             "read_graph",
-            [],
-            CancellationToken.None
+            []
         );
 
         // assert

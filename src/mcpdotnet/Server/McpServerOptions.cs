@@ -1,5 +1,6 @@
 ﻿
 using McpDotNet.Protocol.Types;
+using System.Text.Json.Serialization;
 
 namespace McpDotNet.Server;
 
@@ -34,4 +35,10 @@ public record McpServerOptions
     /// Optional server instructions to send to clients
     /// </summary>
     public string ServerInstructions { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the handler for get completion requests.
+    /// </summary>
+    [JsonIgnore]
+    public Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; init; }
 }

@@ -6,6 +6,7 @@ using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
+using McpDotNet.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace McpDotNet;
@@ -40,15 +41,14 @@ public static partial class McpServerBuilderExtensions
     /// <param name="toolTypes">Types with marked methods to add as tools to the server.</param>
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params Type[] toolTypes)
     {
-        if (builder is null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        Throw.IfNull(builder);
 
         if (toolTypes is null || toolTypes.Length == 0)
+        {
             throw new ArgumentException("At least one tool type must be provided.", nameof(toolTypes));
+        }
 
-        var tools = new List<Tool>();
+        List<Tool> tools = [];
         Dictionary<string, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>> callbacks = [];
 
         foreach (var type in toolTypes)
@@ -114,7 +114,9 @@ public static partial class McpServerBuilderExtensions
         }
 
         if (toolTypes.Count == 0)
+        {
             throw new ArgumentException("No types with marked methods found in the assembly.", nameof(assembly));
+        }
 
         return WithTools(builder, [.. toolTypes]);
     }
