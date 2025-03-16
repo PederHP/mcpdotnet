@@ -19,8 +19,8 @@ public class McpServerDelegatesTests
         container.ListResourcesHandler = (p, c) => Task.FromResult(new ListResourcesResult());
         container.ReadResourceHandler = (p, c) => Task.FromResult(new ReadResourceResult());
         container.GetCompletionHandler = (p, c) => Task.FromResult(new CompleteResult());
-        container.SubscribeToResourcesHandler = (s, c) => Task.CompletedTask;
-        container.UnsubscribeFromResourcesHandler = (s, c) => Task.CompletedTask;
+        container.SubscribeToResourcesHandler = (s, c) => Task.FromResult(new EmptyResult());
+        container.UnsubscribeFromResourcesHandler = (s, c) => Task.FromResult(new EmptyResult());
 
         container.Apply(server);
 

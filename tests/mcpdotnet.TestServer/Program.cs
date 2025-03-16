@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using System.Text.Json;
+using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
@@ -35,7 +37,10 @@ internal static class Program
             Capabilities = new ServerCapabilities()
             {
                 Tools = new(),
-                Resources = new(),
+                Resources = new()
+                {
+                    Subscribe = true,
+                },
                 Prompts = new(),
             },
             ProtocolVersion = "2024-11-05",
@@ -62,7 +67,16 @@ internal static class Program
         // Run until process is stopped by the client (parent process)
         while (true) // NOSONAR
         {
-            await Task.Delay(1000);
+            await Task.Delay(5000);
+            foreach (var resource in _subscribedResources)
+            {
+                dynamic responseParams = new { Uri = resource };
+                await server.SendMessageAsync(new JsonRpcNotification()
+                {
+                    Method = NotificationMethods.ResourceUpdatedNotification,
+                    Params = responseParams
+                });
+            }
         }
     }
 
@@ -237,6 +251,8 @@ internal static class Program
         });
     }
 
+    private static HashSet<string> _subscribedResources = new();
+
     private static void ConfigureResources(IMcpServer server)
     {
         List<Resource> resources = [];
@@ -323,6 +339,38 @@ internal static class Program
             {
                 Contents = [contents]
             });
+        });
+
+        server.SetSubscribeToResourcesHandler((request, cancellationToken) =>
+        {
+            if (request?.Params?.Uri is null)
+            {
+                throw new McpServerException("Missing required argument 'uri'");
+            }
+            if (!request.Params.Uri.StartsWith("test://static/resource/"))
+            {
+                throw new McpServerException("Invalid resource URI");
+            }
+
+            _subscribedResources.Add(request.Params.Uri);
+
+            return Task.FromResult(new EmptyResult());
+        });
+
+        server.SetUnsubscribeFromResourcesHandler((request, cancellationToken) =>
+        {
+            if (request?.Params?.Uri is null)
+            {
+                throw new McpServerException("Missing required argument 'uri'");
+            }
+            if (!request.Params.Uri.StartsWith("test://static/resource/"))
+            {
+                throw new McpServerException("Invalid resource URI");
+            }
+
+            _subscribedResources.Remove(request.Params.Uri);
+
+            return Task.FromResult(new EmptyResult());
         });
     }
 

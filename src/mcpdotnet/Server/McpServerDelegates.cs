@@ -45,12 +45,12 @@ public class McpServerDelegates
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    public Func<RequestContext<string>, CancellationToken, Task>? SubscribeToResourcesHandler { get; set; }
+    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? SubscribeToResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    public Func<RequestContext<string>, CancellationToken, Task>? UnsubscribeFromResourcesHandler { get; set; }
+    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? UnsubscribeFromResourcesHandler { get; set; }
 
     /// <summary>
     /// Applies the delegates to the server.

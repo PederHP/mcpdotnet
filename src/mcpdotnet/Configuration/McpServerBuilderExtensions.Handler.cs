@@ -127,7 +127,7 @@ public static partial class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    public static IMcpServerBuilder WithSubscribeToResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
+    public static IMcpServerBuilder WithSubscribeToResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler)
     {
         if (builder is null)
         {
@@ -143,7 +143,7 @@ public static partial class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="handler">The handler.</param>
-    public static IMcpServerBuilder WithUnsubscribeFromResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<string>, CancellationToken, Task> handler)
+    public static IMcpServerBuilder WithUnsubscribeFromResourcesHandler(this IMcpServerBuilder builder, Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler)
     {
         if (builder is null)
         {

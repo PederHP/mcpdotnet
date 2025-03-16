@@ -202,13 +202,76 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         var client = await _fixture.Factory.GetClientAsync(clientId);
-        // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
+        // Even numbered resources are binary in the everything server (despite the docs saying otherwise)            
         // 2 is index 1, which is "odd" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/2", CancellationToken.None);
 
         Assert.NotNull(result);
-        Assert.Single(result.Contents);
+        Assert.Single(result                                                    .Contents);
         Assert.NotNull(result.Contents[0].Blob);
+    }
+
+    // Not support by "everything" server version on npx
+    [Fact]
+    public async Task SubscribeResource_Stdio()
+    {
+        // arrange
+        var clientId = "test_server";
+
+        // act
+        int counter = 0;
+        var client = await _fixture.Factory.GetClientAsync(clientId);
+        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
+        {
+            var notificationParams = notification.Params;
+            Assert.NotNull(notificationParams);
+            ++counter;
+            //Assert.Equal("test://static/resource/1", resource!.Uri);
+        });
+        await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
+
+        // notifications happen every 5 seconds, so we wait for 10 seconds to ensure we get at least one notification
+        await Task.Delay(10000);
+
+        // assert
+        Assert.True(counter > 0);
+    }
+
+    // Not support by "everything" server version on npx
+    [Fact]
+    public async Task UnsubscribeResource_Stdio()
+    {
+        // arrange
+        var clientId = "test_server";
+
+        // act
+        int counter = 0;
+        var client = await _fixture.Factory.GetClientAsync(clientId);
+        client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
+        {
+            var notificationParams = notification.Params;
+            Assert.NotNull(notificationParams);
+            ++counter;
+            //Assert.Equal("test://static/resource/1", resource!.Uri);
+        });
+        await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
+
+        // notifications happen every 5 seconds, so we wait for 10 seconds to ensure we get at least one notification
+        await Task.Delay(10000);
+
+        // reset counter
+        int counterAfterSubscribe = counter;
+        
+        // unsubscribe
+        await client.UnsubscribeFromResourceAsync("test://static/resource/1", CancellationToken.None);
+        counter = 0;
+
+        // notifications happen every 5 seconds, so we wait for 10 seconds to ensure we would've gotten at least one notification
+        await Task.Delay(10000);
+
+        // assert
+        Assert.True(counterAfterSubscribe > 0);
+        Assert.True(counter == 0);
     }
 
     [Theory]

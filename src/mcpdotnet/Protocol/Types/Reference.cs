@@ -66,15 +66,3 @@ public class Reference
         return true;
     }
 }
-
-/// <summary>
-/// The server's response to a completion/complete request
-/// </summary>
-public class CompleteResult
-{
-    /// <summary>
-    /// The completion object containing the completion values.
-    /// </summary>
-    [JsonPropertyName("completion")]
-    public Completion Completion { get; set; } = new Completion();
-}

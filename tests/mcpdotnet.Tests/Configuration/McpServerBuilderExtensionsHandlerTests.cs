@@ -113,7 +113,7 @@ public class McpServerBuilderExtensionsHandlerTests
     [Fact]
     public void WithSubscribeToResourcesHandler_Sets_Handler()
     {
-        Func<RequestContext<string>, CancellationToken, Task> handler = (context, token) => Task.CompletedTask;
+        Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler = (context, token) => Task.FromResult(new EmptyResult());
 
         _builder.Object.WithSubscribeToResourcesHandler(handler);
 
@@ -126,7 +126,7 @@ public class McpServerBuilderExtensionsHandlerTests
     [Fact]
     public void WithUnsubscribeFromResourcesHandler_Sets_Handler()
     {
-        Func<RequestContext<string>, CancellationToken, Task> handler = (context, token) => Task.CompletedTask;
+        Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler = (context, token) => Task.FromResult(new EmptyResult());
 
         _builder.Object.WithUnsubscribeFromResourcesHandler(handler);
 

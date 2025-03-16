@@ -61,6 +61,12 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Read resource handler not configured for server {endpointName}, always set a handler when using this capability")]
     internal static partial void ReadResourceHandlerNotConfigured(this ILogger logger, string endpointName);
+    
+    [LoggerMessage(Level = LogLevel.Error, Message = "Subscribe to resource handler not configured for server {endpointName}, always set a handler when using this capability")]
+    internal static partial void SubscribeToResourcesHandlerNotConfigured(this ILogger logger, string endpointName);
+    
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unsubcribe from resource handler not configured for server {endpointName}, always set a handler when using this capability")]
+    internal static partial void UnsubscribeFromResourcesHandlerNotConfigured(this ILogger logger, string endpointName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Client server {endpointName} already initializing")]
     internal static partial void ClientAlreadyInitializing(this ILogger logger, string endpointName);

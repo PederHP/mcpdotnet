@@ -24,8 +24,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
     private Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? _listResourcesHandler;
     private Func<RequestContext<ReadResourceRequestParams>, CancellationToken, Task<ReadResourceResult>>? _readResourceHandler;
     private Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? _getCompletionHandler;
-    private Func<RequestContext<string>, CancellationToken, Task>? _subscribeToResourcesHandler;
-    private Func<RequestContext<string>, CancellationToken, Task>? _unsubscribeFromResourcesHandler;
+    private Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? _subscribeToResourcesHandler;
+    private Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? _unsubscribeFromResourcesHandler;
 
     /// <summary>
     /// Creates a new instance of <see cref="McpServer"/>.
@@ -237,6 +237,32 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
 
                     return await _readResourceHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
                 });
+
+            if (options.Capabilities.Resources.Subscribe is not null && options.Capabilities.Resources.Subscribe.Value)
+            {
+                SetRequestHandler<SubscribeToResourceRequestParams, EmptyResult>("resources/subscribe",
+                    async (request) =>
+                    {
+                        if (_subscribeToResourcesHandler is null)
+                        {
+                            // Setting the capability, but not a handler means we have nothing to return to the server
+                            _logger.SubscribeToResourcesHandlerNotConfigured(EndpointName);
+                            throw new McpServerException("SubscribeToResources handler not configured");
+                        }
+                        return await _subscribeToResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
+                    });
+                SetRequestHandler<SubscribeToResourceRequestParams, EmptyResult>("resources/unsubscribe",
+                    async (request) =>
+                    {
+                        if (_unsubscribeFromResourcesHandler is null)
+                        {
+                            // Setting the capability, but not a handler means we have nothing to return to the server
+                            _logger.UnsubscribeFromResourcesHandlerNotConfigured(EndpointName);
+                            throw new McpServerException("UnsubscribeFromResources handler not configured");
+                        }
+                        return await _unsubscribeFromResourcesHandler(new(this, request), CancellationTokenSource?.Token ?? CancellationToken.None).ConfigureAwait(false);
+                    });
+            }
         }
     }
 

@@ -185,7 +185,7 @@ public static class McpServerExtensions
     /// Sets the handler for subscribe to resources requests.
     /// </summary>
     public static void SetSubscribeToResourcesHandler(
-        this IMcpServer server, Func<RequestContext<string>, CancellationToken, Task> handler)
+        this IMcpServer server, Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler)
     {
         if (server is null)
         {
@@ -204,7 +204,7 @@ public static class McpServerExtensions
     /// Sets the handler for unsubscribe from resources requests.
     /// </summary>
     public static void SetUnsubscribeFromResourcesHandler(
-        this IMcpServer server, Func<RequestContext<string>, CancellationToken, Task> handler)
+        this IMcpServer server, Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>> handler)
     {
         if (server is null)
         {
