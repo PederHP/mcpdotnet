@@ -70,7 +70,7 @@ internal static class Program
             await Task.Delay(5000);
             foreach (var resource in _subscribedResources)
             {
-                dynamic responseParams = new { Uri = resource };
+                dynamic responseParams = new { uri = resource };
                 await server.SendMessageAsync(new JsonRpcNotification()
                 {
                     Method = NotificationMethods.ResourceUpdatedNotification,

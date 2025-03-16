@@ -3,6 +3,7 @@ using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
+using System.Text.Json;
 
 namespace McpDotNet.Tests;
 
@@ -223,10 +224,10 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         var client = await _fixture.Factory.GetClientAsync(clientId);
         client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
         {
-            var notificationParams = notification.Params;
-            Assert.NotNull(notificationParams);
+            Assert.NotNull(notification.Params);
+            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params.ToString());
+            Assert.Equal("test://static/resource/1", notificationParams.Uri);
             ++counter;
-            //Assert.Equal("test://static/resource/1", resource!.Uri);
         });
         await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
 
@@ -249,10 +250,10 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         var client = await _fixture.Factory.GetClientAsync(clientId);
         client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, async (notification) =>
         {
-            var notificationParams = notification.Params;
-            Assert.NotNull(notificationParams);
+            Assert.NotNull(notification.Params);
+            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params.ToString());
+            Assert.Equal("test://static/resource/1", notificationParams.Uri);
             ++counter;
-            //Assert.Equal("test://static/resource/1", resource!.Uri);
         });
         await client.SubscribeToResourceAsync("test://static/resource/1", CancellationToken.None);
 
@@ -271,7 +272,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // assert
         Assert.True(counterAfterSubscribe > 0);
-        Assert.True(counter == 0);
+        Assert.Equal(0, counter);
     }
 
     [Theory]
