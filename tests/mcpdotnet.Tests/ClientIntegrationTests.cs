@@ -202,12 +202,12 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
 
         // act
         var client = await _fixture.Factory.GetClientAsync(clientId);
-        // Even numbered resources are binary in the everything server (despite the docs saying otherwise)            
+        // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
         // 2 is index 1, which is "odd" in the 0-based index
         var result = await client.ReadResourceAsync("test://static/resource/2", CancellationToken.None);
 
         Assert.NotNull(result);
-        Assert.Single(result                                                    .Contents);
+        Assert.Single(result.Contents);
         Assert.NotNull(result.Contents[0].Blob);
     }
 
