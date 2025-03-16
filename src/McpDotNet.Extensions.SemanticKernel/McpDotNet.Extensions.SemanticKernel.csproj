@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>McpDotNet.Extensions.SemanticKernel</RootNamespace>
+    <AssemblyName>McpDotNet.Extensions.SemanticKernel</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>McpDotNet.Extensions.SemanticKernel</PackageId>
+    <Authors>mcpdotnet Contributors</Authors>
+    <Description>Semantic Kernel integration for the mcpdotnet library</Description>
+    <PackageTags>mcp;semantic-kernel;ai;llm</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\mcpdotnet\mcpdotnet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.41.0" />
+  </ItemGroup>
+
+</Project> 

@@ -40,6 +40,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.41.0" />
     <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.3" />
   </ItemGroup>
 
