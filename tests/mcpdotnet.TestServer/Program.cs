@@ -68,11 +68,11 @@ internal static class Program
             
             foreach (var resource in resources)
             {
-                SubscribeToResourceRequestParams responseParams = new() { Uri = resource };
+                ResourceUpdatedNotificationParams notificationParams = new() { Uri = resource };
                 await server.SendMessageAsync(new JsonRpcNotification()
                 {
                     Method = NotificationMethods.ResourceUpdatedNotification,
-                    Params = responseParams
+                    Params = notificationParams
                 });
             }
         }

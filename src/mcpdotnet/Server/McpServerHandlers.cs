@@ -45,12 +45,12 @@ public sealed class McpServerHandlers
     /// <summary>
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
-    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? SubscribeToResourcesHandler { get; set; }
+    public Func<RequestContext<SubscribeRequestParams>, CancellationToken, Task<EmptyResult>>? SubscribeToResourcesHandler { get; set; }
 
     /// <summary>
     /// Gets or sets the handler for unsubscribe from resources messages.
     /// </summary>
-    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? UnsubscribeFromResourcesHandler { get; set; }
+    public Func<RequestContext<UnsubscribeRequestParams>, CancellationToken, Task<EmptyResult>>? UnsubscribeFromResourcesHandler { get; set; }
 
     /// <summary>
     /// Overwrite any handlers in McpServerOptions with non-null handlers from this instance.

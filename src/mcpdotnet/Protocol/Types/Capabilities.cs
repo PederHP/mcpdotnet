@@ -126,13 +126,13 @@ public record ResourcesCapability
     /// Gets or sets the handler for subscribe to resources messages.
     /// </summary>
     [JsonIgnore]
-    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? SubscribeToResourcesHandler { get; init; }
+    public Func<RequestContext<SubscribeRequestParams>, CancellationToken, Task<EmptyResult>>? SubscribeToResourcesHandler { get; init; }
 
     /// <summary>
     /// Gets or sets the handler for unsubscribe from resources messages.
     /// </summary>
     [JsonIgnore]
-    public Func<RequestContext<SubscribeToResourceRequestParams>, CancellationToken, Task<EmptyResult>>? UnsubscribeFromResourcesHandler { get; init; }
+    public Func<RequestContext<UnsubscribeRequestParams>, CancellationToken, Task<EmptyResult>>? UnsubscribeFromResourcesHandler { get; init; }
 }
 
 /// <summary>

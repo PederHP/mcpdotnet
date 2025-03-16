@@ -163,8 +163,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Resources capability was enabled with subscribe support, but SubscribeToResources and/or UnsubscribeFromResources handlers were not specified.");
         }
 
-        SetRequestHandler<SubscribeToResourceRequestParams, EmptyResult>("resources/subscribe", request => subscribeHandler(new(this, request), cancellationToken));
-        SetRequestHandler<SubscribeToResourceRequestParams, EmptyResult>("resources/unsubscribe", request => unsubscribeHandler(new(this, request), cancellationToken));
+        SetRequestHandler<SubscribeRequestParams, EmptyResult>("resources/subscribe", request => subscribeHandler(new(this, request), cancellationToken));
+        SetRequestHandler<UnsubscribeRequestParams, EmptyResult>("resources/unsubscribe", request => unsubscribeHandler(new(this, request), cancellationToken));
     }
 
     private void SetPromptsHandler(McpServerOptions options)

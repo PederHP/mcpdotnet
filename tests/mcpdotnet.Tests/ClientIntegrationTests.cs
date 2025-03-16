@@ -221,7 +221,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         await using var client = await _fixture.CreateClientAsync(clientId);
         client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, (notification) =>
         {
-            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params!.ToString() ?? string.Empty);
+            var notificationParams = JsonSerializer.Deserialize<ResourceUpdatedNotificationParams>(notification.Params!.ToString() ?? string.Empty);
             ++counter;
             return Task.CompletedTask;
         });
@@ -246,7 +246,7 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         await using var client = await _fixture.CreateClientAsync(clientId);
         client.AddNotificationHandler(NotificationMethods.ResourceUpdatedNotification, (notification) =>
         {
-            var notificationParams = JsonSerializer.Deserialize<SubscribeToResourceRequestParams>(notification.Params!.ToString() ?? string.Empty);
+            var notificationParams = JsonSerializer.Deserialize<ResourceUpdatedNotificationParams>(notification.Params!.ToString() ?? string.Empty);
             ++counter;
             return Task.CompletedTask;
         });
