@@ -16,5 +16,5 @@ public class JsonSchemaProperty
     /// A human-readable description of the property.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string? Description { get; set; } = string.Empty;
 }

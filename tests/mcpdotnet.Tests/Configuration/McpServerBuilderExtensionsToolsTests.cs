@@ -200,17 +200,18 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
-    public async Task Throws_Exception_When_Tool_Fails()
+    public async Task Returns_IsError_Content_When_Tool_Fails()
     {
         _builder.Object.WithTools(typeof(EchoTool));
 
         var serviceProvider = _services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
-        var action = async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnError" }), CancellationToken.None);
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(action);
-        Assert.Equal("Test error", exception.Message);
+        var response = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = nameof(EchoTool.ThrowException) }), CancellationToken.None);
+        Assert.True(response.IsError);
+        Assert.NotNull(response.Content);
+        Assert.NotEmpty(response.Content);
+        Assert.Contains("Test error", response.Content[0].Text);
     }
 
     [Fact]
@@ -360,7 +361,7 @@ public class McpServerBuilderExtensionsToolsTests
         }
 
         [McpTool]
-        public static string ReturnError()
+        public static string ThrowException()
         {
             throw new InvalidOperationException("Test error");
         }

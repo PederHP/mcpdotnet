@@ -104,7 +104,20 @@ public static partial class McpServerBuilderExtensions
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                object? result = await function.InvokeAsync((request.Params?.Arguments ?? [])!, cancellationToken).ConfigureAwait(false);
+                object? result;
+                try
+                {
+                    result = await function.InvokeAsync((request.Params?.Arguments ?? [])!, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    return new CallToolResponse()
+                    {
+                        IsError = true,
+                        Content = [new() { Text = e.Message, Type = "text" }],
+                    };
+                }
+
                 switch (result)
                 {
                     case JsonElement je when je.ValueKind == JsonValueKind.Null:

@@ -308,7 +308,7 @@ public static class McpClientExtensions
     /// </summary>
     /// <param name="requestParams"></param>
     /// <returns>The created pair of messages and options.</returns>
-    internal static (IEnumerable<ChatMessage> Messages, ChatOptions? Options) ToChatClientArguments( // TODO: Should this be exposed publicly?
+    internal static (IList<ChatMessage> Messages, ChatOptions? Options) ToChatClientArguments(
         this CreateMessageRequestParams requestParams)
     {
         Throw.IfNull(requestParams);
@@ -370,16 +370,48 @@ public static class McpClientExtensions
     /// <summary>Converts the contents of a <see cref="ChatResponse"/> into a <see cref="CreateMessageResult"/>.</summary>
     /// <param name="chatResponse">The <see cref="ChatResponse"/> whose contents should be extracted.</param>
     /// <returns>The created <see cref="CreateMessageResult"/>.</returns>
-    internal static CreateMessageResult ToCreateMessageResult(this ChatResponse chatResponse) // TODO: Should this be exposed publicly?
+    internal static CreateMessageResult ToCreateMessageResult(this ChatResponse chatResponse)
     {
         Throw.IfNull(chatResponse);
 
+        // The ChatResponse can include multiple messages, of varying modalities, but CreateMessageResult supports
+        // only either a single blob of text or a single image. Heuristically, we'll use an image if there is one
+        // in any of the response messages, or we'll use all the text from them concatenated, otherwise.
+
         ChatMessage? lastMessage = chatResponse.Messages.LastOrDefault();
+
+        Content? content = null;
+        if (lastMessage is not null)
+        {
+            foreach (var lmc in lastMessage.Contents)
+            {
+                if (lmc is DataContent dc && dc.HasTopLevelMediaType("image"))
+                {
+                    content = new()
+                    {
+                        Type = "image",
+                        MimeType = dc.MediaType,
+                        Data = Convert.ToBase64String(dc.Data
+#if NET
+                            .Span),
+#else
+                            .ToArray()),
+#endif
+                    };
+                }
+            }
+        }
+
+        content ??= new()
+        {
+            Text = lastMessage?.Text ?? string.Empty,
+            Type = "text",
+        };
 
         return new()
         {
-            Content = new() { Text = lastMessage?.Text ?? string.Empty, Type = "text" },
-            Model = chatResponse.ModelId ?? string.Empty,
+            Content = content,
+            Model = chatResponse.ModelId ?? "unknown",
             Role = lastMessage?.Role == ChatRole.User ? "user" : "assistant",
             StopReason = chatResponse.FinishReason == ChatFinishReason.Length ? "maxTokens" : "endTurn",
         };

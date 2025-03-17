@@ -22,7 +22,7 @@ public static class McpServerExtensions
 
         if (server.ClientCapabilities?.Sampling is null)
         {
-            throw new ArgumentException("Server's client does not support sampling.", nameof(server));
+            throw new ArgumentException("Client connected to the server does not support sampling.", nameof(server));
         }
 
         return server.SendRequestAsync<CreateMessageResult>(
@@ -110,6 +110,12 @@ public static class McpServerExtensions
             }
         }
 
+        ModelPreferences? modelPreferences = null;
+        if (options?.ModelId is { } modelId)
+        {
+            modelPreferences = new() { Hints = [new() { Name = modelId }] };
+        }
+
         var result = await server.RequestSamplingAsync(new()
             {
                 Messages = samplingMessages,
@@ -117,6 +123,7 @@ public static class McpServerExtensions
                 StopSequences = options?.StopSequences?.ToArray(),
                 SystemPrompt = systemPrompt?.ToString(),
                 Temperature = options?.Temperature,
+                ModelPreferences = modelPreferences,
             }, cancellationToken).ConfigureAwait(false);
 
         ChatMessage responseMessage = new()
@@ -167,7 +174,7 @@ public static class McpServerExtensions
 
         if (server.ClientCapabilities?.Sampling is null)
         {
-            throw new ArgumentException("Server's client does not support sampling.", nameof(server));
+            throw new ArgumentException("Client connected to the server does not support sampling.", nameof(server));
         }
 
         return new SamplingChatClient(server);
@@ -185,7 +192,7 @@ public static class McpServerExtensions
 
         if (server.ClientCapabilities?.Roots is null)
         {
-            throw new ArgumentException("Server's client does not support roots.", nameof(server));
+            throw new ArgumentException("Client connected to the server does not support roots.", nameof(server));
         }
 
         return server.SendRequestAsync<ListRootsResult>(
