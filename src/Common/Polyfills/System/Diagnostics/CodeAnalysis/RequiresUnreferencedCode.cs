@@ -12,7 +12,6 @@ namespace System.Diagnostics.CodeAnalysis;
 /// code from an application.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class, Inherited = false)]
-[ExcludeFromCodeCoverage]
 internal sealed class RequiresUnreferencedCodeAttribute : Attribute
 {
     /// <summary>

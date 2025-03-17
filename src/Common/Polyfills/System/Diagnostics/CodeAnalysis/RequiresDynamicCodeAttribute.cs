@@ -11,7 +11,6 @@ namespace System.Diagnostics.CodeAnalysis;
 /// This allows tools to understand which methods are unsafe to call when compiling ahead of time.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class, Inherited = false)]
-[ExcludeFromCodeCoverage]
 internal sealed class RequiresDynamicCodeAttribute : Attribute
 {
     /// <summary>

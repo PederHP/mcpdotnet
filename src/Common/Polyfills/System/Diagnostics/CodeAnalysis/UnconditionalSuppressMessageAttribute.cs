@@ -13,7 +13,6 @@ namespace System.Diagnostics.CodeAnalysis;
 /// <see cref="ConditionalAttribute"/>. So it is always preserved in the compiled assembly.
 /// </remarks>
 [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
-[ExcludeFromCodeCoverage]
 internal sealed class UnconditionalSuppressMessageAttribute : Attribute
 {
     /// <summary>
