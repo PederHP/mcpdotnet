@@ -118,9 +118,9 @@ public sealed class McpServerHandlers
                 };
         }
 
-        return options with
+        return new McpServerOptions
         {
-            GetCompletionHandler = GetCompletionHandler ?? options.GetCompletionHandler,
+            ServerInfo = options.ServerInfo,
             Capabilities = options.Capabilities is null ?
                 new()
                 {
@@ -134,6 +134,10 @@ public sealed class McpServerHandlers
                     Resources = resourcesCapability,
                     Tools = toolsCapability,
                 },
+            ProtocolVersion = options.ProtocolVersion,
+            InitializationTimeout = options.InitializationTimeout,
+            ServerInstructions = options.ServerInstructions,
+            GetCompletionHandler = GetCompletionHandler ?? options.GetCompletionHandler,
         };
     }
 }

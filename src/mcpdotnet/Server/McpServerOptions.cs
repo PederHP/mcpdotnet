@@ -40,5 +40,5 @@ public class McpServerOptions
     /// Gets or sets the handler for get completion requests.
     /// </summary>
     [JsonIgnore]
-    public Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; init; }
+    public Func<RequestContext<CompleteRequestParams>, CancellationToken, Task<CompleteResult>>? GetCompletionHandler { get; set; }
 }
