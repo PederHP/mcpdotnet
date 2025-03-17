@@ -48,16 +48,6 @@ public class StdioServerTransportTests
     }
 
     [Fact]
-    public void Constructor_Throws_For_Null_Streams()
-    {
-        Assert.Throws<ArgumentNullException>("input", () => new StdioServerTransport(_serverOptions, null!, Console.Out));
-        Assert.Throws<ArgumentNullException>("input", () => new StdioServerTransport("name", null!, Console.Out));
-
-        Assert.Throws<ArgumentNullException>("output", () => new StdioServerTransport("name", Console.In, null!));
-        Assert.Throws<ArgumentNullException>("output", () => new StdioServerTransport(_serverOptions, Console.In, null!));
-    }
-
-    [Fact]
     public async Task StartListeningAsync_Should_Set_Connected_State()
     {
         await using var transport = new StdioServerTransport(_serverOptions);
@@ -70,21 +60,33 @@ public class StdioServerTransportTests
     [Fact]
     public async Task SendMessageAsync_Should_Send_Message()
     {
-        var input = new StringReader("");
-        var output = new StringWriter();
+        TextReader oldIn = Console.In;
+        TextWriter oldOut = Console.Out;
+        try
+        {
+            var output = new StringWriter();
 
-        await using var transport = new StdioServerTransport(_serverOptions, input, output, NullLoggerFactory.Instance);
-        await transport.StartListeningAsync();
+            Console.SetIn(new StringReader(""));
+            Console.SetOut(output);
 
-        var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
+            await using var transport = new StdioServerTransport(_serverOptions, NullLoggerFactory.Instance);
+            await transport.StartListeningAsync();
+
+            var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
 
 
-        await transport.SendMessageAsync(message);
+            await transport.SendMessageAsync(message);
 
-        var result = output.ToString()?.Trim();
-        var expected = JsonSerializer.Serialize(message, JsonSerializerOptionsExtensions.DefaultOptions);
+            var result = output.ToString()?.Trim();
+            var expected = JsonSerializer.Serialize(message, JsonSerializerOptionsExtensions.DefaultOptions);
 
-        Assert.Equal(expected, result);
+            Assert.Equal(expected, result);
+        }
+        finally
+        {
+            Console.SetOut(oldOut);
+            Console.SetIn(oldIn);
+        }
     }
 
     [Fact]
@@ -113,19 +115,29 @@ public class StdioServerTransportTests
         var message = new JsonRpcRequest { Method = "test", Id = RequestId.FromNumber(44) };
         var json = JsonSerializer.Serialize(message, JsonSerializerOptionsExtensions.DefaultOptions);
 
-        var input = new StringReader(json);
-        var output = new StringWriter();
+        TextReader oldIn = Console.In;
+        TextWriter oldOut = Console.Out;
+        try
+        {
+            Console.SetIn(new StringReader(json));
+            Console.SetOut(new StringWriter());
 
-        await using var transport = new StdioServerTransport(_serverOptions, input, output);
-        await transport.StartListeningAsync();
+            await using var transport = new StdioServerTransport(_serverOptions);
+            await transport.StartListeningAsync();
 
-        var canRead = await transport.MessageReader.WaitToReadAsync();
+            var canRead = await transport.MessageReader.WaitToReadAsync();
 
-        Assert.True(canRead, "Nothing to read here from transport message reader");
-        Assert.True(transport.MessageReader.TryPeek(out var readMessage));
-        Assert.NotNull(readMessage);
-        Assert.IsType<JsonRpcRequest>(readMessage);
-        Assert.Equal(44, ((JsonRpcRequest)readMessage).Id.AsNumber);
+            Assert.True(canRead, "Nothing to read here from transport message reader");
+            Assert.True(transport.MessageReader.TryPeek(out var readMessage));
+            Assert.NotNull(readMessage);
+            Assert.IsType<JsonRpcRequest>(readMessage);
+            Assert.Equal(44, ((JsonRpcRequest)readMessage).Id.AsNumber);
+        }
+        finally
+        {
+            Console.SetOut(oldOut);
+            Console.SetIn(oldIn);
+        }
     }
 
     [Fact]

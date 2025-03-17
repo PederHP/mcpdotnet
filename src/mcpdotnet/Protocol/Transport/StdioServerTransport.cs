@@ -19,11 +19,13 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
 {
     private readonly string _serverName;
     private readonly ILogger _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
+
+    private readonly JsonSerializerOptions _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
+    private readonly TextReader _stdin = Console.In;
+    private readonly TextWriter _stdout = Console.Out;
+
     private Task? _readTask;
     private CancellationTokenSource? _shutdownCts;
-    private readonly TextReader _input;
-    private readonly TextWriter _output;
 
     private string EndpointName => $"Server (stdio) ({_serverName})";
 
@@ -59,62 +61,12 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
     /// </para>
     /// </remarks>
     public StdioServerTransport(string serverName, ILoggerFactory? loggerFactory = null)
-        : this(serverName ?? throw new ArgumentNullException(nameof(serverName)), Console.In, Console.Out, loggerFactory)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class using the specified
-    /// <paramref name="input"/> and <paramref name="output"/> streams.
-    /// </summary>
-    /// <param name="serverOptions">The server options.</param>
-    /// <param name="input">The reader, from which all input is read.</param>
-    /// <param name="output">The writer, to which all output is written.</param>
-    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="serverOptions"/> is <see langword="null"/> or contains a null name.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="output"/> is <see langword="null"/>.</exception>
-    /// <remarks>
-    /// <para>
-    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
-    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
-    /// </para>
-    /// </remarks>
-    public StdioServerTransport(McpServerOptions serverOptions, TextReader input, TextWriter output, ILoggerFactory? loggerFactory = null)
-        : this(GetServerName(serverOptions), input, output, loggerFactory)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StdioServerTransport"/> class using the specified
-    /// <paramref name="input"/> and <paramref name="output"/> streams.
-    /// </summary>
-    /// <param name="serverName">The name of the server.</param>
-    /// <param name="input">The reader, from which all input is read.</param>
-    /// <param name="output">The writer, to which all output is written.</param>
-    /// <param name="loggerFactory">Optional logger factory used for logging employed by the transport.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="serverName"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="output"/> is <see langword="null"/>.</exception>
-    /// <remarks>
-    /// <para>
-    /// By default, no logging is performed. If a <paramref name="loggerFactory"/> is supplied, it must not log
-    /// to <see cref="Console.Out"/>, as that will interfere with the transport's output.
-    /// </para>
-    /// </remarks>
-    public StdioServerTransport(string serverName, TextReader input, TextWriter output, ILoggerFactory? loggerFactory = null)
         : base(loggerFactory)
     {
         Throw.IfNull(serverName);
-        Throw.IfNull(input);
-        Throw.IfNull(output);
-
+        
         _serverName = serverName;
-        _input = input;
-        _output = output;
-
         _logger = (ILogger?)loggerFactory?.CreateLogger<StdioClientTransport>() ?? NullLogger.Instance;
-        _jsonOptions = JsonSerializerOptionsExtensions.DefaultOptions;
     }
 
     /// <inheritdoc/>
@@ -149,8 +101,8 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             var json = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.TransportSendingMessage(EndpointName, id, json);
 
-            await _output.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
-            await _output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await _stdout.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await _stdout.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.TransportSentMessage(EndpointName, id);
         }
@@ -178,7 +130,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
             {
                 _logger.TransportWaitingForMessage(EndpointName);
 
-                var reader = _input;
+                var reader = _stdin;
                 var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 if (line == null)
                 {
