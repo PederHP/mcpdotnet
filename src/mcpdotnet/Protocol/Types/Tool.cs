@@ -1,4 +1,6 @@
-﻿namespace McpDotNet.Protocol.Types;
+﻿using System.Text.Json.Serialization;
+
+namespace McpDotNet.Protocol.Types;
 
 /// <summary>
 /// Represents a tool that the server is capable of calling. Part of the ListToolsResponse.
@@ -9,18 +11,18 @@ public class Tool
     /// <summary>
     /// The name of the tool.
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("name")]
+    [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// A human-readable description of the tool.
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("description")]
+    [JsonPropertyName("description")]
     public string? Description { get; set; }
 
     /// <summary>
     /// A JSON Schema object defining the expected parameters for the tool.
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("inputSchema")]
+    [JsonPropertyName("inputSchema")]
     public JsonSchema? InputSchema { get; set; }
 }

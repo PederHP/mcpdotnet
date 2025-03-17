@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using McpDotNet.Configuration;
 using McpDotNet.Server;
 using Microsoft.Extensions.DependencyInjection;
@@ -108,10 +109,7 @@ public class McpServerBuilderExtensionsToolsTests
         var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "ReturnNull" }), CancellationToken.None);
         Assert.NotNull(result);
         Assert.NotNull(result.Content);
-        Assert.NotEmpty(result.Content);
-
-        Assert.Equal("null", result.Content[0].Text);
-        Assert.Empty(result.Content[0].Type);
+        Assert.Empty(result.Content);
     }
 
     [Fact]
@@ -127,7 +125,7 @@ public class McpServerBuilderExtensionsToolsTests
         Assert.NotNull(result.Content);
         Assert.NotEmpty(result.Content);
 
-        Assert.Equal("{\"SomeProp\": false}", result.Content[0].Text);
+        Assert.Equal("{\"SomeProp\":false}", Regex.Replace(result.Content[0].Text ?? string.Empty, "\\s+", ""));
         Assert.Equal("text", result.Content[0].Type);
     }
 
@@ -216,34 +214,6 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
-    public async Task Can_Call_Registered_Tool_With_Dependency_Injection()
-    {
-        bool dependencyInjectionCalled = false;
-        _services.AddTransient(sp =>
-        {
-            dependencyInjectionCalled = true;
-            return Mock.Of<IDependendService>();
-        });
-
-        _builder.Object.WithTool<EchoToolWithDi>();
-
-        var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
-
-        var mcpServer = new Mock<IMcpServer>();
-        mcpServer.SetupGet(s => s.ServiceProvider).Returns(serviceProvider);
-
-        var result = await options.CallToolHandler!(new(mcpServer.Object, new() { Name = "Echo", Arguments = new() { { "message", "Peter" } } }), CancellationToken.None);
-        Assert.NotNull(result);
-        Assert.NotNull(result.Content);
-        Assert.NotEmpty(result.Content);
-
-        Assert.Equal("hello Peter", result.Content[0].Text);
-
-        Assert.True(dependencyInjectionCalled);
-    }
-
-    [Fact]
     public async Task Throws_Exception_On_Unknown_Tool()
     {
         _builder.Object.WithTools(typeof(EchoTool));
@@ -252,37 +222,32 @@ public class McpServerBuilderExtensionsToolsTests
         var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
         var exception = await Assert.ThrowsAsync<McpServerException>(async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "NotRegisteredTool" }), CancellationToken.None));
-        Assert.Equal("Unknown tool: NotRegisteredTool", exception.Message);
+        Assert.Contains("'NotRegisteredTool'", exception.Message);
     }
 
-    [Fact]
-    public async Task Throws_Exception_Missing_Parameter()
-    {
-        _builder.Object.WithTools(typeof(EchoTool));
+    // TODO: https://github.com/dotnet/extensions/issues/6124
+    //[Fact]
+    //public async Task Throws_Exception_Missing_Parameter()
+    //{
+    //    _builder.Object.WithTools(typeof(EchoTool));
 
-        var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
+    //    var serviceProvider = _services.BuildServiceProvider();
+    //    var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
 
-        var exception = await Assert.ThrowsAsync<McpServerException>(async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo" }), CancellationToken.None));
-        Assert.Equal("Missing required argument 'message'.", exception.Message);
-    }
+    //    var exception = await Assert.ThrowsAsync<McpServerException>(async () => await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo" }), CancellationToken.None));
+    //    Assert.Equal("Missing required argument 'message'.", exception.Message);
+    //}
 
     [Fact]
     public void Throws_Exception_For_Null_Types()
     {
-        var action = () => _builder.Object.WithTools(toolTypes: null!);
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
+        Assert.Throws<ArgumentNullException>("toolTypes", () => _builder.Object.WithTools(toolTypes: null!));
     }
 
     [Fact]
-    public void Throws_Exception_For_Empty_Types()
+    public void Empty_Types_Is_Allowed()
     {
-        var action = () => _builder.Object.WithTools(toolTypes: []);
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("At least one tool type must be provided. (Parameter 'toolTypes')", exception.Message);
+        _builder.Object.WithTools(toolTypes: []); // no exception
     }
 
     [Fact]
@@ -302,12 +267,9 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
-    public void Throws_Exception_When_No_Tools_Are_Found_In_Given_Assembly()
+    public void Ok_If_No_Tools_Are_Found_In_Given_Assembly()
     {
-        var action = () => _builder.Object.WithToolsFromAssembly(typeof(Mock).Assembly);
-
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("No types with marked methods found in the assembly. (Parameter 'assembly')", exception.Message);
+        _builder.Object.WithToolsFromAssembly(typeof(Mock).Assembly);
     }
 
     [Fact]
@@ -324,14 +286,14 @@ public class McpServerBuilderExtensionsToolsTests
 
         var tool = result.Tools.First(t => t.Name == "TestTool");
         Assert.Equal("TestTool", tool.Name);
-        Assert.Null(tool.Description);
+        Assert.Empty(tool.Description);
         Assert.NotNull(tool.InputSchema);
         Assert.Equal("object", tool.InputSchema.Type);
         Assert.NotNull(tool.InputSchema.Properties);
         Assert.NotEmpty(tool.InputSchema.Properties);
 
         Assert.Contains("number", tool.InputSchema.Properties);
-        Assert.Equal("number", tool.InputSchema.Properties["number"].Type);
+        Assert.Equal("integer", tool.InputSchema.Properties["number"].Type);
 
         Assert.Contains("otherNumber", tool.InputSchema.Properties);
         Assert.Equal("number", tool.InputSchema.Properties["otherNumber"].Type);

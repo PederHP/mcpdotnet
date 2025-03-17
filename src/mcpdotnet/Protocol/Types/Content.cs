@@ -39,28 +39,4 @@ public class Content
     /// </summary>
     [JsonPropertyName("resource")]
     public ResourceContents? Resource { get; set; }
-
-    /// <summary>
-    /// Validates the content object. 
-    /// </summary>
-    /// <returns>Whether the type of tool content has the correct data fields provided.</returns>
-    public bool Validate()
-    {
-        if (Type == "text")
-        {
-            return !string.IsNullOrEmpty(Text);
-        }
-        else if (Type == "image")
-        {
-            return !string.IsNullOrEmpty(Data) && !string.IsNullOrEmpty(MimeType);
-        }
-        else if (Type == "resource")
-        {
-            return Resource != null;
-        }
-        else
-        {
-            return false;
-        }
-    }
 }

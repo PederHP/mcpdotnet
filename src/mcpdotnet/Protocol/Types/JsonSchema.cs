@@ -10,7 +10,7 @@ public class JsonSchema
     /// The type of the schema, should be "object".
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
+    public string Type { get; set; } = "object";
 
     /// <summary>
     /// Map of property names to property definitions.

@@ -99,6 +99,21 @@ Additional examples and documentation will be added as in the near future.
 
 Remember you can connect to any MCP server, not just ones created using mcpdotnet. The protocol is designed to be server-agnostic, so you can use this library to connect to any compliant server.
 
+Tools can be exposed easily as `AIFunction` instances so that they are immediately usable with `IChatClient`s.
+```csharp
+// Get available functions.
+IList<AIFunction> tools = await client.GetAIFunctionsAsync();
+
+// Call the chat client using the tools.
+IChatClient chatClient = ...;
+var response = await chatClient.GetResponseAsync(
+    "your prompt here",
+    new() 
+    {
+        Tools = [.. tools],
+    });
+```
+
 ## Getting Started (Server)
 
 Here is an example of how to create an MCP server and register all tools from the current application.

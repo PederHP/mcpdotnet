@@ -9,11 +9,6 @@ namespace McpDotNet.Client;
 public interface IMcpClient : IAsyncDisposable
 {
     /// <summary>
-    /// Gets a value indicating whether the client has been initialized.
-    /// </summary>
-    bool IsInitialized { get; }
-
-    /// <summary>
     /// Gets the capabilities supported by the server.
     /// </summary>
     ServerCapabilities? ServerCapabilities { get; }

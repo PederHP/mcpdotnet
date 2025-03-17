@@ -1,13 +1,10 @@
-﻿using System.ComponentModel;
-using System.Globalization;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
+﻿using System.Reflection;
 using System.Text.Json;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using McpDotNet.Utils;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.AI;
 
 namespace McpDotNet;
 
@@ -21,6 +18,7 @@ public static partial class McpServerBuilderExtensions
     /// </summary>
     /// <typeparam name="TTool">The tool type.</typeparam>
     /// <param name="builder">The builder instance.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static IMcpServerBuilder WithTool<TTool>(this IMcpServerBuilder builder)
     {
         return WithTools(builder, typeof(TTool));
@@ -29,6 +27,7 @@ public static partial class McpServerBuilderExtensions
     /// Adds all tools marked with <see cref="McpToolTypeAttribute"/> from the current assembly to the server.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder)
     {
         return WithToolsFromAssembly(builder, Assembly.GetCallingAssembly());
@@ -39,46 +38,97 @@ public static partial class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="toolTypes">Types with marked methods to add as tools to the server.</param>
-    public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params Type[] toolTypes)
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="toolTypes"/> is <see langword="null"/>.</exception>
+    public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params IEnumerable<Type> toolTypes)
     {
         Throw.IfNull(builder);
+        Throw.IfNull(toolTypes);
 
-        if (toolTypes is null || toolTypes.Length == 0)
+        List<AIFunction> functions = [];
+
+        foreach (var toolType in toolTypes)
         {
-            throw new ArgumentException("At least one tool type must be provided.", nameof(toolTypes));
+            if (toolType is null)
+            {
+                throw new ArgumentNullException(nameof(toolTypes), $"A tool type provided by the enumerator was null.");
+            }
+
+            foreach (var method in toolType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (method.GetCustomAttribute<McpToolAttribute>() is not { } attribute)
+                {
+                    continue;
+                }
+
+                functions.Add(AIFunctionFactory.Create(method, target: null, new()
+                {
+                    Name = attribute.Name ?? method.Name,
+                }));
+            }
         }
+
+        return WithTools(builder, functions);
+    }
+
+    /// <summary>
+    /// Adds tools to the server.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="functions"><see cref="AIFunction"/> instances to use as the tools.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="functions"/> is <see langword="null"/>.</exception>
+    public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params IEnumerable<AIFunction> functions)
+    {
+        Throw.IfNull(builder);
+        Throw.IfNull(functions);
 
         List<Tool> tools = [];
         Dictionary<string, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>> callbacks = [];
 
-        foreach (var type in toolTypes)
+        foreach (AIFunction function in functions)
         {
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-            foreach (var method in methods)
+            if (function is null)
             {
-                var attribute = method.GetCustomAttribute<McpToolAttribute>();
-                if (attribute != null)
-                {
-                    var tool = CreateTool(method, attribute);
-                    tools.Add(tool);
-
-                    callbacks.Add(tool.Name, async (request, cancellationToken) => await CallTool(request, method, cancellationToken).ConfigureAwait(false));
-
-                    // register type because method is not static and so we need an instance
-                    if (!method.IsStatic)
-                        builder.Services.AddScoped(type);
-                }
+                throw new ArgumentNullException(nameof(functions), $"A function provided by the enumerator was null.");
             }
+
+            tools.Add(new()
+            {
+                Name = function.Name,
+                Description = function.Description,
+                InputSchema = JsonSerializer.Deserialize<JsonSchema>(function.JsonSchema),
+            });
+
+            callbacks.Add(function.Name, async (request, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                object? result = await function.InvokeAsync((request.Params?.Arguments ?? [])!, cancellationToken).ConfigureAwait(false);
+                switch (result)
+                {
+                    case JsonElement je when je.ValueKind == JsonValueKind.Null:
+                        return new() { Content = [] };
+
+                    case JsonElement je when je.ValueKind == JsonValueKind.Array:
+                        return new() { Content = je.EnumerateArray().Select(x => new Content() { Text = x.ToString(), Type = "text" }).ToList() };
+
+                    default:
+                        return new() { Content = [new() { Text = result?.ToString(), Type = "text" }] };
+                }
+            });
         }
 
         builder.WithListToolsHandler((_, _) => Task.FromResult(new ListToolsResult() { Tools = tools }));
 
         builder.WithCallToolHandler(async (request, cancellationToken) =>
         {
-            if (request.Params != null && callbacks.TryGetValue(request.Params.Name, out var callback))
-                return await callback(request, cancellationToken).ConfigureAwait(false);
+            if (request.Params is null || !callbacks.TryGetValue(request.Params.Name, out var callback))
+            {
+                throw new McpServerException($"Unknown tool '{request.Params?.Name}'");
+            }
 
-            throw new McpServerException($"Unknown tool: {request.Params?.Name}");
+            return await callback(request, cancellationToken).ConfigureAwait(false);
         });
 
         return builder;
@@ -89,6 +139,7 @@ public static partial class McpServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <param name="assembly">The assembly to load the types from. Null to get the current assembly</param>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static IMcpServerBuilder WithToolsFromAssembly(this IMcpServerBuilder builder, Assembly? assembly = null)
     {
         assembly ??= Assembly.GetCallingAssembly();
@@ -97,15 +148,14 @@ public static partial class McpServerBuilderExtensions
 
         foreach (var type in assembly.GetTypes())
         {
-            bool hasToolTypeAttribute = type.GetCustomAttribute<McpToolTypeAttribute>() != null;
-            if (!hasToolTypeAttribute)
-                continue;
-
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-            foreach (var method in methods)
+            if (type.GetCustomAttribute<McpToolTypeAttribute>() is null)
             {
-                var attribute = method.GetCustomAttribute<McpToolAttribute>();
-                if (attribute != null)
+                continue;
+            }
+
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (method.GetCustomAttribute<McpToolAttribute>() is not null)
                 {
                     toolTypes.Add(type);
                     break;
@@ -113,149 +163,8 @@ public static partial class McpServerBuilderExtensions
             }
         }
 
-        if (toolTypes.Count == 0)
-        {
-            throw new ArgumentException("No types with marked methods found in the assembly.", nameof(assembly));
-        }
-
-        return WithTools(builder, [.. toolTypes]);
-    }
-
-    private static Tool CreateTool(MethodInfo method, McpToolAttribute mcpAttribute)
-    {
-        Dictionary<string, JsonSchemaProperty> properties = [];
-        List<string>? requiredProperties = null;
-
-        foreach (var parameter in method.GetParameters())
-        {
-            if (parameter.ParameterType == typeof(CancellationToken))
-                continue;
-
-            var parameterDescriptionAttr = parameter.GetCustomAttribute<DescriptionAttribute>();
-
-            properties.Add(parameter.Name ?? "NoName", new JsonSchemaProperty()
-            {
-                Type = GetParameterType(parameter.ParameterType),
-                Description = parameterDescriptionAttr?.Description,
-            });
-
-            if (!parameter.HasDefaultValue)
-            {
-                requiredProperties ??= [];
-                requiredProperties.Add(parameter.Name ?? "NoName");
-            }
-        }
-
-        return new Tool()
-        {
-            Name = mcpAttribute.Name ?? method.Name,
-            Description = method.GetCustomAttribute<DescriptionAttribute>()?.Description,
-            InputSchema = new JsonSchema()
-            {
-                Type = "object",
-                Properties = properties,
-                Required = requiredProperties
-            },
-        };
-    }
-
-    private static string GetParameterType(Type parameterType)
-    {
-        return parameterType switch
-        {
-            Type t when t == typeof(string) => "string",
-            Type t when t == typeof(int) || t == typeof(double) || t == typeof(float) => "number",
-            Type t when t == typeof(bool) => "boolean",
-            Type t when t.IsArray => "array",
-            Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset) => "string",
-            _ => "object"
-        };
-    }
-
-    private static async Task<CallToolResponse> CallTool(RequestContext<CallToolRequestParams> request, MethodInfo method, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var methodParameters = method.GetParameters();
-        List<object?> parameters = ResolveParameters(request, methodParameters, cancellationToken);
-
-        using var scope = request.Server.ServiceProvider?.CreateScope();
-        var objectInstance = CreateObjectInstance(method, scope?.ServiceProvider);
-        object? result;
-        try
-        {
-            const BindingFlags InvokeFlags =
-#if NET
-                BindingFlags.DoNotWrapExceptions |
-#endif
-                BindingFlags.Default;
-            result = method.Invoke(objectInstance, InvokeFlags, binder: null, [.. parameters], culture: null);
-        }
-        catch (TargetInvocationException e) when (e.InnerException is not null)
-        {
-            ExceptionDispatchInfo.Capture(e.InnerException).Throw();
-            throw; // unreachable
-        }
-
-        if (result is Task task)
-        {
-            await task.ConfigureAwait(false);
-            var resultProperty = task.GetType().GetProperty("Result");
-            result = resultProperty?.GetValue(task);
-        }
-
-        if (result is string resultString)
-            return new CallToolResponse { Content = [new Content() { Text = resultString, Type = "text" }] };
-
-        if (result is string[] resultStringArray)
-            return new CallToolResponse { Content = [.. resultStringArray.Select(s => new Content() { Text = s, Type = "text" })] };
-
-        if (result is null)
-            return new CallToolResponse { Content = [new Content() { Text = "null" }] };
-
-        if (result is JsonElement jsonElement)
-            return new CallToolResponse { Content = [new Content() { Text = jsonElement.GetRawText(), Type = "text" }] };
-
-        return new CallToolResponse { Content = [new Content() { Text = result.ToString(), Type = "text" }] };
-    }
-
-    private static List<object?> ResolveParameters(RequestContext<CallToolRequestParams> request, ParameterInfo[] methodParameters, CancellationToken cancellationToken)
-    {
-        var parameters = new List<object?>(methodParameters.Length);
-
-        foreach (var parameter in methodParameters)
-        {
-            if (parameter.ParameterType == typeof(CancellationToken))
-            {
-                parameters.Add(cancellationToken);
-            }
-            else if (request.Params?.Arguments != null && request.Params.Arguments.TryGetValue(parameter.Name ?? "NoName", out var value))
-            {
-                if (value is JsonElement element)
-                    value = JsonSerializer.Deserialize(element.GetRawText(), parameter.ParameterType);
-
-                parameters.Add(Convert.ChangeType(value, parameter.ParameterType, CultureInfo.InvariantCulture));
-            }
-            else
-            {
-                if (!parameter.HasDefaultValue)
-                    throw new McpServerException($"Missing required argument '{parameter.Name}'.");
-
-                parameters.Add(parameter.DefaultValue);
-            }
-        }
-
-        return parameters;
-    }
-
-    private static object? CreateObjectInstance(MethodInfo method, IServiceProvider? serviceProvider)
-    {
-        if (method.IsStatic)
-            return null;
-
-        if (serviceProvider != null)
-            return ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!);
-
-        return Activator.CreateInstance(method.DeclaringType!);
+        return toolTypes.Count > 0 ?
+            WithTools(builder, toolTypes) :
+            builder;
     }
 }

@@ -21,7 +21,7 @@ public class CreateMessageRequestParams
     /// The maximum number of tokens to sample, as requested by the server. The client MAY choose to sample fewer tokens than requested.
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("maxTokens")]
-    public int MaxTokens { get; init; }
+    public int? MaxTokens { get; init; }
 
     /// <summary>
     /// Messages requested by the server to be included in the prompt.

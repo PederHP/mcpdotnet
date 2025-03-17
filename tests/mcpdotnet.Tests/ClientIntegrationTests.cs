@@ -3,12 +3,16 @@ using McpDotNet.Configuration;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
+using Microsoft.Extensions.AI;
+using OpenAI;
 using System.Text.Json;
 
 namespace McpDotNet.Tests;
 
 public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture>
 {
+    private static readonly string? s_openAIKey = Environment.GetEnvironmentVariable("AI:OpenAI:ApiKey")!;
+
     private readonly ClientIntegrationTestFixture _fixture;
 
     public ClientIntegrationTests(ClientIntegrationTestFixture fixture)
@@ -58,10 +62,12 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         // act
         await using var client = await _fixture.CreateClientAsync(clientId);
         var tools = await client.ListToolsAsync().ToListAsync();
+        var aiFunctions = await client.GetAIFunctionsAsync();
 
         // assert
         Assert.NotEmpty(tools);
-        // We could add more specific assertions about expected tools
+        Assert.NotEmpty(aiFunctions);
+        Assert.Equal(tools.Count, aiFunctions.Count);
     }
 
     [Theory]
@@ -86,6 +92,23 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.False(result.IsError);
         var textContent = Assert.Single(result.Content, c => c.Type == "text");
         Assert.Equal("Echo: Hello MCP!", textContent.Text);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetClients))]
+    public async Task CallTool_Stdio_ViaAIFunction_EchoServer(string clientId)
+    {
+        // arrange
+
+        // act
+        await using var client = await _fixture.CreateClientAsync(clientId);
+        var aiFunctions = await client.GetAIFunctionsAsync();
+        var echo = aiFunctions.Single(t => t.Name == "echo");
+        var result = await echo.InvokeAsync([new KeyValuePair<string, object?>("message", "Hello MCP!")]);
+
+        // assert
+        Assert.NotNull(result);
+        Assert.Contains("Echo: Hello MCP!", result.ToString());
     }
 
     [Theory]
@@ -443,5 +466,70 @@ public class ClientIntegrationTests : IClassFixture<ClientIntegrationTestFixture
         Assert.Single(result.Content, c => c.Type == "text");
 
         await client.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetAIFunctionsAsync_UsingEverythingServer_ToolsAreProperlyCalled()
+    {
+        if (s_openAIKey is null)
+        {
+            return; // Skip the test if the OpenAI key is not provided
+        }
+
+        // Get the MCP client and tools from it.
+        await using var client = await McpClientFactory.CreateAsync(_fixture.EverythingServerConfig, _fixture.DefaultOptions); ;
+        var mappedTools = await client.GetAIFunctionsAsync();
+
+        // Create the chat client.
+        using IChatClient chatClient = new OpenAIClient(s_openAIKey).AsChatClient("gpt-4o-mini")
+            .AsBuilder()
+            .UseFunctionInvocation()
+            .Build();
+
+        // Create the messages.
+        List<ChatMessage> messages = [new(ChatRole.System, "You are a helpful assistant.")];
+        if (client.ServerInstructions is not null)
+        {
+            messages.Add(new(ChatRole.System, client.ServerInstructions));
+        }
+        messages.Add(new(ChatRole.User, "Please call the echo tool with the string 'Hello MCP!' and output the response ad verbatim."));
+
+        // Call the chat client
+        var response = await chatClient.GetResponseAsync(messages, new() { Tools = [.. mappedTools], Temperature = 0 });
+
+        // Assert
+        Assert.Equal("Echo: Hello MCP!", response.Text);
+    }
+
+    [Fact]
+    public async Task SamplingViaChatClient_RequestResponseProperlyPropagated()
+    {
+        if (s_openAIKey is null)
+        {
+            return; // Skip the test if the OpenAI key is not provided
+        }
+
+        await using var client = await McpClientFactory.CreateAsync(_fixture.EverythingServerConfig, new()
+        {
+            ClientInfo = new() { Name = nameof(SamplingViaChatClient_RequestResponseProperlyPropagated), Version = "1.0.0" },
+            Capabilities = new()
+            {
+                Sampling = new()
+                {
+                    SamplingHandler = new OpenAIClient(s_openAIKey).AsChatClient("gpt-4o-mini").CreateSamplingHandler(),
+                },
+            },
+        });
+
+        var result = await client.CallToolAsync("sampleLLM", new()
+        {
+            ["prompt"] = "In just a few words, what is the most famous tower in Paris?",
+        });
+
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Content);
+        Assert.Equal("text", result.Content[0].Type);
+        Assert.Contains("LLM sampling result:", result.Content[0].Text);
+        Assert.Contains("Eiffel", result.Content[0].Text);
     }
 }

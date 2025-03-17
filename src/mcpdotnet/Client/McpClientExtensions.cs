@@ -1,7 +1,11 @@
 ﻿using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Utils;
+using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+
+#pragma warning disable CA1508 // Avoid dead conditional code
 
 namespace McpDotNet.Client;
 
@@ -264,6 +268,143 @@ public static class McpClientExtensions
             cancellationToken);
     }
 
+    /// <summary>Gets <see cref="AIFunction"/> instances for all of the tools available through the specified <see cref="IMcpClient"/>.</summary>
+    /// <param name="client">The client for which <see cref="AIFunction"/> instances should be created.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task containing a list of the available functions.</returns>
+    public static async Task<IList<AIFunction>> GetAIFunctionsAsync(this IMcpClient client, CancellationToken cancellationToken = default)
+    {
+        Throw.IfNull(client);
+
+        List<AIFunction> functions = [];
+        await foreach (var tool in client.ListToolsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            functions.Add(AsAIFunction(client, tool));
+        }
+
+        return functions;
+    }
+
+    /// <summary>Gets an <see cref="AIFunction"/> for invoking <see cref="Tool"/> via this <see cref="IMcpClient"/>.</summary>
+    /// <param name="client">The client with which to perform the invocation.</param>
+    /// <param name="tool">The tool to be invoked.</param>
+    /// <returns>An <see cref="AIFunction"/> for performing the call.</returns>
+    /// <remarks>
+    /// This operation does not validate that <paramref name="tool"/> is valid for the specified <paramref name="client"/>.
+    /// If the tool is not valid for the client, it will fail when invoked.
+    /// </remarks>
+    public static AIFunction AsAIFunction(this IMcpClient client, Tool tool)
+    {
+        Throw.IfNull(client);
+        Throw.IfNull(tool);
+
+        return new McpAIFunction(client, tool);
+    }
+
+    /// <summary>
+    /// Converts the contents of a <see cref="CreateMessageRequestParams"/> into a pair of
+    /// <see cref="IEnumerable{ChatMessage}"/> and <see cref="ChatOptions"/> instances to use
+    /// as inputs into a <see cref="IChatClient"/> operation.
+    /// </summary>
+    /// <param name="requestParams"></param>
+    /// <returns>The created pair of messages and options.</returns>
+    internal static (IEnumerable<ChatMessage> Messages, ChatOptions? Options) ToChatClientArguments( // TODO: Should this be exposed publicly?
+        this CreateMessageRequestParams requestParams)
+    {
+        Throw.IfNull(requestParams);
+
+        ChatOptions? options = null;
+
+        if (requestParams.MaxTokens is int maxTokens)
+        {
+            (options ??= new()).MaxOutputTokens = maxTokens;
+        }
+
+        if (requestParams.Temperature is float temperature)
+        {
+            (options ??= new()).Temperature = temperature;
+        }
+
+        if (requestParams.StopSequences is { } stopSequences)
+        {
+            (options ??= new()).StopSequences = stopSequences.ToArray();
+        }
+
+        List<ChatMessage> messages = [];
+        foreach (SamplingMessage sm in requestParams.Messages)
+        {
+            ChatMessage message = new()
+            {
+                Role = sm.Role == Role.User ? ChatRole.User : ChatRole.Assistant,
+            };
+
+            if (sm.Content is { Type: "text" })
+            {
+                message.Contents.Add(new TextContent(sm.Content.Text));
+            }
+            else if (sm.Content is { Type: "image", MimeType: not null, Data: not null })
+            {
+                message.Contents.Add(new DataContent(Convert.FromBase64String(sm.Content.Data), sm.Content.MimeType));
+            }
+            else if (sm.Content is { Type: "resource", Resource: not null })
+            {
+                ResourceContents resource = sm.Content.Resource;
+
+                if (resource.Text is not null)
+                {
+                    message.Contents.Add(new TextContent(resource.Text));
+                }
+
+                if (resource.Blob is not null && resource.MimeType is not null)
+                {
+                    message.Contents.Add(new DataContent(Convert.FromBase64String(resource.Blob), resource.MimeType));
+                }
+            }
+
+            messages.Add(message);
+        }
+
+        return (messages, options);
+    }
+
+    /// <summary>Converts the contents of a <see cref="ChatResponse"/> into a <see cref="CreateMessageResult"/>.</summary>
+    /// <param name="chatResponse">The <see cref="ChatResponse"/> whose contents should be extracted.</param>
+    /// <returns>The created <see cref="CreateMessageResult"/>.</returns>
+    internal static CreateMessageResult ToCreateMessageResult(this ChatResponse chatResponse) // TODO: Should this be exposed publicly?
+    {
+        Throw.IfNull(chatResponse);
+
+        ChatMessage? lastMessage = chatResponse.Messages.LastOrDefault();
+
+        return new()
+        {
+            Content = new() { Text = lastMessage?.Text ?? string.Empty, Type = "text" },
+            Model = chatResponse.ModelId ?? string.Empty,
+            Role = lastMessage?.Role == ChatRole.User ? "user" : "assistant",
+            StopReason = chatResponse.FinishReason == ChatFinishReason.Length ? "maxTokens" : "endTurn",
+        };
+    }
+
+    /// <summary>
+    /// Creates a sampling handler for use with <see cref="SamplingCapability.SamplingHandler"/> that will
+    /// satisfy sampling requests using the specified <see cref="IChatClient"/>.
+    /// </summary>
+    /// <param name="chatClient">The <see cref="IChatClient"/> with which to satisfy sampling requests.</param>
+    /// <returns>The created handler delegate.</returns>
+    public static Func<CreateMessageRequestParams?, CancellationToken, Task<CreateMessageResult>> CreateSamplingHandler(this IChatClient chatClient)
+    {
+        Throw.IfNull(chatClient);
+
+        return async (requestParams, cancellationToken) =>
+        {
+            Throw.IfNull(requestParams);
+
+            var (messages, options) = requestParams.ToChatClientArguments();
+            var response = await chatClient.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
+            return response.ToCreateMessageResult();
+        };
+    }
+
     private static JsonRpcRequest CreateRequest(string method, Dictionary<string, object?>? parameters) =>
         new JsonRpcRequest
         {
@@ -287,5 +428,46 @@ public static class McpClientExtensions
         }
 
         return parameters;
+    }
+
+    /// <summary>Provides an AI function that calls a tool through <see cref="IMcpClient"/>.</summary>
+    private sealed class McpAIFunction(IMcpClient client, Tool tool) : AIFunction
+    {
+        /// <inheritdoc/>
+        public override string Name => tool.Name;
+
+        /// <inheritdoc/>
+        public override string Description => tool.Description ?? string.Empty;
+
+        /// <inheritdoc/>
+        public override JsonElement JsonSchema =>
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>
+            {
+                ["type"] = "object",
+                ["title"] = tool.Name,
+                ["description"] = tool.Description ?? string.Empty,
+                ["properties"] = tool.InputSchema?.Properties ?? [],
+                ["required"] = tool.InputSchema?.Required ?? []
+            });
+
+        /// <inheritdoc/>
+        protected async override Task<object?> InvokeCoreAsync(
+            IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
+        {
+            Throw.IfNull(arguments);
+
+            Dictionary<string, object> argDict = [];
+            foreach (var arg in arguments)
+            {
+                if (arg.Value is not null)
+                {
+                    argDict[arg.Key] = arg.Value;
+                }
+            }
+
+            CallToolResponse result = await client.CallToolAsync(tool.Name, argDict, cancellationToken).ConfigureAwait(false);
+
+            return JsonSerializer.SerializeToElement(result);
+        }
     }
 }

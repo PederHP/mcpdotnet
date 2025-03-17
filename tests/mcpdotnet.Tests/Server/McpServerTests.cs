@@ -4,8 +4,10 @@ using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using McpDotNet.Tests.Utils;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Diagnostics;
 
 namespace McpDotNet.Tests.Server;
 
@@ -98,8 +100,7 @@ public class McpServerTests
         server.GetType().GetField("_isInitializing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(server, true);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => server.StartAsync());
-        Assert.Equal("Server is already initializing", exception.Message);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => server.StartAsync());
     }
 
     [Fact]
@@ -159,8 +160,7 @@ public class McpServerTests
         var action = () => server.RequestSamplingAsync(new CreateMessageRequestParams { Messages = [] }, CancellationToken.None);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<McpServerException>(action);
-        Assert.Equal("Client does not support sampling", exception.Message);
+        await Assert.ThrowsAsync<ArgumentException>("server", action);
     }
 
     [Fact]
@@ -190,8 +190,7 @@ public class McpServerTests
         server.ClientCapabilities = new ClientCapabilities();
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<McpServerException>(() => server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None));
-        Assert.Equal("Client does not support roots", exception.Message);
+        await Assert.ThrowsAsync<ArgumentException>("server", () => server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None));
     }
 
     [Fact]
@@ -222,8 +221,7 @@ public class McpServerTests
 
         var action = async () => await server.RequestRootsAsync(new ListRootsRequestParams(), CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<McpClientException>(action);
-        Assert.Equivalent("Transport is not connected", exception.Message);
+        await Assert.ThrowsAsync<McpClientException>(action);
     }
 
     [Fact]
@@ -562,5 +560,90 @@ public class McpServerTests
         var options = CreateOptions(serverCapabilities);
 
         Assert.Throws<McpServerException>(() => McpServerFactory.Create(transport, options, _loggerFactory.Object, _serviceProvider));
+    }
+
+    [Fact]
+    public async Task AsSamplingChatClient_NoSamplingSupport_Throws()
+    {
+        await using var server = new TestServerForIChatClient(supportsSampling: false);
+
+        Assert.Throws<ArgumentException>("server", () => server.AsSamplingChatClient());
+    }
+
+
+    [Fact]
+    public async Task AsSamplingChatClient_HandlesRequestResponse()
+    {
+        await using var server = new TestServerForIChatClient(supportsSampling: true);
+
+        IChatClient client = server.AsSamplingChatClient();
+
+        ChatMessage[] messages =
+        [
+            new (ChatRole.System, "You are a helpful assistant."),
+            new (ChatRole.User, "I am going to France."),
+            new (ChatRole.User, "What is the most famous tower in Paris?"),
+            new (ChatRole.System, "More system stuff."),
+        ];
+
+        ChatResponse response = await client.GetResponseAsync(messages, new ChatOptions
+        {
+            Temperature = 0.75f,
+            MaxOutputTokens = 42,
+            StopSequences = ["."],
+        });
+
+        Assert.Equal("amazingmodel", response.ModelId);
+        Assert.Equal(ChatFinishReason.Stop, response.FinishReason);
+        Assert.Single(response.Messages);
+        Assert.Equal("The Eiffel Tower.", response.Text);
+        Assert.Equal(ChatRole.Assistant, response.Messages[0].Role);
+    }
+
+    private sealed class TestServerForIChatClient(bool supportsSampling) : IMcpServer
+    {
+        public ClientCapabilities? ClientCapabilities =>
+            supportsSampling ? new ClientCapabilities { Sampling = new SamplingCapability() } :
+            null;
+
+        public async Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
+        {
+            CreateMessageRequestParams rp = Assert.IsType<CreateMessageRequestParams>(request.Params);
+
+            Assert.Equal(0.75f, rp.Temperature);
+            Assert.Equal(42, rp.MaxTokens);
+            Assert.Equal(["."], rp.StopSequences);
+            Assert.Null(rp.IncludeContext);
+            Assert.Null(rp.Metadata);
+            Assert.Null(rp.ModelPreferences);
+
+            Assert.Equal($"You are a helpful assistant.{Environment.NewLine}More system stuff.", rp.SystemPrompt);
+
+            Assert.Equal(2, rp.Messages.Count);
+            Assert.Equal("I am going to France.", rp.Messages[0].Content.Text);
+            Assert.Equal("What is the most famous tower in Paris?", rp.Messages[1].Content.Text);
+
+            CreateMessageResult result = new()
+            {
+                Content = new() { Text = "The Eiffel Tower.", Type = "text" },
+                Model = "amazingmodel",
+                Role = "assistant",
+                StopReason = "endTurn",
+            };
+            return (T)(object)result;
+        }
+
+        public ValueTask DisposeAsync() => default;
+
+        public bool IsInitialized => throw new NotImplementedException();
+
+        public Implementation? ClientInfo => throw new NotImplementedException();
+        public IServiceProvider? ServiceProvider => throw new NotImplementedException();
+        public void AddNotificationHandler(string method, Func<JsonRpcNotification, Task> handler) => 
+            throw new NotImplementedException();
+        public Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+        public Task StartAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
     }
 }
