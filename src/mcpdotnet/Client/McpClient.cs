@@ -4,10 +4,9 @@ using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
-
+using McpDotNet.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-
 using System.Text.Json;
 
 namespace McpDotNet.Client;
@@ -139,7 +138,10 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
                 initializationCts.Token).ConfigureAwait(false);
 
             // Store server information
-            _logger.ServerCapabilitiesReceived(EndpointName, JsonSerializer.Serialize(initializeResponse.Capabilities), JsonSerializer.Serialize(initializeResponse.ServerInfo));
+            _logger.ServerCapabilitiesReceived(EndpointName, 
+                capabilities: JsonSerializer.Serialize(initializeResponse.Capabilities, JsonSerializerOptionsExtensions.JsonContext.Default.ServerCapabilities),
+                serverInfo: JsonSerializer.Serialize(initializeResponse.ServerInfo, JsonSerializerOptionsExtensions.JsonContext.Default.Implementation));
+
             ServerCapabilities = initializeResponse.Capabilities;
             ServerInfo = initializeResponse.ServerInfo;
             ServerInstructions = initializeResponse.Instructions;

@@ -110,7 +110,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             throw new InvalidOperationException("Transport not connected");
 
         using var content = new StringContent(
-            JsonSerializer.Serialize(message, _jsonOptions),
+            JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>()),
             Encoding.UTF8,
             "application/json"
         );
@@ -143,7 +143,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
             }
             else
             {
-                JsonRpcResponse initializeResponse = JsonSerializer.Deserialize<JsonRpcResponse>(responseContent, _jsonOptions) ??
+                JsonRpcResponse initializeResponse = JsonSerializer.Deserialize(responseContent, _jsonOptions.GetTypeInfo<JsonRpcResponse>()) ??
                     throw new McpTransportException("Failed to initialize client");
 
                 _logger.TransportReceivedMessageParsed(EndpointName, messageId);
@@ -277,7 +277,7 @@ public sealed class SseClientTransport : TransportBase, IClientTransport
 
         try
         {
-            var message = JsonSerializer.Deserialize<IJsonRpcMessage>(data, _jsonOptions);
+            var message = JsonSerializer.Deserialize(data, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             if (message == null)
             {
                 _logger.TransportMessageParseUnexpectedType(EndpointName, data);

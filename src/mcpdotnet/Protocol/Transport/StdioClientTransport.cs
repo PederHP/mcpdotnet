@@ -134,7 +134,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
 
         try
         {
-            var json = JsonSerializer.Serialize(message, _jsonOptions);
+            var json = JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             _logger.TransportSendingMessage(EndpointName, id, json);
 
             // Write the message followed by a newline
@@ -206,7 +206,7 @@ public sealed class StdioClientTransport : TransportBase, IClientTransport
         try
         {                    
             line=line.Trim();//Fixes an error when the service prefixes nonprintable characters
-            var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
+            var message = JsonSerializer.Deserialize(line, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             if (message != null)
             {
                 string messageId = "(no id)";

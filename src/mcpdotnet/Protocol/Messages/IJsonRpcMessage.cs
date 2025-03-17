@@ -1,8 +1,12 @@
-﻿namespace McpDotNet.Protocol.Messages;
+﻿using McpDotNet.Utils.Json;
+using System.Text.Json.Serialization;
+
+namespace McpDotNet.Protocol.Messages;
 
 /// <summary>
 /// Base interface for all JSON-RPC messages in the MCP protocol.
 /// </summary>
+[JsonConverter(typeof(JsonRpcMessageConverter))]
 public interface IJsonRpcMessage
 {
     /// <summary>

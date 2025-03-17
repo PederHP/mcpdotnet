@@ -117,7 +117,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
 
         try
         {
-            var json = JsonSerializer.Serialize(message, _jsonOptions);
+            var json = JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             _logger.TransportSendingMessage(EndpointName, id, json);
 
             await _stdout.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
@@ -166,7 +166,7 @@ public sealed class StdioServerTransport : TransportBase, IServerTransport
 
                 try
                 {
-                    var message = JsonSerializer.Deserialize<IJsonRpcMessage>(line, _jsonOptions);
+                    var message = JsonSerializer.Deserialize(line, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
                     if (message != null)
                     {
                         string messageId = "(no id)";

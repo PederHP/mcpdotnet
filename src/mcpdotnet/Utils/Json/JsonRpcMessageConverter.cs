@@ -1,13 +1,15 @@
-﻿using System.Text.Json;
+﻿using McpDotNet.Protocol.Messages;
+using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using McpDotNet.Protocol.Messages;
 
 namespace McpDotNet.Utils.Json;
 
 /// <summary>
 /// JSON converter for IJsonRpcMessage that handles polymorphic deserialization of different message types.
 /// </summary>
-internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
 {
     /// <inheritdoc/>
     public override IJsonRpcMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -40,13 +42,13 @@ internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
             // Messages with an error property are error responses
             if (hasError)
             {
-                return JsonSerializer.Deserialize<JsonRpcError>(rawText, options);
+                return JsonSerializer.Deserialize(rawText, options.GetTypeInfo<JsonRpcError>());
             }
 
             // Messages with a result property are success responses
             if (root.TryGetProperty("result", out _))
             {
-                return JsonSerializer.Deserialize<JsonRpcResponse>(rawText, options);
+                return JsonSerializer.Deserialize(rawText, options.GetTypeInfo<JsonRpcResponse>());
             }
 
             throw new JsonException("Response must have either result or error");
@@ -55,13 +57,13 @@ internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
         // Messages with a method but no id are notifications
         if (hasMethod && !hasId)
         {
-            return JsonSerializer.Deserialize<JsonRpcNotification>(rawText, options);
+            return JsonSerializer.Deserialize(rawText, options.GetTypeInfo<JsonRpcNotification>());
         }
 
         // Messages with both method and id are requests
         if (hasMethod && hasId)
         {
-            return JsonSerializer.Deserialize<JsonRpcRequest>(rawText, options);
+            return JsonSerializer.Deserialize(rawText, options.GetTypeInfo<JsonRpcRequest>());
         }
 
         throw new JsonException("Invalid JSON-RPC message format");
@@ -73,16 +75,16 @@ internal sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
         switch (value)
         {
             case JsonRpcRequest request:
-                JsonSerializer.Serialize(writer, request, options);
+                JsonSerializer.Serialize(writer, request, options.GetTypeInfo<JsonRpcRequest>());
                 break;
             case JsonRpcNotification notification:
-                JsonSerializer.Serialize(writer, notification, options);
+                JsonSerializer.Serialize(writer, notification, options.GetTypeInfo<JsonRpcNotification>());
                 break;
             case JsonRpcResponse response:
-                JsonSerializer.Serialize(writer, response, options);
+                JsonSerializer.Serialize(writer, response, options.GetTypeInfo<JsonRpcResponse>());
                 break;
             case JsonRpcError error:
-                JsonSerializer.Serialize(writer, error, options);
+                JsonSerializer.Serialize(writer, error, options.GetTypeInfo<JsonRpcResponse>());
                 break;
             default:
                 throw new JsonException($"Unknown JSON-RPC message type: {value.GetType()}");

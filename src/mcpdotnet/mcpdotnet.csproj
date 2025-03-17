@@ -9,6 +9,10 @@
     <AnalysisMode>All</AnalysisMode>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- license and package properties -->
     <PackageId>mcpdotnet</PackageId>

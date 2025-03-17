@@ -9,6 +9,10 @@
     <AnalysisMode>All</AnalysisMode>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- license and package properties -->
     <PackageId>McpDotNet.Extensions.AI</PackageId>
@@ -35,6 +39,10 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Text.Json" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <Compile Include="..\Common\Polyfills\**\*.cs" />
   </ItemGroup>
 
 </Project>

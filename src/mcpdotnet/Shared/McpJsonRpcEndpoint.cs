@@ -95,7 +95,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
-                        var payload = JsonSerializer.Serialize(message);
+                        var payload = JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
                         _logger.MessageHandlerError(EndpointName, message.GetType().Name, payload, ex);
                     }
                 }
@@ -236,7 +236,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
             // Expensive logging, use the logging framework to check if the logger is enabled
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.SendingRequestPayload(EndpointName, JsonSerializer.Serialize(request));
+                _logger.SendingRequestPayload(EndpointName, JsonSerializer.Serialize(request, _jsonOptions.GetTypeInfo<JsonRpcRequest>()));
             }
 
             // Less expensive information logging
@@ -256,8 +256,8 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
             if (response is JsonRpcResponse success)
             {
                 // Convert the Result object to JSON and back to get our strongly-typed result
-                var resultJson = JsonSerializer.Serialize(success.Result, _jsonOptions);
-                var resultObject = JsonSerializer.Deserialize<TResult>(resultJson, _jsonOptions);
+                var resultJson = JsonSerializer.Serialize(success.Result, _jsonOptions.GetTypeInfo<object?>());
+                var resultObject = JsonSerializer.Deserialize(resultJson, _jsonOptions.GetTypeInfo<TResult>());
 
                 // Not expensive logging because we're already converting to JSON in order to get the result object
                 _logger.RequestResponseReceivedPayload(EndpointName, resultJson);
@@ -270,7 +270,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 
                 // Result object was null, this is unexpected
                 _logger.RequestResponseTypeConversionError(EndpointName, request.Method, typeof(TResult));
-                throw new McpClientException($"Unexpected response type {JsonSerializer.Serialize(success.Result)}, expected {typeof(TResult)}");
+                throw new McpClientException($"Unexpected response type {JsonSerializer.Serialize(success.Result, _jsonOptions.GetTypeInfo<TResult>())}, expected {typeof(TResult)}");
             }
 
             // Unexpected response type
@@ -295,7 +295,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
 
         if (_logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.SendingMessage(EndpointName, JsonSerializer.Serialize(message));
+            _logger.SendingMessage(EndpointName, JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>()));
         }
 
         return _transport.SendMessageAsync(message, cancellationToken);
@@ -339,8 +339,8 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
         _requestHandlers[method] = async (request, cancellationToken) =>
         {
             // Convert the params JsonElement to our type using the same options
-            var jsonString = JsonSerializer.Serialize(request.Params);
-            var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
+            var jsonString = JsonSerializer.Serialize(request.Params, _jsonOptions.GetTypeInfo<object?>());
+            var typedRequest = JsonSerializer.Deserialize(jsonString, _jsonOptions.GetTypeInfo<TRequest>());
 
             return await handler(typedRequest, cancellationToken).ConfigureAwait(false);
         };
