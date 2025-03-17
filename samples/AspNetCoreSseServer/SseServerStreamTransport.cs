@@ -8,7 +8,7 @@ using McpDotNet.Utils.Json;
 
 namespace AspNetCoreSseServer;
 
-public class AspNetCoreSseMcpTransport(Stream sseResponseStream, ILogger<AspNetCoreSseMcpTransport> logger) : ITransport
+public class SseServerStreamTransport(Stream sseResponseStream) : ITransport
 {
     [ThreadStatic]
     private static Utf8JsonWriter? _jsonWriter;

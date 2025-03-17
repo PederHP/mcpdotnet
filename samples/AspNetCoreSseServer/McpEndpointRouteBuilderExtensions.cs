@@ -1,6 +1,7 @@
 ﻿using McpDotNet.Protocol.Messages;
 using McpDotNet.Server;
 using McpDotNet.Utils.Json;
+using Microsoft.Extensions.Options;
 
 namespace AspNetCoreSseServer;
 
@@ -9,16 +10,16 @@ public static class McpEndpointRouteBuilderExtensions
     public static IEndpointConventionBuilder MapMcpSse(this IEndpointRouteBuilder endpoints)
     {
         IMcpServer? server = null;
-        AspNetCoreSseMcpTransport? transport = null;
-        var mcpServerFactory = endpoints.ServiceProvider.GetRequiredService<IMcpServerFactory>();
-        var sseTransportLogger = endpoints.ServiceProvider.GetRequiredService<ILogger<AspNetCoreSseMcpTransport>>();
+        SseServerStreamTransport? transport = null;
+        var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var mcpServerOptions = endpoints.ServiceProvider.GetRequiredService<IOptions<McpServerOptions>>();
 
         var routeGroup = endpoints.MapGroup("");
 
         routeGroup.MapGet("/sse", async (HttpResponse response, CancellationToken requestAborted) =>
         {
-            await using var localTransport = transport = new AspNetCoreSseMcpTransport(response.Body, sseTransportLogger);
-            await using var localServer = server = mcpServerFactory.CreateServer(transport);
+            await using var localTransport = transport = new SseServerStreamTransport(response.Body);
+            await using var localServer = server = McpServerFactory.Create(transport, mcpServerOptions.Value, loggerFactory, endpoints.ServiceProvider);
 
             await localServer.StartAsync(requestAborted);
 

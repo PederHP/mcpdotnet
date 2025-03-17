@@ -23,7 +23,7 @@ public static class McpServerFactory
     /// <exception cref="ArgumentNullException"><paramref name="serverTransport"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="serverOptions"/> is <see langword="null"/>.</exception>
     public static IMcpServer Create(
-        IServerTransport serverTransport,
+        ITransport serverTransport,
         McpServerOptions serverOptions,
         ILoggerFactory? loggerFactory = null,
         IServiceProvider? serviceProvider = null)

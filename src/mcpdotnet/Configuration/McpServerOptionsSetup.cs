@@ -3,9 +3,9 @@ using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using Microsoft.Extensions.Options;
 
-namespace McpDotNet;
+namespace McpDotNet.Configuration;
 
-internal class McpServerOptionsSetup : IConfigureOptions<McpServerOptions>
+internal sealed class McpServerOptionsSetup(IOptions<McpServerHandlers> serverHandlers) : IConfigureOptions<McpServerOptions>
 {
     public void Configure(McpServerOptions options)
     {
@@ -20,5 +20,7 @@ internal class McpServerOptionsSetup : IConfigureOptions<McpServerOptions>
             Name = assemblyName?.Name ?? "McpServer",
             Version = assemblyName?.Version?.ToString() ?? "1.0.0",
         };
+
+        serverHandlers.Value.OverwriteWithSetHandlers(options);
     }
 }

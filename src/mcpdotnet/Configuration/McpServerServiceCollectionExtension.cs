@@ -25,10 +25,6 @@ public static class McpServerServiceCollectionExtension
             IServerTransport serverTransport = services.GetRequiredService<IServerTransport>();
             McpServerOptions options = services.GetRequiredService<McpServerOptions>();
             ILoggerFactory? loggerFactory = services.GetService<ILoggerFactory>();
-            if (services.GetService<IOptions<McpServerHandlers>>() is { } handlersOptions)
-            {
-                options = handlersOptions.Value.OverwriteWithSetHandlers(options);
-            }
 
             return McpServerFactory.Create(serverTransport, options, loggerFactory, services);
         });
