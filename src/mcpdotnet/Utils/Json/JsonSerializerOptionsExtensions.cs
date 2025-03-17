@@ -63,5 +63,8 @@ internal static partial class JsonSerializerOptionsExtensions
     [JsonSerializable(typeof(JsonRpcError))]
     [JsonSerializable(typeof(ServerCapabilities))]
     [JsonSerializable(typeof(Implementation))]
+    [JsonSerializable(typeof(CreateMessageResult))]
+    [JsonSerializable(typeof(ListRootsResult))]
+    [JsonSerializable(typeof(InitializeResult))]
     internal sealed partial class JsonContext : JsonSerializerContext;
 }
