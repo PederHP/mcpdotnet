@@ -1,10 +1,12 @@
-﻿using System.Reflection;
-using System.Text.Json;
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using McpDotNet.Utils;
+
 using Microsoft.Extensions.AI;
+
+using System.Reflection;
+using System.Text.Json;
 
 namespace McpDotNet;
 
