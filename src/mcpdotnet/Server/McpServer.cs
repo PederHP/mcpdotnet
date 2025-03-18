@@ -1,11 +1,13 @@
-﻿using System.Text.Json.Nodes;
-using McpDotNet.Logging;
+﻿using McpDotNet.Logging;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
 using McpDotNet.Utils;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using System.Text.Json.Nodes;
 
 namespace McpDotNet.Server;
 
@@ -107,14 +109,14 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
 
     private void SetPingHandler()
     {
-        SetRequestHandler<JsonNode, PingResult>("ping", 
-            request => Task.FromResult(new PingResult()));
+        SetRequestHandler<JsonNode, PingResult>("ping",
+            (request, _) => Task.FromResult(new PingResult()));
     }
 
     private void SetInitializeHandler(McpServerOptions options)
     {
         SetRequestHandler<InitializeRequestParams, InitializeResult>("initialize",
-            request =>
+            (request, _) =>
             {
                 ClientCapabilities = request?.Capabilities ?? new();
                 ClientInfo = request?.ClientInfo;
@@ -133,8 +135,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
         // This capability is not optional, so return an empty result if there is no handler.
         SetRequestHandler<CompleteRequestParams, CompleteResult>("completion/complete",
             options.GetCompletionHandler is { } handler ?
-                request => handler(new(this, request), CancellationTokenSource?.Token ?? default) :
-                request => Task.FromResult(new CompleteResult() { Completion = new() { Values = [], Total = 0, HasMore = false } }));
+                (request, ct) => handler(new(this, request), ct) :
+                (request, ct) => Task.FromResult(new CompleteResult() { Completion = new() { Values = [], Total = 0, HasMore = false } }));
     }
 
     private void SetResourcesHandler(McpServerOptions options)
@@ -150,9 +152,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Resources capability was enabled, but ListResources and/or ReadResource handlers were not specified.");
         }
 
-        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
-        SetRequestHandler<ListResourcesRequestParams, ListResourcesResult>("resources/list", request => listResourcesHandler(new(this, request), cancellationToken));
-        SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read", request => readResourceHandler(new(this, request), cancellationToken));
+        SetRequestHandler<ListResourcesRequestParams, ListResourcesResult>("resources/list", (request, ct) => listResourcesHandler(new(this, request), ct));
+        SetRequestHandler<ReadResourceRequestParams, ReadResourceResult>("resources/read", (request, ct) => readResourceHandler(new(this, request), ct));
 
         if (resourcesCapability.Subscribe is not true)
         {
@@ -166,8 +167,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Resources capability was enabled with subscribe support, but SubscribeToResources and/or UnsubscribeFromResources handlers were not specified.");
         }
 
-        SetRequestHandler<SubscribeRequestParams, EmptyResult>("resources/subscribe", request => subscribeHandler(new(this, request), cancellationToken));
-        SetRequestHandler<UnsubscribeRequestParams, EmptyResult>("resources/unsubscribe", request => unsubscribeHandler(new(this, request), cancellationToken));
+        SetRequestHandler<SubscribeRequestParams, EmptyResult>("resources/subscribe", (request, ct) => subscribeHandler(new(this, request), ct));
+        SetRequestHandler<UnsubscribeRequestParams, EmptyResult>("resources/unsubscribe", (request, ct) => unsubscribeHandler(new(this, request), ct));
     }
 
     private void SetPromptsHandler(McpServerOptions options)
@@ -183,9 +184,8 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("Prompts capability was enabled, but ListPrompts and/or GetPrompt handlers were not specified.");
         }
 
-        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
-        SetRequestHandler<ListPromptsRequestParams, ListPromptsResult>("prompts/list", request => listPromptsHandler(new(this, request), cancellationToken));
-        SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get", request => getPromptHandler(new(this, request), cancellationToken));
+        SetRequestHandler<ListPromptsRequestParams, ListPromptsResult>("prompts/list", (request, ct) => listPromptsHandler(new(this, request), ct));
+        SetRequestHandler<GetPromptRequestParams, GetPromptResult>("prompts/get", (request, ct) => getPromptHandler(new(this, request), ct));
     }
 
     private void SetToolsHandler(McpServerOptions options)
@@ -201,8 +201,7 @@ internal sealed class McpServer : McpJsonRpcEndpoint, IMcpServer
             throw new McpServerException("ListTools and/or CallTool handlers were specified but the Tools capability was not enabled.");
         }
 
-        CancellationToken cancellationToken = CancellationTokenSource?.Token ?? default;
-        SetRequestHandler<ListToolsRequestParams, ListToolsResult>("tools/list", request => listToolsHandler(new(this, request), cancellationToken));
-        SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call", request => callToolHandler(new(this, request), cancellationToken));
+        SetRequestHandler<ListToolsRequestParams, ListToolsResult>("tools/list", (request, ct) => listToolsHandler(new(this, request), ct));
+        SetRequestHandler<CallToolRequestParams, CallToolResponse>("tools/call", (request, ct) => callToolHandler(new(this, request), ct));
     }
 }

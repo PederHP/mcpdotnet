@@ -1,12 +1,14 @@
-﻿using System.Text.Json;
-using McpDotNet.Configuration;
+﻿using McpDotNet.Configuration;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Shared;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using System.Text.Json;
 
 namespace McpDotNet.Client;
 
@@ -16,7 +18,7 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
     private readonly McpClientOptions _options;
     private readonly ILogger _logger;
     private readonly IClientTransport _clientTransport;
-    
+
     private volatile bool _isInitializing;
 
     /// <summary>
@@ -44,7 +46,7 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
 
             SetRequestHandler<CreateMessageRequestParams, CreateMessageResult>(
                 "sampling/createMessage",
-                request => samplingHandler(request, CancellationTokenSource?.Token ?? default));
+                (request, ct) => samplingHandler(request, ct));
         }
 
         if (options.Capabilities?.Roots is { } rootsCapability)
@@ -56,7 +58,7 @@ internal sealed class McpClient : McpJsonRpcEndpoint, IMcpClient
 
             SetRequestHandler<ListRootsRequestParams, ListRootsResult>(
                 "roots/list",
-                request => rootsHandler(request, CancellationTokenSource?.Token ?? default));
+                (request, ct) => rootsHandler(request, ct));
         }
     }
 

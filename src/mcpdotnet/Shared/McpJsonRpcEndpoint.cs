@@ -1,13 +1,15 @@
-﻿using System.Collections.Concurrent;
-using System.Text.Json;
-using McpDotNet.Client;
+﻿using McpDotNet.Client;
 using McpDotNet.Logging;
 using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Transport;
 using McpDotNet.Utils;
 using McpDotNet.Utils.Json;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace McpDotNet.Shared;
 
@@ -23,7 +25,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     private readonly ITransport _transport;
     private readonly ConcurrentDictionary<RequestId, TaskCompletionSource<IJsonRpcMessage>> _pendingRequests;
     private readonly ConcurrentDictionary<string, List<Func<JsonRpcNotification, Task>>> _notificationHandlers;
-    private readonly Dictionary<string, Func<JsonRpcRequest, Task<object?>>> _requestHandlers = [];
+    private readonly Dictionary<string, Func<JsonRpcRequest, CancellationToken, Task<object?>>> _requestHandlers = [];
     private int _nextRequestId;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger _logger;
@@ -175,7 +177,7 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
             try
             {
                 _logger.RequestHandlerCalled(EndpointName, request.Method);
-                var result = await handler(request).ConfigureAwait(false);
+                var result = await handler(request, cancellationToken).ConfigureAwait(false);
                 _logger.RequestHandlerCompleted(EndpointName, request.Method);
                 await _transport.SendMessageAsync(new JsonRpcResponse
                 {
@@ -329,18 +331,18 @@ internal abstract class McpJsonRpcEndpoint : IAsyncDisposable
     /// <typeparam name="TResponse">Type of response payload (not full RPC response</typeparam>
     /// <param name="method">Method identifier to register for</param>
     /// <param name="handler">Handler to be called when a request with specified method identifier is received</param>
-    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, Task<TResponse>> handler)
+    protected void SetRequestHandler<TRequest, TResponse>(string method, Func<TRequest?, CancellationToken, Task<TResponse>> handler)
     {
         Throw.IfNull(method);
         Throw.IfNull(handler);
 
-        _requestHandlers[method] = async (request) =>
+        _requestHandlers[method] = async (request, cancellationToken) =>
         {
             // Convert the params JsonElement to our type using the same options
             var jsonString = JsonSerializer.Serialize(request.Params);
             var typedRequest = JsonSerializer.Deserialize<TRequest>(jsonString, _jsonOptions);
 
-            return await handler(typedRequest).ConfigureAwait(false);
+            return await handler(typedRequest, cancellationToken).ConfigureAwait(false);
         };
     }
 
