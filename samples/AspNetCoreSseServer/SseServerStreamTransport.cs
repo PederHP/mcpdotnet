@@ -10,19 +10,17 @@ namespace AspNetCoreSseServer;
 
 public class SseServerStreamTransport(Stream sseResponseStream) : ITransport
 {
-    [ThreadStatic]
-    private static Utf8JsonWriter? _jsonWriter;
-
     private readonly Channel<IJsonRpcMessage> _incomingChannel = CreateSingleItemChannel<IJsonRpcMessage>();
     private readonly Channel<SseItem<IJsonRpcMessage?>> _outgoingSseChannel = CreateSingleItemChannel<SseItem<IJsonRpcMessage?>>();
 
     private Task? _sseWriteTask;
+    private Utf8JsonWriter? _jsonWriter;
 
     public bool IsConnected => _sseWriteTask?.IsCompleted == false;
 
     public Task RunAsync(CancellationToken cancellationToken)
     {
-        static void WriteJsonRpcMessageToBuffer(SseItem<IJsonRpcMessage?> item, IBufferWriter<byte> writer)
+        void WriteJsonRpcMessageToBuffer(SseItem<IJsonRpcMessage?> item, IBufferWriter<byte> writer)
         {
             if (item.EventType == "endpoint")
             {
@@ -70,7 +68,7 @@ public class SseServerStreamTransport(Stream sseResponseStream) : ITransport
             SingleWriter = false,
         });
 
-    private static Utf8JsonWriter GetUtf8JsonWriter(IBufferWriter<byte> writer)
+    private Utf8JsonWriter GetUtf8JsonWriter(IBufferWriter<byte> writer)
     {
         if (_jsonWriter is null)
         {
