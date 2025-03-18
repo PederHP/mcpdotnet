@@ -1,12 +1,10 @@
-﻿using McpDotNet.Configuration;
+﻿using System.Reflection;
+using System.Text.Json;
+using McpDotNet.Configuration;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using McpDotNet.Utils;
-
 using Microsoft.Extensions.AI;
-
-using System.Reflection;
-using System.Text.Json;
 
 namespace McpDotNet;
 
@@ -56,7 +54,7 @@ public static partial class McpServerBuilderExtensions
                 throw new ArgumentNullException(nameof(toolTypes), $"A tool type provided by the enumerator was null.");
             }
 
-            foreach (var method in toolType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            foreach (var method in toolType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
                 if (method.GetCustomAttribute<McpToolAttribute>() is not { } attribute)
                 {
@@ -95,6 +93,9 @@ public static partial class McpServerBuilderExtensions
                 throw new ArgumentNullException(nameof(functions), $"A function provided by the enumerator was null.");
             }
 
+            if (callbacks.ContainsKey(function.Name))
+                throw new McpServerException($"Duplicate function name: {function.Name}");
+
             tools.Add(new()
             {
                 Name = function.Name,
@@ -120,17 +121,12 @@ public static partial class McpServerBuilderExtensions
                     };
                 }
 
-                switch (result)
+                return result switch
                 {
-                    case JsonElement je when je.ValueKind == JsonValueKind.Null:
-                        return new() { Content = [] };
-
-                    case JsonElement je when je.ValueKind == JsonValueKind.Array:
-                        return new() { Content = je.EnumerateArray().Select(x => new Content() { Text = x.ToString(), Type = "text" }).ToList() };
-
-                    default:
-                        return new() { Content = [new() { Text = result?.ToString(), Type = "text" }] };
-                }
+                    JsonElement je when je.ValueKind == JsonValueKind.Null => new() { Content = [] },
+                    JsonElement je when je.ValueKind == JsonValueKind.Array => new() { Content = je.EnumerateArray().Select(x => new Content() { Text = x.ToString(), Type = "text" }).ToList() },
+                    _ => new() { Content = [new() { Text = result?.ToString(), Type = "text" }] },
+                };
             });
         }
 
@@ -161,7 +157,7 @@ public static partial class McpServerBuilderExtensions
 
         List<Type> toolTypes = [];
 
-        foreach (var type in assembly.GetTypes())
+        foreach (var type in assembly.ExportedTypes)
         {
             if (type.GetCustomAttribute<McpToolTypeAttribute>() is null)
             {

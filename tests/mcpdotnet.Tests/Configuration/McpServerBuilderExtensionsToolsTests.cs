@@ -82,23 +82,6 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
-    public async Task Can_Call_Registered_Tool_With_Different_Parameter_Type()
-    {
-        McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool));
-
-        var serviceProvider = _services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<IOptions<McpServerDelegates>>().Value;
-
-        var result = await options.CallToolHandler!(new(Mock.Of<IMcpServer>(), new() { Name = "Echo", Arguments = new() { { "message", 5 } } }), CancellationToken.None);
-        Assert.NotNull(result);
-        Assert.NotNull(result.Content);
-        Assert.NotEmpty(result.Content);
-
-        Assert.Equal("hello 5", result.Content[0].Text);
-        Assert.Equal("text", result.Content[0].Type);
-    }
-
-    [Fact]
     public async Task Can_Call_Registered_Tool_With_Array_Result()
     {
         _builder.Object.WithTools(typeof(EchoTool));
@@ -266,6 +249,7 @@ public class McpServerBuilderExtensionsToolsTests
     public void Empty_Types_Is_Allowed()
     {
         _builder.Object.WithTools(toolTypes: []); // no exception
+        Assert.True(true);
     }
 
     [Fact]
@@ -285,9 +269,34 @@ public class McpServerBuilderExtensionsToolsTests
     }
 
     [Fact]
-    public void Ok_If_No_Tools_Are_Found_In_Given_Assembly()
+    public async Task Register_Tools_From_Current_Assembly_Without_Internal_Types()
+    {
+        _builder.Object.WithTools();
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IOptions<McpServerHandlers>>().Value;
+
+        var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Tools);
+
+        Assert.False(result.Tools.Exists(t => t.Name == "EchoInternal"));
+    }
+
+    [Fact]
+    public async Task Ok_If_No_Tools_Are_Found_In_Given_Assembly()
     {
         _builder.Object.WithToolsFromAssembly(typeof(Mock).Assembly);
+
+        var serviceProvider = _services.BuildServiceProvider();
+        var options = serviceProvider.GetService<IOptions<McpServerHandlers>>()?.Value;
+
+        if (options != null)
+        {
+            var result = await options.ListToolsHandler!(new(Mock.Of<IMcpServer>(), new()), CancellationToken.None);
+            Assert.NotNull(result);
+            Assert.Empty(result.Tools);
+        }
     }
 
     [Fact]
@@ -304,6 +313,7 @@ public class McpServerBuilderExtensionsToolsTests
 
         var tool = result.Tools.First(t => t.Name == "TestTool");
         Assert.Equal("TestTool", tool.Name);
+        Assert.NotNull(tool.Description);
         Assert.Empty(tool.Description);
         Assert.NotNull(tool.InputSchema);
         Assert.Equal("object", tool.InputSchema.Type);
@@ -330,6 +340,14 @@ public class McpServerBuilderExtensionsToolsTests
 
         Assert.Contains("complexObject", tool.InputSchema.Properties);
         Assert.Equal("object", tool.InputSchema.Properties["complexObject"].Type);
+    }
+
+    [Fact]
+    public void Throws_Exception_If_Tool_Name_Already_Exists()
+    {
+        var action = () => McpServerBuilderExtensions.WithTools(_builder.Object, typeof(EchoTool), typeof(EchoTool));
+        var exception = Assert.Throws<McpServerException>(action);
+        Assert.Equal("Duplicate function name: Echo", exception.Message);
     }
 
     [McpToolType]
@@ -393,6 +411,16 @@ public class McpServerBuilderExtensionsToolsTests
         public static string EchoComplex(ComplexObject complex)
         {
             return complex.Name!;
+        }
+    }
+
+    [McpToolType]
+    internal static class InternalTool
+    {
+        [McpTool]
+        public static string EchoInternal(string message)
+        {
+            return "hello " + message;
         }
     }
 

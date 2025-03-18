@@ -7,7 +7,6 @@ using McpDotNet.Tests.Utils;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Diagnostics;
 
 namespace McpDotNet.Tests.Server;
 
@@ -360,7 +359,7 @@ public class McpServerTests
                     },
                     ListResourcesHandler = (request, ct) => throw new NotImplementedException(),
                 }
-            }, 
+            },
             method: "resources/read",
             configureOptions: null,
             assertResult: response =>
@@ -421,7 +420,7 @@ public class McpServerTests
     public async Task Can_Handle_Get_Prompts_Requests()
     {
         await Can_Handle_Requests(
-            new ServerCapabilities 
+            new ServerCapabilities
             {
                 Prompts = new()
                 {
@@ -450,7 +449,7 @@ public class McpServerTests
     public async Task Can_Handle_List_Tools_Requests()
     {
         await Can_Handle_Requests(
-            new ServerCapabilities 
+            new ServerCapabilities
             {
                 Tools = new()
                 {
@@ -499,7 +498,7 @@ public class McpServerTests
                     },
                     ListToolsHandler = (request, ct) => throw new NotImplementedException(),
                 }
-            }, 
+            },
             method: "tools/call",
             configureOptions: null,
             assertResult: response =>
@@ -603,7 +602,7 @@ public class McpServerTests
             supportsSampling ? new ClientCapabilities { Sampling = new SamplingCapability() } :
             null;
 
-        public async Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
+        public Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
         {
             CreateMessageRequestParams rp = Assert.IsType<CreateMessageRequestParams>(request.Params);
 
@@ -627,7 +626,7 @@ public class McpServerTests
                 Role = "assistant",
                 StopReason = "endTurn",
             };
-            return (T)(object)result;
+            return Task.FromResult((T)(object)result);
         }
 
         public ValueTask DisposeAsync() => default;
@@ -636,7 +635,7 @@ public class McpServerTests
 
         public Implementation? ClientInfo => throw new NotImplementedException();
         public IServiceProvider? ServiceProvider => throw new NotImplementedException();
-        public void AddNotificationHandler(string method, Func<JsonRpcNotification, Task> handler) => 
+        public void AddNotificationHandler(string method, Func<JsonRpcNotification, Task> handler) =>
             throw new NotImplementedException();
         public Task SendMessageAsync(IJsonRpcMessage message, CancellationToken cancellationToken = default) =>
             throw new NotImplementedException();

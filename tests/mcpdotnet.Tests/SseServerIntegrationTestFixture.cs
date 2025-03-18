@@ -1,14 +1,14 @@
-﻿using McpDotNet.Client;
+﻿using System.Diagnostics;
+using McpDotNet.Client;
 using McpDotNet.Configuration;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace McpDotNet.Tests;
 
 public class SseServerIntegrationTestFixture : IDisposable
 {
-    private Process _process;
+    private Process? _process;
 
     public ILoggerFactory LoggerFactory { get; }
     public McpClientOptions DefaultOptions { get; }
@@ -68,7 +68,7 @@ public class SseServerIntegrationTestFixture : IDisposable
         finally
         {
             // Kill the server process
-            _process.Kill();
+            _process?.Kill();
         }
     }
 }
