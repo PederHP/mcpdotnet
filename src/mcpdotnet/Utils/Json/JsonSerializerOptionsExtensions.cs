@@ -11,8 +11,11 @@ namespace McpDotNet.Utils.Json;
 /// <summary>
 /// Extensions for configuring System.Text.Json serialization options for MCP.
 /// </summary>
-internal static partial class JsonSerializerOptionsExtensions
+public static partial class JsonSerializerOptionsExtensions
 {
+    /// <summary>
+    /// Gets the default options to use for MCP-related serialization.
+    /// </summary>
     public static JsonSerializerOptions DefaultOptions { get; } = CreateDefaultOptions();
 
     /// <summary>
