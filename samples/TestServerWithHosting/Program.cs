@@ -17,16 +17,9 @@ try
 
     var builder = Host.CreateApplicationBuilder(args);
     builder.Services.AddSerilog();
-    builder.Services.AddMcpServer(options =>
-    {
-        options.Capabilities = new()
-        {
-            Tools = new()
-        };
-    })
-    .WithStdioServerTransport()
-    .WithTools();
-    //.WithCallToolHandler((r, ct) => Task.FromResult(new McpDotNet.Protocol.Types.CallToolResponse()));
+    builder.Services.AddMcpServer()
+        .WithStdioServerTransport()
+        .WithTools();
 
     var app = builder.Build();
 

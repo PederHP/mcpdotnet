@@ -23,10 +23,10 @@ public static class McpServerServiceCollectionExtension
         services.AddSingleton(services =>
         {
             IServerTransport serverTransport = services.GetRequiredService<IServerTransport>();
-            McpServerOptions options = services.GetRequiredService<McpServerOptions>();
+            IOptions<McpServerOptions> options = services.GetRequiredService<IOptions<McpServerOptions>>();
             ILoggerFactory? loggerFactory = services.GetService<ILoggerFactory>();
 
-            return McpServerFactory.Create(serverTransport, options, loggerFactory, services);
+            return McpServerFactory.Create(serverTransport, options.Value, loggerFactory, services);
         });
 
         services.AddOptions();

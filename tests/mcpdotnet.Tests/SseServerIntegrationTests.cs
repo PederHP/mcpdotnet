@@ -12,13 +12,21 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         _fixture = fixture;
     }
 
+    private Task<IMcpClient> GetClientAsync(McpClientOptions? options = null)
+    {
+        return McpClientFactory.CreateAsync(
+            _fixture.DefaultConfig,
+            options ?? _fixture.DefaultOptions,
+            loggerFactory: _fixture.LoggerFactory);
+    }
+
     [Fact]
     public async Task ConnectAndPing_Sse_TestServer()
     {
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         await client.PingAsync(CancellationToken.None);
 
         // Assert
@@ -31,7 +39,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // Arrange
 
         // Act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
 
         // Assert
         Assert.NotNull(client.ServerCapabilities);
@@ -44,7 +52,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         var tools = await client.ListToolsAsync().ToListAsync();
 
         // assert
@@ -57,7 +65,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         var result = await client.CallToolAsync(
             "echo",
             new Dictionary<string, object>
@@ -80,7 +88,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
 
         List<Resource> allResources = [];
         string? cursor = null;
@@ -102,7 +110,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         // Odd numbered resources are text in the everything server (despite the docs saying otherwise)
         // 1 is index 0, which is "even" in the 0-based index
         // We copied this oddity to the test server
@@ -119,7 +127,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         // Even numbered resources are binary in the everything server (despite the docs saying otherwise)
         // 2 is index 1, which is "odd" in the 0-based index
         // We copied this oddity to the test server
@@ -136,7 +144,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         var prompts = await client.ListPromptsAsync().ToListAsync();
 
         // assert
@@ -153,7 +161,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         var result = await client.GetPromptAsync("simple_prompt", null, CancellationToken.None);
 
         // assert
@@ -167,7 +175,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         var arguments = new Dictionary<string, object>
         {
             { "temperature", "0.7" },
@@ -186,7 +194,7 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
         // arrange
 
         // act
-        var client = await _fixture.Factory.GetClientAsync("test_server");
+        var client = await GetClientAsync();
         await Assert.ThrowsAsync<McpClientException>(() =>
             client.GetPromptAsync("non_existent_prompt", null, CancellationToken.None));
     }
@@ -194,26 +202,34 @@ public class SseServerIntegrationTests : IClassFixture<SseServerIntegrationTestF
     [Fact]
     public async Task Sampling_Sse_TestServer()
     {
-        // arrange        
-        var client = await _fixture.Factory.GetClientAsync("test_server");
-
+        // arrange
         // Set up the sampling handler
         int samplingHandlerCalls = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.SetSamplingHandler(async (_, _) =>
+        var options =  _fixture.DefaultOptions with
         {
-            samplingHandlerCalls++;
-            return new CreateMessageResult
+            Capabilities = new()
             {
-                Model = "test-model",
-                Role = "assistant",
-                Content = new Content
+                Sampling = new()
                 {
-                    Type = "text",
-                    Text = "Test response"
+                    SamplingHandler = async (_, _) =>
+                    {
+                        samplingHandlerCalls++;
+                        return new CreateMessageResult
+                        {
+                            Model = "test-model",
+                            Role = "assistant",
+                            Content = new Content
+                            {
+                                Type = "text",
+                                Text = "Test response"
+                            }
+                        };
+                    }
                 }
-            };
-        });
+            }
+        };
+        var client = await GetClientAsync(options);
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
         // Call the server's sampleLLM tool which should trigger our sampling handler
