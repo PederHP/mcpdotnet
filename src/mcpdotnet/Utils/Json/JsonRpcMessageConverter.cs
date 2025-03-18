@@ -84,7 +84,7 @@ public sealed class JsonRpcMessageConverter : JsonConverter<IJsonRpcMessage>
                 JsonSerializer.Serialize(writer, response, options.GetTypeInfo<JsonRpcResponse>());
                 break;
             case JsonRpcError error:
-                JsonSerializer.Serialize(writer, error, options.GetTypeInfo<JsonRpcResponse>());
+                JsonSerializer.Serialize(writer, error, options.GetTypeInfo<JsonRpcError>());
                 break;
             default:
                 throw new JsonException($"Unknown JSON-RPC message type: {value.GetType()}");
