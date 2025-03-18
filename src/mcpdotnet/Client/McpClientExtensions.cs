@@ -1,6 +1,7 @@
 ﻿using McpDotNet.Protocol.Messages;
 using McpDotNet.Protocol.Types;
 using McpDotNet.Utils;
+using McpDotNet.Utils.Json;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -465,6 +466,8 @@ public static class McpClientExtensions
     /// <summary>Provides an AI function that calls a tool through <see cref="IMcpClient"/>.</summary>
     private sealed class McpAIFunction(IMcpClient client, Tool tool) : AIFunction
     {
+        private JsonElement? _jsonSchema;
+
         /// <inheritdoc/>
         public override string Name => tool.Name;
 
@@ -472,7 +475,7 @@ public static class McpClientExtensions
         public override string Description => tool.Description ?? string.Empty;
 
         /// <inheritdoc/>
-        public override JsonElement JsonSchema =>
+        public override JsonElement JsonSchema => _jsonSchema ??=
             JsonSerializer.SerializeToElement(new Dictionary<string, object>
             {
                 ["type"] = "object",
@@ -480,7 +483,7 @@ public static class McpClientExtensions
                 ["description"] = tool.Description ?? string.Empty,
                 ["properties"] = tool.InputSchema?.Properties ?? [],
                 ["required"] = tool.InputSchema?.Required ?? []
-            });
+            }, JsonSerializerOptionsExtensions.JsonContext.Default.DictionaryStringObject);
 
         /// <inheritdoc/>
         protected async override Task<object?> InvokeCoreAsync(
@@ -498,8 +501,7 @@ public static class McpClientExtensions
             }
 
             CallToolResponse result = await client.CallToolAsync(tool.Name, argDict, cancellationToken).ConfigureAwait(false);
-
-            return JsonSerializer.SerializeToElement(result);
+            return JsonSerializer.SerializeToElement(result, JsonSerializerOptionsExtensions.JsonContext.Default.CallToolResponse);
         }
     }
 }

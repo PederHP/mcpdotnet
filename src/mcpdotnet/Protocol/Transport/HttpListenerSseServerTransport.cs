@@ -77,7 +77,7 @@ public sealed class HttpListenerSseServerTransport : TransportBase, IServerTrans
 
         try
         {
-            var json = JsonSerializer.Serialize(message, _jsonOptions);
+            var json = JsonSerializer.Serialize(message, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             _logger.TransportSendingMessage(EndpointName, id, json);
 
             await _httpServerProvider.SendEvent(json, "message").ConfigureAwait(false);
@@ -125,7 +125,7 @@ public sealed class HttpListenerSseServerTransport : TransportBase, IServerTrans
 
         try
         {
-            var message = JsonSerializer.Deserialize<IJsonRpcMessage>(request, _jsonOptions);
+            var message = JsonSerializer.Deserialize(request, _jsonOptions.GetTypeInfo<IJsonRpcMessage>());
             if (message != null)
             {
                 // Fire-and-forget the message to the message channel

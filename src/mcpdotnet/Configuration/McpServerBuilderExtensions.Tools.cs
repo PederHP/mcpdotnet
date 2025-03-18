@@ -2,9 +2,9 @@
 using McpDotNet.Protocol.Types;
 using McpDotNet.Server;
 using McpDotNet.Utils;
-
+using McpDotNet.Utils.Json;
 using Microsoft.Extensions.AI;
-
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 
@@ -15,21 +15,28 @@ namespace McpDotNet;
 /// </summary>
 public static partial class McpServerBuilderExtensions
 {
+    private const string RequiresUnreferencedCodeMessage = "This method requires dynamic lookup of method metadata and might not work in Native AOT.";
+
     /// <summary>
     /// Adds a tool to the server.
     /// </summary>
     /// <typeparam name="TTool">The tool type.</typeparam>
     /// <param name="builder">The builder instance.</param>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
-    public static IMcpServerBuilder WithTool<TTool>(this IMcpServerBuilder builder)
+    public static IMcpServerBuilder WithTool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TTool>(this IMcpServerBuilder builder)
     {
-        return WithTools(builder, typeof(TTool));
+        Throw.IfNull(builder);
+        List<AIFunction> functions = [];
+
+        PopulateFunctions(typeof(TTool), functions);
+        return WithTools(builder, functions);
     }
     /// <summary>
     /// Adds all tools marked with <see cref="McpToolTypeAttribute"/> from the current assembly to the server.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder)
     {
         return WithToolsFromAssembly(builder, Assembly.GetCallingAssembly());
@@ -42,6 +49,7 @@ public static partial class McpServerBuilderExtensions
     /// <param name="toolTypes">Types with marked methods to add as tools to the server.</param>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="toolTypes"/> is <see langword="null"/>.</exception>
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IMcpServerBuilder WithTools(this IMcpServerBuilder builder, params IEnumerable<Type> toolTypes)
     {
         Throw.IfNull(builder);
@@ -56,18 +64,7 @@ public static partial class McpServerBuilderExtensions
                 throw new ArgumentNullException(nameof(toolTypes), $"A tool type provided by the enumerator was null.");
             }
 
-            foreach (var method in toolType.GetMethods(BindingFlags.Public | BindingFlags.Static))
-            {
-                if (method.GetCustomAttribute<McpToolAttribute>() is not { } attribute)
-                {
-                    continue;
-                }
-
-                functions.Add(AIFunctionFactory.Create(method, target: null, new()
-                {
-                    Name = attribute.Name ?? method.Name,
-                }));
-            }
+            PopulateFunctions(toolType, functions);
         }
 
         return WithTools(builder, functions);
@@ -99,7 +96,7 @@ public static partial class McpServerBuilderExtensions
             {
                 Name = function.Name,
                 Description = function.Description,
-                InputSchema = JsonSerializer.Deserialize<JsonSchema>(function.JsonSchema),
+                InputSchema = JsonSerializer.Deserialize(function.JsonSchema, JsonSerializerOptionsExtensions.JsonContext.Default.JsonSchema),
             });
 
             callbacks.Add(function.Name, async (request, cancellationToken) =>
@@ -155,6 +152,7 @@ public static partial class McpServerBuilderExtensions
     /// <param name="builder">The builder instance.</param>
     /// <param name="assembly">The assembly to load the types from. Null to get the current assembly</param>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IMcpServerBuilder WithToolsFromAssembly(this IMcpServerBuilder builder, Assembly? assembly = null)
     {
         assembly ??= Assembly.GetCallingAssembly();
@@ -181,5 +179,23 @@ public static partial class McpServerBuilderExtensions
         return toolTypes.Count > 0 ?
             WithTools(builder, toolTypes) :
             builder;
+    }
+
+    private static void PopulateFunctions(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type toolType, 
+        List<AIFunction> functions)
+    {
+        foreach (var method in toolType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (method.GetCustomAttribute<McpToolAttribute>() is not { } attribute)
+            {
+                continue;
+            }
+
+            functions.Add(AIFunctionFactory.Create(method, target: null, new()
+            {
+                Name = attribute.Name ?? method.Name,
+            }));
+        }
     }
 }

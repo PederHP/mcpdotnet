@@ -603,7 +603,7 @@ public class McpServerTests
             supportsSampling ? new ClientCapabilities { Sampling = new SamplingCapability() } :
             null;
 
-        public async Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
+        public Task<T> SendRequestAsync<T>(JsonRpcRequest request, CancellationToken cancellationToken) where T : class
         {
             CreateMessageRequestParams rp = Assert.IsType<CreateMessageRequestParams>(request.Params);
 
@@ -627,7 +627,7 @@ public class McpServerTests
                 Role = "assistant",
                 StopReason = "endTurn",
             };
-            return (T)(object)result;
+            return Task.FromResult((T)(object)result);
         }
 
         public ValueTask DisposeAsync() => default;

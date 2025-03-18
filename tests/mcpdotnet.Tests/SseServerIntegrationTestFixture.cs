@@ -3,6 +3,7 @@ using McpDotNet.Configuration;
 using McpDotNet.Protocol.Transport;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace McpDotNet.Tests;
 
@@ -37,6 +38,7 @@ public class SseServerIntegrationTestFixture : IDisposable
         Start();
     }
 
+    [MemberNotNull(nameof(_process))]
     public void Start()
     {
         // Start the server (which is at TestSseServer.exe on windows and "dotnet TestSseServer.dll" on linux)

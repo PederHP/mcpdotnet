@@ -287,7 +287,7 @@ public class McpServerBuilderExtensionsToolsTests
 
         var tool = result.Tools.First(t => t.Name == "TestTool");
         Assert.Equal("TestTool", tool.Name);
-        Assert.Empty(tool.Description);
+        Assert.Empty(tool.Description!);
         Assert.NotNull(tool.InputSchema);
         Assert.Equal("object", tool.InputSchema.Type);
         Assert.NotNull(tool.InputSchema.Properties);
