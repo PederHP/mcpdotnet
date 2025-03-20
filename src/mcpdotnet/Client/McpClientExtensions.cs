@@ -52,7 +52,7 @@ public static class McpClientExtensions
     /// <param name="client">The client.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An asynchronous sequence of tool information.</returns>
-    public static async IAsyncEnumerable<Tool> ListToolsAsync(
+    public static async IAsyncEnumerable<McpFunction> ListToolsAsync(
         this IMcpClient client, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         string? cursor = null;
@@ -76,13 +76,15 @@ public static class McpClientExtensions
     /// <param name="cursor">A cursor to paginate the results.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task containing the server's response with tool information.</returns>
-    public static Task<ListToolsResult> ListToolsAsync(this IMcpClient client, string? cursor, CancellationToken cancellationToken = default)
+    public static async Task<ListToolsResult> ListToolsAsync(this IMcpClient client, string? cursor, CancellationToken cancellationToken = default)
     {
         Throw.IfNull(client);
 
-        return client.SendRequestAsync<ListToolsResult>(
+        var result = await client.SendRequestAsync<ListToolsResult>(
             CreateRequest("tools/list", CreateCursorDictionary(cursor)),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        result.Tools.ForEach(t => t.Client = client);
+        return result;
     }
 
     /// <summary>
@@ -269,39 +271,6 @@ public static class McpClientExtensions
             cancellationToken);
     }
 
-    /// <summary>Gets <see cref="AIFunction"/> instances for all of the tools available through the specified <see cref="IMcpClient"/>.</summary>
-    /// <param name="client">The client for which <see cref="AIFunction"/> instances should be created.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task containing a list of the available functions.</returns>
-    public static async Task<IList<AIFunction>> GetAIFunctionsAsync(this IMcpClient client, CancellationToken cancellationToken = default)
-    {
-        Throw.IfNull(client);
-
-        List<AIFunction> functions = [];
-        await foreach (var tool in client.ListToolsAsync(cancellationToken).ConfigureAwait(false))
-        {
-            functions.Add(AsAIFunction(client, tool));
-        }
-
-        return functions;
-    }
-
-    /// <summary>Gets an <see cref="AIFunction"/> for invoking <see cref="Tool"/> via this <see cref="IMcpClient"/>.</summary>
-    /// <param name="client">The client with which to perform the invocation.</param>
-    /// <param name="tool">The tool to be invoked.</param>
-    /// <returns>An <see cref="AIFunction"/> for performing the call.</returns>
-    /// <remarks>
-    /// This operation does not validate that <paramref name="tool"/> is valid for the specified <paramref name="client"/>.
-    /// If the tool is not valid for the client, it will fail when invoked.
-    /// </remarks>
-    public static AIFunction AsAIFunction(this IMcpClient client, Tool tool)
-    {
-        Throw.IfNull(client);
-        Throw.IfNull(tool);
-
-        return new McpAIFunction(client, tool);
-    }
-
     /// <summary>
     /// Converts the contents of a <see cref="CreateMessageRequestParams"/> into a pair of
     /// <see cref="IEnumerable{ChatMessage}"/> and <see cref="ChatOptions"/> instances to use
@@ -461,47 +430,5 @@ public static class McpClientExtensions
         }
 
         return parameters;
-    }
-
-    /// <summary>Provides an AI function that calls a tool through <see cref="IMcpClient"/>.</summary>
-    private sealed class McpAIFunction(IMcpClient client, Tool tool) : AIFunction
-    {
-        private JsonElement? _jsonSchema;
-
-        /// <inheritdoc/>
-        public override string Name => tool.Name;
-
-        /// <inheritdoc/>
-        public override string Description => tool.Description ?? string.Empty;
-
-        /// <inheritdoc/>
-        public override JsonElement JsonSchema => _jsonSchema ??=
-            JsonSerializer.SerializeToElement(new Dictionary<string, object>
-            {
-                ["type"] = "object",
-                ["title"] = tool.Name,
-                ["description"] = tool.Description ?? string.Empty,
-                ["properties"] = tool.InputSchema?.Properties ?? [],
-                ["required"] = tool.InputSchema?.Required ?? []
-            }, JsonSerializerOptionsExtensions.JsonContext.Default.DictionaryStringObject);
-
-        /// <inheritdoc/>
-        protected async override Task<object?> InvokeCoreAsync(
-            IEnumerable<KeyValuePair<string, object?>> arguments, CancellationToken cancellationToken)
-        {
-            Throw.IfNull(arguments);
-
-            Dictionary<string, object> argDict = [];
-            foreach (var arg in arguments)
-            {
-                if (arg.Value is not null)
-                {
-                    argDict[arg.Key] = arg.Value;
-                }
-            }
-
-            CallToolResponse result = await client.CallToolAsync(tool.Name, argDict, cancellationToken).ConfigureAwait(false);
-            return JsonSerializer.SerializeToElement(result, JsonSerializerOptionsExtensions.JsonContext.Default.CallToolResponse);
-        }
     }
 }

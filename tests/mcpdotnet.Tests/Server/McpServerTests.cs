@@ -458,7 +458,7 @@ public class McpServerTests
                     {
                         return Task.FromResult(new ListToolsResult
                         {
-                            Tools = [new() { Name = "test" }]
+                            Tools = [new("test", default, default)]
                         });
                     },
                     CallToolHandler = (request, ct) => throw new NotImplementedException(),

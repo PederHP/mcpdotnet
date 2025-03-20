@@ -82,7 +82,7 @@ public static partial class McpServerBuilderExtensions
         Throw.IfNull(builder);
         Throw.IfNull(functions);
 
-        List<Tool> tools = [];
+        List<McpFunction> tools = [];
         Dictionary<string, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>> callbacks = [];
 
         foreach (AIFunction function in functions)
@@ -92,13 +92,7 @@ public static partial class McpServerBuilderExtensions
                 throw new ArgumentNullException(nameof(functions), $"A function provided by the enumerator was null.");
             }
 
-            tools.Add(new()
-            {
-                Name = function.Name,
-                Description = function.Description,
-                InputSchema = JsonSerializer.Deserialize(function.JsonSchema, JsonSerializerOptionsExtensions.JsonContext.Default.JsonSchema),
-            });
-
+            tools.Add(new(function.Name, function.Description, function.JsonSchema));
             callbacks.Add(function.Name, async (request, cancellationToken) =>
             {
                 cancellationToken.ThrowIfCancellationRequested();

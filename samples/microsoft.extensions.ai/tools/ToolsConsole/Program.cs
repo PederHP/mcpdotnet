@@ -11,8 +11,7 @@ try
 
     Console.WriteLine("MCP 'everything' server initialized");
     Console.WriteLine("Listing tools...");
-    var mappedTools = await client.GetAIFunctionsAsync();
-    
+    var mappedTools = await client.ListToolsAsync().ToListAsync();
     Console.WriteLine("Tools available:");
     foreach (var tool in mappedTools)
     {

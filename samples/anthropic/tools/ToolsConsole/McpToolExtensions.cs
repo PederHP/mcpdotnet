@@ -6,7 +6,7 @@ namespace McpDotNet;
 
 public static class McpToolExtensions
 {
-    public static IList<Anthropic.SDK.Common.Tool> ToAnthropicTools(this IEnumerable<McpDotNet.Protocol.Types.Tool> tools)
+    public static IList<Anthropic.SDK.Common.Tool> ToAnthropicTools(this IEnumerable<McpDotNet.Protocol.Types.McpFunction> tools)
     {
         if (tools is null)
         {
@@ -16,9 +16,9 @@ public static class McpToolExtensions
         List<Anthropic.SDK.Common.Tool> result = [];
         foreach (var tool in tools)
         {
-            var function = tool.InputSchema == null
+            var function = tool.JsonSchema.GetPropertyCount() == 0
                 ? new Function(tool.Name, tool.Description)
-                : new Function(tool.Name, tool.Description, JsonSerializer.Serialize(tool.InputSchema));
+                : new Function(tool.Name, tool.Description, JsonSerializer.Serialize(tool.JsonSchema));
             result.Add(function);
         }
         return result;

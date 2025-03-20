@@ -4,6 +4,7 @@ using McpDotNet.Server;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System.Text;
+using System.Text.Json;
 
 internal class Program
 {
@@ -107,6 +108,37 @@ internal class Program
 
         const int pageSize = 10;
 
+        const string echoSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "The input to echo back."
+                    }
+                }
+            }
+            """;
+
+        const string sampleLLMSchema = """
+            {
+                "type": "object",
+                "properties": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "The prompt to send to the LLM"
+                        },
+                        "maxTokens": {
+                            "type": "number",
+                            "description": "Maximum number of tokens to generate"
+                        }
+                    }
+                }
+            }
+            """;
+
         options.Capabilities = new()
         {
             Tools = new()
@@ -115,35 +147,10 @@ internal class Program
                 {
                     return Task.FromResult(new ListToolsResult()
                     {
-                        Tools = 
+                        Tools =
                         [
-                            new Tool()                
-                            {
-                                Name = "echo",
-                                Description = "Echoes the input back to the client.",
-                                InputSchema = new JsonSchema()
-                                {
-                                    Type = "object",
-                                    Properties = new Dictionary<string, JsonSchemaProperty>()
-                                    {
-                                        ["message"] = new JsonSchemaProperty() { Type = "string", Description = "The input to echo back." }
-                                    }
-                                },
-                            },
-                            new Tool()
-                            {
-                                Name = "sampleLLM",
-                                Description = "Samples from an LLM using MCP's sampling feature.",
-                                InputSchema = new JsonSchema()
-                                {
-                                    Type = "object",
-                                    Properties = new Dictionary<string, JsonSchemaProperty>()
-                                    {
-                                        ["prompt"] = new JsonSchemaProperty() { Type = "string", Description = "The prompt to send to the LLM" },
-                                        ["maxTokens"] = new JsonSchemaProperty() { Type = "number", Description = "Maximum number of tokens to generate" }
-                                    }
-                                },
-                            }
+                            new McpFunction("echo", "Echoes the input back to the client.", JsonDocument.Parse(echoSchema).RootElement),
+                            new McpFunction("sampleLLM","Samples from an LLM using MCP's sampling feature.",JsonDocument.Parse(sampleLLMSchema).RootElement)
                         ]
                     });
                 },
