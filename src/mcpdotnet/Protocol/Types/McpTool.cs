@@ -1,6 +1,6 @@
 ﻿using McpDotNet.Client;
-using McpDotNet.Utils.Json;
 using McpDotNet.Utils;
+using McpDotNet.Utils.Json;
 using Microsoft.Extensions.AI;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,8 +11,8 @@ namespace McpDotNet.Protocol.Types;
 /// Represents a tool that the server is capable of calling. Part of the ListToolsResponse.
 /// <see href="https://github.com/modelcontextprotocol/specification/blob/main/schema/2024-11-05/schema.json">See the schema for details</see>
 /// </summary>
-[JsonConverter(typeof(McpFunctionConverter))]
-public class McpFunction(string name, string? description, JsonElement? inputSchema) : AIFunction
+[JsonConverter(typeof(McpToolConverter))]
+public class McpTool(string name, string? description, JsonElement? inputSchema) : AIFunction
 {
     /// <inheritdoc/>
     public override string Name => name;

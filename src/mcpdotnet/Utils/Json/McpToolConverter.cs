@@ -5,12 +5,12 @@ using McpDotNet.Protocol.Types;
 namespace McpDotNet.Utils.Json;
 
 /// <summary>
-/// Json converter for <see cref="McpFunction"/>.
+/// Json converter for <see cref="McpTool"/>.
 /// </summary>
-public sealed class McpFunctionConverter : JsonConverter<McpFunction>
+public sealed class McpToolConverter : JsonConverter<McpTool>
 {
     /// <inheritdoc/>
-    public override McpFunction? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override McpTool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
@@ -38,7 +38,7 @@ public sealed class McpFunctionConverter : JsonConverter<McpFunction>
                     }
                 }
 
-                return new McpFunction(name!, description, inputSchema);
+                return new McpTool(name!, description, inputSchema);
             }
 
             if (reader.TokenType != JsonTokenType.PropertyName)
@@ -69,7 +69,7 @@ public sealed class McpFunctionConverter : JsonConverter<McpFunction>
     }
 
     /// <inheritdoc/>
-    public override void Write(Utf8JsonWriter writer, McpFunction value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, McpTool value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
         writer.WriteString("name", value.Name);

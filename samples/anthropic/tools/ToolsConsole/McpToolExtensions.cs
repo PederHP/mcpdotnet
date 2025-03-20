@@ -6,7 +6,7 @@ namespace McpDotNet;
 
 public static class McpToolExtensions
 {
-    public static IList<Anthropic.SDK.Common.Tool> ToAnthropicTools(this IEnumerable<McpDotNet.Protocol.Types.McpFunction> tools)
+    public static IList<Anthropic.SDK.Common.Tool> ToAnthropicTools(this IEnumerable<McpDotNet.Protocol.Types.McpTool> tools)
     {
         if (tools is null)
         {

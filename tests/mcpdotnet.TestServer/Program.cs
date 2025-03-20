@@ -119,8 +119,8 @@ internal static class Program
                 {
                     Tools =
                     [
-                        new McpFunction("echo", "Echoes the input back to the client.", JsonDocument.Parse(echoSchema).RootElement),
-                        new McpFunction("sampleLLM","Samples from an LLM using MCP's sampling feature.",JsonDocument.Parse(sampleLLMSchema).RootElement)
+                        new McpTool("echo", "Echoes the input back to the client.", JsonDocument.Parse(echoSchema).RootElement),
+                        new McpTool("sampleLLM","Samples from an LLM using MCP's sampling feature.",JsonDocument.Parse(sampleLLMSchema).RootElement)
                     ]
                 });
             },

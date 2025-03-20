@@ -82,7 +82,7 @@ public static partial class McpServerBuilderExtensions
         Throw.IfNull(builder);
         Throw.IfNull(functions);
 
-        List<McpFunction> tools = [];
+        List<McpTool> tools = [];
         Dictionary<string, Func<RequestContext<CallToolRequestParams>, CancellationToken, Task<CallToolResponse>>> callbacks = [];
 
         foreach (AIFunction function in functions)

@@ -52,7 +52,7 @@ public static class McpClientExtensions
     /// <param name="client">The client.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An asynchronous sequence of tool information.</returns>
-    public static async IAsyncEnumerable<McpFunction> ListToolsAsync(
+    public static async IAsyncEnumerable<McpTool> ListToolsAsync(
         this IMcpClient client, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         string? cursor = null;
