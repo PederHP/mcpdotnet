@@ -77,6 +77,19 @@ public static partial class McpServerBuilderExtensions
     }
 
     /// <summary>
+    /// Sets the handler for list resource templates requests.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="handler">The handler.</param>
+    public static IMcpServerBuilder WithListResourceTemplatesHandler(this IMcpServerBuilder builder, Func<RequestContext<ListResourceTemplatesRequestParams>, CancellationToken, Task<ListResourceTemplatesResult>> handler)
+    {
+        Throw.IfNull(builder);
+
+        builder.Services.Configure<McpServerHandlers>(s => s.ListResourceTemplatesHandler = handler);
+        return builder;
+    }
+
+    /// <summary>
     /// Sets the handler for read resources requests.
     /// </summary>
     /// <param name="builder">The builder instance.</param>

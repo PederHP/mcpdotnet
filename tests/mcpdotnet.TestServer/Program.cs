@@ -302,6 +302,21 @@ internal static class Program
 
         return new()
         {
+            ListResourceTemplatesHandler = (request, cancellationToken) =>
+            {
+
+                return Task.FromResult(new ListResourceTemplatesResult()
+                {
+                    ResourceTemplates = [
+                        new ResourceTemplate()
+                        {
+                            UriTemplate = "test://dynamic/resource/{id}",
+                            Name = "Dynamic Resource",
+                        }
+                    ]
+                });
+            },
+
             ListResourcesHandler = (request, cancellationToken) =>
             {
                 int startIndex = 0;
@@ -338,6 +353,28 @@ internal static class Program
                 {
                     throw new McpServerException("Missing required argument 'uri'");
                 }
+
+                if (request.Params.Uri.StartsWith("test://dynamic/resource/"))
+                {
+                    var id = request.Params.Uri.Split('/').LastOrDefault();
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        throw new McpServerException("Invalid resource URI");
+                    }
+                    return Task.FromResult(new ReadResourceResult()
+                    {
+                        Contents = [
+                            new ResourceContents()
+                            {
+                                Uri = request.Params.Uri,
+                                MimeType = "text/plain",
+                                Text = $"Dynamic resource {id}: This is a plaintext resource"
+                            }
+                        ]
+                    });
+                }
+
+
                 ResourceContents contents = resourceContents.FirstOrDefault(r => r.Uri == request.Params.Uri)
                     ?? throw new McpServerException("Resource not found");
 
@@ -353,7 +390,9 @@ internal static class Program
                 {
                     throw new McpServerException("Missing required argument 'uri'");
                 }
-                if (!request.Params.Uri.StartsWith("test://static/resource/"))
+
+                if (!request.Params.Uri.StartsWith("test://static/resource/")
+                    && !request.Params.Uri.StartsWith("test://dynamic/resource/"))
                 {
                     throw new McpServerException("Invalid resource URI");
                 }
@@ -372,7 +411,8 @@ internal static class Program
                 {
                     throw new McpServerException("Missing required argument 'uri'");
                 }
-                if (!request.Params.Uri.StartsWith("test://static/resource/"))
+                if (!request.Params.Uri.StartsWith("test://static/resource/")
+                    && !request.Params.Uri.StartsWith("test://dynamic/resource/"))
                 {
                     throw new McpServerException("Invalid resource URI");
                 }

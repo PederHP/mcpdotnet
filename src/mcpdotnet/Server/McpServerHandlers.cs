@@ -28,6 +28,11 @@ public sealed class McpServerHandlers
     public Func<RequestContext<GetPromptRequestParams>, CancellationToken, Task<GetPromptResult>>? GetPromptHandler { get; set; }
 
     /// <summary>
+    /// Gets or sets the handler for list resource templates requests.
+    /// </summary>
+    public Func<RequestContext<ListResourceTemplatesRequestParams>, CancellationToken, Task<ListResourceTemplatesResult>>? ListResourceTemplatesHandler { get; set; }
+
+    /// <summary>
     /// Gets or sets the handler for list resources requests.
     /// </summary>
     public Func<RequestContext<ListResourcesRequestParams>, CancellationToken, Task<ListResourcesResult>>? ListResourcesHandler { get; set; }
@@ -83,11 +88,13 @@ public sealed class McpServerHandlers
                 new()
                 {
                     ListResourcesHandler = ListResourcesHandler,
+                    ListResourceTemplatesHandler = ListResourceTemplatesHandler,
                     ReadResourceHandler = ReadResourceHandler
                 } :
                 resourcesCapability with
                 {
                     ListResourcesHandler = ListResourcesHandler ?? resourcesCapability.ListResourcesHandler,
+                    ListResourceTemplatesHandler = ListResourceTemplatesHandler ?? resourcesCapability.ListResourceTemplatesHandler,
                     ReadResourceHandler = ReadResourceHandler ?? resourcesCapability.ReadResourceHandler
                 };
 
