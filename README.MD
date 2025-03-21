@@ -1,3 +1,11 @@
+# ⚠️ REPOSITORY MOVED ⚠️
+
+**This repository has been adopted as the foundations of the official C# SDK for the Model Context Protocol and moved to [https://github.com/modelcontextprotocol/csharp-sdk](https://github.com/modelcontextprotocol/csharp-sdk).**
+
+**Please use the official repository for all new issues, pull requests, and development. This repository is kept for historical purposes but is no longer actively maintained.**
+
+---
+
 # mcpdotnet
 [![NuGet version](https://img.shields.io/nuget/v/mcpdotnet.svg)](https://www.nuget.org/packages/mcpdotnet/)
 ![Build](https://github.com/PederHP/mcpdotnet/actions/workflows/ci.yml/badge.svg?branch=main)
